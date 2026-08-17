@@ -1,6 +1,39 @@
-.DS_Store
+# Julia / Pkg
+Manifest.toml
+docs/Manifest.toml
+docs/build/
+docs/site/
+
+# Local runs
+data/
+results/
+output/
+.distsshkitqueue/
+
+# Tests & CI artifacts
+.ci-cache/
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
-/docs/build/
-/Manifest.toml
+coverage/
+lcov.info
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*~
+.vscode/settings.json
+
+# Secrets / local tooling
+.env
+.env.*
+!.env.example
+*.pem
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+.cursor/
+
+# Local dev notes (not shared)
+ROADMAP.ja.local.md

@@ -21,7 +21,8 @@ General registry: names ending in lowercase are preferred (`*HPC` is a bad AutoM
 - SSH: new `ssh` per job, same as current `go`. Keepalives only during a long run.
 - Processes (`Distributed.jl`), not threads. Same Pkg/Manifest story as the kit.
 - No HyperQueue / Slurm CLI. Julia in, Julia out.
-- CI later via PkgTemplates, not a copy of DistSSHKit `.github`.
+- House files (LICENSE, docs stub, issue templates) follow DistSSHKit, slimmed.
+- CI later via PkgTemplates, not a copy of DistSSHKit `.github` workflows, slots, bake, or E2E.
 
 ## Non-goals (v1)
 
@@ -29,8 +30,8 @@ General registry: names ending in lowercase are preferred (`*HPC` is a bad AutoM
 - Weakdeps from Queue to Kit (Kit is the engine, not optional glue).
 - Third glue package. Callbacks `() -> go!(...)` can wait.
 - Org account, house CI template (undecided).
-- Public General registration until there is code.
+- Public General registration until there is queue code.
 
 ## GitHub
 
-Private empty repo, then this file. Public later can keep history. DistSSHKit issue #50 is **not** “implement a scheduler in the kit”; do not rewrite #50 as a Queue milestone.
+Private repo with a package shell. Public later can keep history. DistSSHKit issue #50 is **not** “implement a scheduler in the kit”; do not rewrite #50 as a Queue milestone.

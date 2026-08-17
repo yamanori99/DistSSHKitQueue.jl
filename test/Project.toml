@@ -1,0 +1,10 @@
+[deps]
+DistSSHKit = "ceec0504-c968-4be5-b215-667cae0e8f81"
+DistSSHKitQueue = "8551f194-fca2-4af5-ac6e-5751f40b1bc8"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[sources]
+DistSSHKitQueue = {path = ".."}
+
+[compat]
+Test = "1"
