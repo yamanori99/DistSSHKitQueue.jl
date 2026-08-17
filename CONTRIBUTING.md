@@ -8,8 +8,10 @@ This is a **separate** package from DistSSHKit. Do not copy Kit E2E, Julia slots
 
 macOS, Linux, or WSL2 Ubuntu. Not native Windows (the kit shells out to `ssh` / `rsync`).
 
-- Library, `Pkg.test()`, and docs: Julia **1.12+**
-- Hard dependency: DistSSHKit **0.3**
+| What | Need |
+| --- | --- |
+| Library, `Pkg.test()`, docs | Julia **1.12+** |
+| DistSSHKit | **0.3** (hard dependency) |
 
 Prefer [juliaup](https://github.com/JuliaLang/juliaup).
 
@@ -48,18 +50,36 @@ JETLS is the type gate when it is added. Do not commit `.vscode/settings.json` t
 
 Ubuntu: `Pkg.test` on **1.12**, Gitleaks. No slots, no SSH E2E, no Documenter deploy yet.
 
-## Workflow
+## Pull requests
 
-Branch from `main`. Squash-merge only. One reviewable change per PR; split unless `main` would be broken in between. Large plans: [DESIGN.md](DESIGN.md) first, then small PRs. Merged heads are deleted.
+- Branch from `main`. Squash-merge only. Merged heads are deleted.
+- One reviewable change per PR. Split unless `main` would be broken in between.
+- Large plans: [DESIGN.md](DESIGN.md) first, then small PRs.
 
-### Release
+## Release
 
-Not on General yet. When it is:
+| Label | Meaning |
+| --- | --- |
+| `breaking` | Incompatible behavior. May land **without** a version bump. |
+| `cut` | `Project.toml` `version` went up. |
 
-- `breaking`: incompatible behavior. Can land without a version bump.
-- `cut`: `Project.toml` `version` went up.
-- On a breaking line bump `x` in `0.x.y`; otherwise bump `y`.
-- After merge: `@JuliaRegistrator register` on the **merge commit**, and paste the [NEWS.md](NEWS.md) section under `Release notes:`.
+On a breaking line bump `x` in `0.x.y`; otherwise bump `y`. Do not ship an empty cut. Do not automate the bump or `@JuliaRegistrator register`.
+
+### When to cut
+
+**Not on General yet.** Cut when DistSSHKit compat must move, or when we need a version pin ourselves. Do not register.
+
+**After the first General release**, same rule as DistSSHKit: cut when [NEWS.md](NEWS.md) **Unreleased** has something General users should get.
+
+| Unreleased is… | Cut? |
+| --- | --- |
+| Happy-path bug (default hall submit / occupancy) | Yes, that patch promptly |
+| Opt-in flags, docs, CI | When someone needs it on General, **or** those items have sat in Unreleased for **two weeks** |
+
+### After a cut on General
+
+1. `@JuliaRegistrator register` on the **merge commit** (not the PR body).
+2. Paste the NEWS section under `Release notes:`.
 
 ## Issues
 
