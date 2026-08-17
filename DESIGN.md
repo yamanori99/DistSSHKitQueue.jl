@@ -27,7 +27,7 @@ General registry: names ending in lowercase are preferred (`*HPC` is a bad AutoM
 
 ## v1 implementation boundary
 
-Code is not written yet. These choices are the default unless a later DESIGN edit says otherwise.
+Implemented in-process: `Hall`, `submit_go!` / `submit_drive!`, `jobs` / `job`, `cancel!`, `step!`, `run_head`, TOML `store`. These choices are the default unless a later DESIGN edit says otherwise.
 
 ### Head process
 
@@ -65,7 +65,7 @@ Why true FIFO is the v1 default: lab work is expected to be mostly `pmap`-shaped
 
 ### Persistence
 
-A JSON file on the head (`~/.distsshkitqueue/jobs.json` or a path the head is started with). Rewrite the whole table on change. SQLite can wait.
+A TOML file on the head (`~/.distsshkitqueue/jobs.toml` or a path the head is started with). Rewrite the whole table on change. SQLite can wait.
 
 If the head process dies: `:queued` rows reload; `:running` rows become `:failed` (do not guess whether `ssh` children finished). No automatic requeue in v1.
 

@@ -11,4 +11,11 @@ Not on General yet. Design (including the v1 API boundary): [DESIGN.md](DESIGN.m
 pkg> dev /path/to/DistSSHKitQueue.jl
 ```
 
-Julia **1.12+**, DistSSHKit **0.3**.
+```julia
+using DistSSHKitQueue
+h = Hall(; slots=["mini:4", "local:2"])
+submit_go!(h, "job.jl", "mini:4")
+run_head(h; poll=0.2)  # on the always-on mini
+```
+
+Julia **1.12+**, DistSSHKit **0.3**. API: [DESIGN.md](DESIGN.md).

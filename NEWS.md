@@ -5,4 +5,5 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
-Scaffold only. Not registered.
+- Hall: true FIFO occupancy, TOML store, `submit_go!` / `submit_drive!`.
+  Not registered.
