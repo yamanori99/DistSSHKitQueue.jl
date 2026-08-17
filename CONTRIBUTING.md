@@ -2,7 +2,7 @@
 
 Internals of this repo. Users: [README.md](README.md), [DESIGN.md](DESIGN.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit E2E, Julia slots, bake, or `testenv/`. CI is `Pkg.test` on Julia 1.12 plus Gitleaks, not a Kit clone.
+This is a **separate** package from DistSSHKit. Do not copy Kit E2E, Julia slots, bake, or `testenv/`. Later SSH E2E borrows Kit workers (GHCR / `up.sh`); see [DESIGN.md](DESIGN.md). CI is `Pkg.test` on Julia 1.12 plus Gitleaks, not a Kit clone.
 
 ## Requirements
 

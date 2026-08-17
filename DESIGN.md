@@ -23,6 +23,7 @@ General registry: names ending in lowercase are preferred (`*HPC` is a bad AutoM
 - No HyperQueue / Slurm CLI. Julia in, Julia out.
 - House files (LICENSE, docs stub, issue templates) follow DistSSHKit, slimmed.
 - Minimal CI: `Pkg.test` on Julia 1.12 and Gitleaks. Not a copy of DistSSHKit slots, bake, or E2E.
+- SSH E2E (later): borrow DistSSHKit’s docker workers (`testenv/docker-ssh`, GHCR image). Do not copy `testenv/` or the kit `test/e2e.jl` suite. `Pkg.test` stays in-memory FIFO / occupancy until the hall runs.
 
 ## v1 implementation boundary
 
@@ -83,6 +84,10 @@ Job files passed to `go` still must not `using DistSSHKit` or `using DistSSHKitQ
 ### Failure
 
 A kit throw marks the job `:failed` and the dispatcher takes the next fitting job. Do not pause the whole hall on one failure.
+
+### Tests
+
+`Pkg.test` does not need SSH. When `run_head` exists, a short Queue scenario can start Kit’s `testenv/docker-ssh/scripts/up.sh` and pull `DISTSSHKIT_WORKER_IMAGE=ghcr.io/yamanori99/distsshkit-linux-ssh-worker:latest`. Extract a shared testenv repo only if both CIs are maintaining the same `up.sh`.
 
 ## Non-goals (v1)
 
