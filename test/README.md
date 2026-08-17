@@ -10,4 +10,4 @@ From the Queue checkout root:
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-That is `test/runtests.jl`. Aqua / JETLS / Documenter are not wired yet (no Kit E2E copy).
+That is `test/runtests.jl`. CI runs the same on Julia 1.12. Aqua / JETLS / Documenter / SSH E2E are not wired (no Kit copy).

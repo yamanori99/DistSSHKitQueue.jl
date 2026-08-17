@@ -5,7 +5,7 @@ Small-lab job queue on top of [DistSSHKit.jl](https://github.com/yamanori99/Dist
 **DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is the hall:
 FIFO, occupancy, and a long-lived Julia process on an always-on Mac mini.
 
-Not on General yet. Design: [DESIGN.md](DESIGN.md).
+Not on General yet. Design (including the v1 API boundary): [DESIGN.md](DESIGN.md).
 
 ```julia
 pkg> dev /path/to/DistSSHKitQueue.jl
