@@ -56,6 +56,12 @@ Kit kwargs (`args`, project, collect, …) travel with the row as an opaque bag 
 
 Parse `host:N` the same way DistSSHKit does. A job **fits** when every token’s free slots `>= N` for that host (no packing across unrelated hosts beyond what the job asked for). Scan the FIFO from the head; start the first job that fits. No backfill that skips a blocked job in v1 (true FIFO: if job 1 needs 8 slots and only 2 are free, job 2 does not jump). No preemption.
 
+The hall releases slots **per job**, not per `pmap` item. `drive` + `pmap` still holds all `host:N` workers until that drive returns.
+
+Why true FIFO is the v1 default: lab work is expected to be mostly `pmap`-shaped. Items are farmed onto the allocated workers, so those workers stay busy and tend to finish together. The next hall job then sees a clean block of free slots, not a ragged hole.
+
+`go` is different. `host:N` is N independent full runs. One slow replica can free N-1 slots while the last run is still going. True FIFO will not start a later smaller job in that hole. Backfill would; v1 does not. Holes show up when differently long `go` jobs share the minis, not inside a well-sized `pmap`.
+
 ### Persistence
 
 A JSON file on the head (`~/.distsshkitqueue/jobs.json` or a path the head is started with). Rewrite the whole table on change. SQLite can wait.
@@ -91,4 +97,6 @@ A kit throw marks the job `:failed` and the dispatcher takes the next fitting jo
 
 ## GitHub
 
-Private repo with a package shell. Public later can keep history. DistSSHKit issue #50 is **not** “implement a scheduler in the kit”; do not rewrite #50 as a Queue milestone.
+Private repo with a package shell. Public later can keep history.
+
+DistSSHKit [issue #50](https://github.com/yamanori99/DistSSHKit.jl/issues/50) (“Simple scheduler… handful of machines”) is the kit-side request this package answers. It is **not** a DistSSHKit feature and must not stay on a kit release milestone. Close #50 later, when this hall exists enough to point at (package + DESIGN), with a comment that the scheduler is DistSSHKitQueue, not `schedule` inside the kit. Until this repo is public, that link is maintainer-only.
