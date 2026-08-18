@@ -5,5 +5,5 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
-- Hall: true FIFO occupancy, TOML store, `submit_go!` / `submit_drive!`.
+- Placeholder API: true FIFO occupancy, TOML store, one `placeholder!` (`drive=true` for DistSSHKit `drive!`). Names not frozen.
   Not registered.

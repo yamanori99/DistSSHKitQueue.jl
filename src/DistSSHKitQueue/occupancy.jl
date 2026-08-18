@@ -30,7 +30,7 @@ end
 
 function capacity_map(slots::AbstractVector{<:AbstractString})::Dict{String,Int}
     cap = demand_map(slots)
-    isempty(cap) && throw(ArgumentError("Hall needs at least one slot token (e.g. local:2)"))
+    isempty(cap) && throw(ArgumentError("Placeholder needs at least one slot token (e.g. local:2)"))
     return cap
 end
 

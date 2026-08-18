@@ -73,7 +73,7 @@ On a breaking line bump `x` in `0.x.y`; otherwise bump `y`. Do not ship an empty
 
 | Unreleased is… | Cut? |
 | --- | --- |
-| Happy-path bug (default hall submit / occupancy) | Yes, that patch promptly |
+| Happy-path bug (default placeholder enqueue / slots) | Yes, that patch promptly |
 | Opt-in flags, docs, CI | When someone needs it on General, **or** those items have sat in Unreleased for **two weeks** |
 
 ### After a cut on General

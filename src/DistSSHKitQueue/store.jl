@@ -6,7 +6,7 @@ function _dt(x)::Union{Nothing,DateTime}
     return DateTime(String(x))
 end
 
-function job_to_toml(j::QueueJob)::Dict{String,Any}
+function job_to_toml(j::PlaceholderJob)::Dict{String,Any}
     return Dict{String,Any}(
         "id" => j.id,
         "kind" => String(j.kind),
@@ -21,12 +21,12 @@ function job_to_toml(j::QueueJob)::Dict{String,Any}
     )
 end
 
-function job_from_toml(d::AbstractDict)::QueueJob
+function job_from_toml(d::AbstractDict)::PlaceholderJob
     err = String(get(d, "error", ""))
     started = String(get(d, "started_at", ""))
     finished = String(get(d, "finished_at", ""))
     kw = get(d, "kwargs", Dict{String,Any}())
-    return QueueJob(;
+    return PlaceholderJob(;
         id=String(d["id"]),
         kind=Symbol(d["kind"]),
         script=String(d["script"]),
@@ -40,7 +40,7 @@ function job_from_toml(d::AbstractDict)::QueueJob
     )
 end
 
-function save_jobs(path::AbstractString, jobs::AbstractVector{QueueJob})
+function save_jobs(path::AbstractString, jobs::AbstractVector{PlaceholderJob})
     p = String(path)
     mkpath(dirname(p))
     data = Dict{String,Any}("jobs" => [job_to_toml(j) for j in jobs])
@@ -50,12 +50,12 @@ function save_jobs(path::AbstractString, jobs::AbstractVector{QueueJob})
     return nothing
 end
 
-function load_jobs(path::AbstractString)::Vector{QueueJob}
-    isfile(path) || return QueueJob[]
+function load_jobs(path::AbstractString)::Vector{PlaceholderJob}
+    isfile(path) || return PlaceholderJob[]
     raw = TOML.parsefile(String(path))
     rows = get(raw, "jobs", nothing)
-    rows isa AbstractVector || return QueueJob[]
-    out = QueueJob[job_from_toml(r) for r in rows]
+    rows isa AbstractVector || return PlaceholderJob[]
+    out = PlaceholderJob[job_from_toml(r) for r in rows]
     for j in out
         if j.state === :running
             j.state = :failed

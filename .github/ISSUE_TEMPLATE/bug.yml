@@ -26,8 +26,8 @@ body:
       multiple: true
       options:
         - queue
-        - occupancy
-        - submit
+        - slots
+        - placeholder
         - head
         - test
     validations:
