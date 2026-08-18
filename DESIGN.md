@@ -2,44 +2,56 @@
 
 Not a DistSSHKit.jl feature. Not a fork. Separate git repository.
 
-**DistSSHKit** runs **one** job (`go` / `drive`). **DistSSHKitQueue** is the hall: FIFO, occupancy, and a long-lived Julia process on an always-on Mac mini. Submitters `using DistSSHKitQueue`. Queue code `using DistSSHKit` (hard dependency). Direct kit use stays valid. `go` job files still do not import the kit.
+**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is the hall: FIFO, occupancy, and a long-lived Julia process on an always-on host. Submitters `using DistSSHKitQueue`. Queue code `using DistSSHKit` (hard dependency). Direct kit use stays valid. `go` job files do not import the kit.
 
-General registry: names ending in lowercase are preferred (`*HPC` is a bad AutoMerge fit). `DistSSHQueue` looks like a sibling of Kit. `DistSSHKit.Queue` as a submodule shares SemVer with the kitchen. **DistSSHKitQueue** follows DataFramesMeta (parent name + layer). Later monitor: **DistSSHKitWatch**.
+Name: DataFramesMeta pattern (parent + layer). `*HPC` is a bad AutoMerge fit. A Queue submodule would share SemVer with the kitchen.
 
 ## Layers
 
 1. DistSSHKit — kitchen, one job.
-2. DistSSHKitQueue — hall. First “monitor” is the job table (queued / running / done).
-3. DistSSHKitWatch (later) — host liveness, load, GPU. Hard-dep Kit; weak-dep Queue if overlaying the job table.
+2. DistSSHKitQueue — hall. The job table is the monitor (queued / running / done).
 
-`pmap` is not the lab queue. JACC.jl belongs in Kit/jobs (Kit would use weakdeps), not in the queue.
+`pmap` is not the lab queue. JACC.jl belongs in Kit/jobs, not here.
 
 ## Shape
 
-- Head node: always-on mini. MacBook is not the queue (sleeps, moves).
-- Occupancy: `host:N` from DistSSHKit. FIFO. No preemption in v1.
-- SSH: new `ssh` per job, same as current `go`. Keepalives only during a long run.
-- Processes (`Distributed.jl`), not threads. Same Pkg/Manifest story as the kit.
-- No HyperQueue / Slurm CLI. Julia in, Julia out.
-- House files (LICENSE, docs stub, issue templates) follow DistSSHKit, slimmed.
-- Minimal CI: `Pkg.test` on Julia 1.12 and Gitleaks. Not a copy of DistSSHKit slots, bake, or E2E.
-- SSH E2E (later): borrow DistSSHKit’s docker workers (`testenv/docker-ssh`, GHCR image). Do not copy `testenv/` or the kit `test/e2e.jl` suite. `Pkg.test` stays in-memory FIFO / occupancy until the hall runs.
+- Head: always-on host (Mac mini, Linux box, VM). Not a sleeping laptop.
+- Platforms: macOS and Linux (WSL2 Ubuntu). Not native Windows (`ssh` / `rsync`).
+- Occupancy: DistSSHKit `host:N`. FIFO. No preemption, no backfill.
+- SSH: new `ssh` per job, as in `go`. Keepalives only during a long run.
+- Workers: `Distributed.jl` processes, not threads. Same Pkg/Manifest story as the kit.
+- Control plane: Julia only. No HyperQueue / Slurm CLI, no HTTP, no third-party supervisor as the user API.
+- Compat: Julia **1.12+**, DistSSHKit **0.3**. The hall does not need newer language APIs.
+- House files follow DistSSHKit, slimmed. CI is `Pkg.test` on 1.12 plus Gitleaks, not a Kit clone.
 
-## v1 implementation boundary
+## Operations
 
-Implemented in-process: `Hall`, `submit_go!` / `submit_drive!`, `jobs` / `job`, `cancel!`, `step!`, `run_head`, TOML `store`. These choices are the default unless a later DESIGN edit says otherwise.
+User-facing actions are Julia (`using DistSSHKitQueue`) or the same via `julia -m DistSSHKitQueue` when `@main` exists (same `[apps.*]` pattern as DistSSHKit).
 
-### Head process
+- `run_head` — load store, `step!` until interrupt
+- `submit_go!` / `submit_drive!`
+- `jobs` / `job` / `occupancy`
+- `cancel!` — `:queued` only
+- stop — `InterruptException` on the head loop; return, do not crash the REPL
 
-One long-lived Julia process on the always-on mini. DistSSHKit `go!` / `drive!` run **in that process** (same as calling them from a REPL). Not HTTP, not a systemd-unrelated daemon protocol, not a MacBook.
+Submit is **same process** as the head. `ssh` into the host and attach a REPL (or `-m`) is still one queue. No listen socket. `go!` / `drive!` run in that process.
 
-v1 submit is from that same process (`using DistSSHKitQueue`). `julia -m DistSSHKitQueue` can wait. Remote submit from a sleeping MacBook is v2 (needs a listen path). The MacBook may `ssh` into the mini and attach a REPL; that is still “same process”, not a second queue.
+Stopping the head does not cancel running kit/SSH children. If the process dies, persistence rules apply.
 
-Start/stop: a blocking `run_head()` (name TBD) is enough. Auto-restart on boot is an OS concern (`launchd`), not this package.
+Boot auto-restart is optional. Julia helpers may write and control a unit; users should not hand-edit those files as the primary path. `launchctl` / `systemctl` stay inside the helpers.
+
+| OS | Auto-start (optional) |
+| --- | --- |
+| macOS | launchd LaunchAgent |
+| Linux | systemd user unit |
+
+## In process
+
+`Hall`, `submit_go!` / `submit_drive!`, `jobs` / `job`, `cancel!`, `step!`, `run_head`, TOML `store`. Change this file if the default changes.
+
+`-m` and OS-service helpers are the same surface, not a second protocol. The in-memory hall does not depend on them.
 
 ### Job record
-
-Each row in the job table:
 
 | Field | Meaning |
 | --- | --- |
@@ -51,57 +63,55 @@ Each row in the job table:
 | `queued_at` / `started_at` / `finished_at` | UTC. |
 | `error` | Short string if `:failed`. |
 
-Kit kwargs (`args`, project, collect, …) travel with the row as an opaque bag and are forwarded to `go!` / `drive!`. Do not reimplement kit flags here.
+Kit kwargs (`args`, project, collect, …) travel as an opaque bag and are forwarded. Do not reimplement kit flags.
 
 ### Occupancy and FIFO
 
-Parse `host:N` the same way DistSSHKit does. A job **fits** when every token’s free slots `>= N` for that host (no packing across unrelated hosts beyond what the job asked for). Scan the FIFO from the head; start the first job that fits. No backfill that skips a blocked job in v1 (true FIFO: if job 1 needs 8 slots and only 2 are free, job 2 does not jump). No preemption.
+Parse `host:N` as DistSSHKit does. A job **fits** when every token’s free slots `>= N` for that host. Scan from the FIFO head; start the first job that fits. If job 1 needs 8 and 2 are free, job 2 does not jump.
 
-The hall releases slots **per job**, not per `pmap` item. `drive` + `pmap` still holds all `host:N` workers until that drive returns.
+Slots are held **per hall job**, not per `pmap` item. `drive` + `pmap` keeps all `host:N` workers until that drive returns.
 
-Why true FIFO is the v1 default: lab work is expected to be mostly `pmap`-shaped. Items are farmed onto the allocated workers, so those workers stay busy and tend to finish together. The next hall job then sees a clean block of free slots, not a ragged hole.
-
-`go` is different. `host:N` is N independent full runs. One slow replica can free N-1 slots while the last run is still going. True FIFO will not start a later smaller job in that hole. Backfill would; v1 does not. Holes show up when differently long `go` jobs share the minis, not inside a well-sized `pmap`.
+Lab work is mostly `pmap`-shaped: allocated workers stay busy and tend to finish together, so the next job sees a clean block of slots. `go` is N independent runs; a slow replica can free N-1 slots while one run continues. FIFO does not fill that hole.
 
 ### Persistence
 
-A TOML file on the head (`~/.distsshkitqueue/jobs.toml` or a path the head is started with). Rewrite the whole table on change. SQLite can wait.
+TOML on the head (`~/.distsshkitqueue/jobs.toml` or a start path). Same default on macOS and Linux. Rewrite the table on change.
 
-If the head process dies: `:queued` rows reload; `:running` rows become `:failed` (do not guess whether `ssh` children finished). No automatic requeue in v1.
-
-### Public Julia surface (intended)
-
-Names can move; the split should not.
-
-- `submit_go!(script, hosts...; kwargs...)` / `submit_drive!(script, hosts...; kwargs...)` — enqueue, return `id`.
-- `jobs()` — snapshot of the table.
-- `job(id)` — one row.
-- `cancel!(id)` — `:queued` only in v1 (`:running` cancel is kit/SSH later).
-- `run_head(; store=...)` — load table, dispatch loop until interrupt.
-
-Job files passed to `go` still must not `using DistSSHKit` or `using DistSSHKitQueue`.
+On head death: reload `:queued`; mark `:running` as `:failed` (do not guess about `ssh` children). No automatic requeue.
 
 ### Failure
 
-A kit throw marks the job `:failed` and the dispatcher takes the next fitting job. Do not pause the whole hall on one failure.
+A kit throw marks `:failed`. The dispatcher takes the next fitting job. Do not stall the hall on one failure.
+
+### Public names
+
+Names can move; the split should not. Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
+
+- `submit_go!(script, hosts...; kwargs...)` / `submit_drive!(…)` — enqueue, return `id`
+- `jobs()` / `job(id)` / `occupancy`
+- `cancel!(id)` — `:queued` only
+- `run_head(; store=...)` — until interrupt
 
 ### Tests
 
-`Pkg.test` does not need SSH. When `run_head` exists, a short Queue scenario can start Kit’s `testenv/docker-ssh/scripts/up.sh` and pull `DISTSSHKIT_WORKER_IMAGE=ghcr.io/yamanori99/distsshkit-linux-ssh-worker:latest`. Extract a shared testenv repo only if both CIs are maintaining the same `up.sh`.
+`Pkg.test` needs no SSH. An SSH hall scenario borrows Kit `testenv/docker-ssh/scripts/up.sh` and `DISTSSHKIT_WORKER_IMAGE=ghcr.io/yamanori99/distsshkit-linux-ssh-worker:latest`. Do not copy `testenv/` or the kit `test/e2e.jl` suite. Share a testenv repo only if both CIs own the same `up.sh`.
 
-## Non-goals (v1)
+## Out of scope
 
-- Scheduler inside DistSSHKit (`schedule` CLI, in-kit daemon).
-- Weakdeps from Queue to Kit (Kit is the engine, not optional glue).
-- Third glue package. Callbacks `() -> go!(...)` can wait.
-- Preemption, fair-share, priorities, reservations.
-- HTTP API, MacBook-as-head, auto-retry of crashed `:running` jobs.
-- Org account, house CI template (undecided).
-- Public General registration until there is queue code.
-- DistSSHKitWatch.
+- Scheduler inside DistSSHKit
+- Weakdeps from Queue to Kit
+- Glue package / `() -> go!(...)` callbacks
+- Preemption, fair-share, priorities, reservations, backfill
+- HTTP, remote submit, laptop-as-head
+- Auto-retry of crashed `:running` jobs
+- `:running` cancel (kit/SSH kill)
+- Native Windows
+- DistSSHKitWatch
+- Org account, house CI template
+- General registration until there is queue code
 
 ## GitHub
 
-Private repo with a package shell. Public later can keep history.
+Private repo. Public later can keep history.
 
-DistSSHKit [issue #50](https://github.com/yamanori99/DistSSHKit.jl/issues/50) (“Simple scheduler… handful of machines”) is the kit-side request this package answers. It is **not** a DistSSHKit feature and must not stay on a kit release milestone. Close #50 later, when this hall exists enough to point at (package + DESIGN), with a comment that the scheduler is DistSSHKitQueue, not `schedule` inside the kit. Until this repo is public, that link is maintainer-only.
+DistSSHKit [issue #50](https://github.com/yamanori99/DistSSHKit.jl/issues/50) is the kit-side request this package answers. It is not a DistSSHKit feature and must not stay on a kit milestone. Close #50 when this hall is public enough to point at, with a comment that the scheduler is DistSSHKitQueue, not `schedule` in the kit. Until then, that link is maintainer-only.
