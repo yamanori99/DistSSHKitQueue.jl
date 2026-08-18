@@ -23,7 +23,7 @@ Name: DataFramesMeta pattern (parent + layer). `*HPC` is a bad AutoMerge fit. A 
 - SSH: new `ssh` per job, as in `go`. Keepalives only during a long run.
 - Workers: `Distributed.jl` processes, not threads. Same Pkg/Manifest story as DistSSHKit.
 - Control plane: Julia only. No HyperQueue / Slurm CLI, no HTTP, no third-party supervisor as the user API.
-- Compat: Julia **1.12+**, DistSSHKit **0.3**.
+- Compat: Julia **1.12+**, DistSSHKit **0.3**. Queue work uses `dev` / git until a kit hook needs a DistSSHKit General patch (see [CONTRIBUTING.md](CONTRIBUTING.md#distsshkit-cuts)).
 - House files follow DistSSHKit, slimmed. CI is `Pkg.test` on 1.12 plus Gitleaks, not a DistSSHKit clone.
 
 ## Operations

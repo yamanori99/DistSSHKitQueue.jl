@@ -65,6 +65,12 @@ Ubuntu: `Pkg.test` on **1.12**, Gitleaks. No slots, no SSH E2E, no Documenter de
 
 On a breaking line bump `x` in `0.x.y`; otherwise bump `y`. Do not ship an empty cut. Do not automate the bump or `@JuliaRegistrator register`.
 
+### DistSSHKit cuts
+
+Queue work does not, by itself, trigger a DistSSHKit General patch. Develop against `dev` / git. Docs, opt-in flags, and CI on the kit wait.
+
+If Queue cannot implement something without a kit hook, open a DistSSHKit Enhancement, land the small PR, then cut DistSSHKit (`0.3.y`) so Queue can pin General. Kit freeze and cut rules: [DistSSHKit CONTRIBUTING.md](https://github.com/yamanori99/DistSSHKit.jl/blob/main/CONTRIBUTING.md#when-to-cut).
+
 ### When to cut
 
 **Not on General yet.** Cut when DistSSHKit compat must move, or when we need a version pin ourselves. Do not register.
