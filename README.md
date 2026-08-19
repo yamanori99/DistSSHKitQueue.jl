@@ -9,7 +9,7 @@
 
 Small-lab job queue on top of [DistSSHKit.jl](https://github.com/yamanori99/DistSSHKit.jl).
 
-**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a long-lived waiter on an always-on Mac mini (FIFO, one table job).
+**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a long-lived waiter on an always-on controller (FIFO, one table job).
 
 Not on General yet. Design: [DESIGN.md](DESIGN.md).
 

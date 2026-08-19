@@ -22,7 +22,7 @@ orderer = controller ─┘                                  Queue waiter (one t
                                                                  └── workers (this host + others)
 ```
 
-- **Controller** — always-on host where the Kit master must run (Mac mini, Linux box, VM). Not a sleeping laptop. **One** waiter, **one** job table.
+- **Controller** — always-on host where the Kit master must run (macOS or Linux, a VM is fine). Not a sleeping laptop. **One** waiter, **one** job table.
 - **Orderer** — any machine that talks to that table (laptop, another workstation, the controller itself). Several orderers at once is the point. An orderer must not become the Kit master.
 - **Workers** — DistSSHKit `host:N` / `local:N` on the controller and the other machines.
 
@@ -62,8 +62,8 @@ julia --project=Lab.jl -m DistSSHKitQueue serve
 julia --project=Lab.jl -m DistSSHKitQueue status
 
 # orderer: Kit argv, enqueue only (does not run go! / drive!)
-ssh mini 'julia --project=Lab.jl -m DistSSHKitQueue go SCRIPT.jl mini:4'
-ssh mini 'julia --project=Lab.jl -m DistSSHKitQueue drive local:2 SCRIPT.jl'
+ssh controller 'julia --project=Lab.jl -m DistSSHKitQueue go SCRIPT.jl worker:4'
+ssh controller 'julia --project=Lab.jl -m DistSSHKitQueue drive local:2 SCRIPT.jl'
 ```
 
 Store: `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE`). Whole-file rewrite under a directory lock. No listen socket, no HTTP, no `stop` subcommand (Ctrl-C / OS unit). Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. Ctrl-C leaves the waiter; running Kit is not killed.

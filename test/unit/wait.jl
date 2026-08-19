@@ -12,8 +12,8 @@ end
 @testset "true FIFO one at a time" begin
     started = String[]
     h = Placeholder(; runner=j -> (push!(started, j.id); sleep(0.05)))
-    a = placeholder!(h, "a.jl", "mini:4")
-    b = placeholder!(h, "b.jl", "mini:1")
+    a = placeholder!(h, "a.jl", "worker:4")
+    b = placeholder!(h, "b.jl", "worker:1")
     @test placeholder_step!(h) == 1
     @test placeholder_get(h, a).state === :running
     @test placeholder_get(h, b).state === :queued
@@ -101,7 +101,7 @@ end
         a = placeholder!(h, "a.jl", "local:1")
         @test placeholder_step!(h) == 1
         h2 = Placeholder(; store=p, runner=_ -> nothing)
-        b = placeholder!(h2, "b.jl", "mini:2")
+        b = placeholder!(h2, "b.jl", "worker:2")
         rows = DistSSHKitQueue.load_jobs_raw(p)
         @test placeholder_get(h, a).state === :running
         @test any(j -> j.id == b && j.state === :queued, rows)
@@ -117,12 +117,12 @@ end
         withenv("DISTSSHKITQUEUE_STORE" => p) do
             @test DistSSHKitQueue.main(["-h"]) == 0
             @test DistSSHKitQueue.main(["status"]) == 0
-            @test DistSSHKitQueue.cli_go(["mini:4", "job.jl"]) == 0
+            @test DistSSHKitQueue.cli_go(["worker:4", "job.jl"]) == 0
             jobs = DistSSHKitQueue.load_jobs_raw(p)
             @test length(jobs) == 1
             @test jobs[1].kind === :go
             @test jobs[1].script == "job.jl"
-            @test jobs[1].hosts == ["mini:4"]
+            @test jobs[1].hosts == ["worker:4"]
             @test jobs[1].state === :queued
         end
     end
