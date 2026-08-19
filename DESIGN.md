@@ -49,7 +49,7 @@ Stopping the waiter does not cancel a running Kit/SSH tree. If the waiter proces
 - Workers: `Distributed.jl` processes, not threads. Same Pkg/Manifest story as DistSSHKit.
 - Control plane: Julia only. No HyperQueue / Slurm CLI, no HTTP, no third-party supervisor as the user API.
 - Compat: Julia **1.12+**, DistSSHKit **0.3.1+**. Queue work uses `dev` / git until a kit hook needs a DistSSHKit General patch (see [CONTRIBUTING.md](CONTRIBUTING.md#distsshkit-cuts)).
-- House files follow DistSSHKit, slimmed. CI is `Pkg.test`, JETLS, and PR SSH E2E on 1.12 plus Gitleaks, not a DistSSHKit clone.
+- House files follow DistSSHKit, slimmed. CI is `Pkg.test`, JETLS, PR SSH E2E on 1.12, Gitleaks, and schedule-only E2E daily (no Julia slots).
 
 ## Operations
 
@@ -134,7 +134,7 @@ Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
 ### Tests
 
-`Pkg.test` needs no SSH (`test/unit/queue.jl`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`), not DistSSHKit’s suite. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
+`Pkg.test` needs no SSH (`test/unit/queue.jl`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`), not DistSSHKit’s suite. Daily E2E (Linux / macOS / WSL) does not upload coverage. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
 
 ## Out of scope
 
