@@ -1,4 +1,5 @@
-# Kit run outputs / logs written under the example job project during E2E.
+# Kit run outputs / logs. Do not ignore `demos/` — setup rsync honors this file,
+# and E2E copies DistSSHKit demos there so workers must receive them.
 go_out/
 output/
 .distsshkit/

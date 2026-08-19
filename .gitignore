@@ -37,3 +37,6 @@ id_ed25519.pub
 
 # Local dev notes (not shared)
 ROADMAP.ja.local.md
+
+# Staged DistSSHKit demos (copied at E2E start; rsync still sends them)
+testenv/example-job/demos/

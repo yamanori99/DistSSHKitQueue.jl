@@ -1,18 +1,16 @@
 #!/usr/bin/env julia
-# Queue happy-path E2E against testenv/docker-ssh workers. Not part of Pkg.test().
+# Queue SSH E2E against testenv/docker-ssh workers. Not part of Pkg.test().
 #
-# Proves the first-slice contract end to end with real SSH:
-#   setup! deploys the example job project to the workers (DistSSHKit)
-#   → enqueue a `go` job into the Queue store (orderer side)
-#   → drive the waiter (controller side); it calls go! on the worker
-#   → job reaches :done, result_path is the collected batch root
-#   → peek (status) + fetch (read the collected file on the controller)
+# Stages DistSSHKit `demos/` into testenv/example-job, setup! to the workers,
+# then enqueue Kit go/drive jobs through the Queue waiter.
+#
+# Table jobs are the four *file*/*echo* demos. `pipeline_pi.jl` /
+# `pipeline_square.jl` call `go!` / `pipeline!` themselves — not Queue rows.
+#
+# Also: FIFO one-at-a-time, cancel-queued (skip that row, run the next).
 #
 #   testenv/docker-ssh/scripts/up.sh --e2e
-#   DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl   # workers already up
-#
-# The host is the controller and the orderer. The containers are only
-# DistSSHKit go/drive targets (host:N), never the Kit master.
+#   DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl
 
 using Test
 using Dates
@@ -51,7 +49,6 @@ end
 const HOSTS = read_hosts(HOSTS_FILE)
 length(HOSTS) >= 1 || error("no hosts in $HOSTS_FILE")
 
-# ENV overlay so DistSSHKit reaches the containers via the generated SSH config.
 const SSH_ENV = Dict(
     "DISTSSHKIT_YES" => "1",
     "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
@@ -59,21 +56,83 @@ const SSH_ENV = Dict(
     "DISTRIBUTED_REMOTE_PROJECT_ROOT" => REMOTE_ROOT,
 )
 
-"""Poll the store-backed waiter until `id` reaches a terminal state."""
-function drive_until_terminal!(h, id; tries=600, sleep_s=0.2)
+function kit_root()::String
+    p = pathof(DistSSHKit)
+    p isa AbstractString || error("DistSSHKit is loaded without a file path")
+    return dirname(dirname(String(p)))
+end
+
+function stage_kit_demos!(proj::AbstractString)
+    kit = kit_root()
+    for (subdir, names) in (
+        ("without_kit", ("pi_file.jl", "pi_echo.jl")),
+        ("with_kit", ("square_file.jl", "square_echo.jl")),
+    )
+        dest = joinpath(proj, "demos", subdir)
+        mkpath(dest)
+        for name in names
+            src = joinpath(kit, "demos", subdir, name)
+            isfile(src) || error("missing DistSSHKit demo: $src")
+            cp(src, joinpath(dest, name); force = true)
+        end
+    end
+    return nothing
+end
+
+"""Poll until `id` is terminal. Does not start a later queued job once `id` is done."""
+function drive_until_terminal!(h, id; tries = 600, sleep_s = 0.2)
     terminal = (:done, :failed, :cancelled)
-    for _ in 1:tries
-        placeholder_step!(h)
+    for _ = 1:tries
         st = placeholder_get(h, id).state
         st in terminal && return st
+        placeholder_step!(h)
         sleep(sleep_s)
     end
     return placeholder_get(h, id).state
 end
 
+function enqueue_kit!(h, kind::Symbol, script::AbstractString, token::AbstractString; out::AbstractString, args::Vector{String})
+    return placeholder!(
+        h,
+        script,
+        String[token];
+        drive = (kind === :drive),
+        project = JOB_PROJECT,
+        remote = REMOTE_ROOT,
+        output_dir = out,
+        julia = "auto",
+        args = args,
+        yes = true,
+        quiet = true,
+    )
+end
+
+function find_named(dir, name::AbstractString)
+    isdir(dir) || return nothing
+    target = String(name)
+    for (root, _, files) in walkdir(dir)
+        for f in files
+            f == target && return joinpath(root, f)
+        end
+    end
+    return nothing
+end
+
 @testset "Queue SSH E2E (docker-ssh)" verbose = true begin
     withenv(SSH_ENV...) do
-        @testset "setup! deploys example job project to workers" begin
+        kit = kit_root()
+        @testset "pipeline_* demos are Kit API scripts, not Queue jobs" begin
+            @test isfile(joinpath(kit, "demos", "without_kit", "pipeline_pi.jl"))
+            @test isfile(joinpath(kit, "demos", "with_kit", "pipeline_square.jl"))
+            pi_src = read(joinpath(kit, "demos", "without_kit", "pipeline_pi.jl"), String)
+            sq_src = read(joinpath(kit, "demos", "with_kit", "pipeline_square.jl"), String)
+            @test occursin("go!", pi_src)
+            @test occursin("pipeline!", sq_src)
+        end
+
+        stage_kit_demos!(JOB_PROJECT)
+
+        @testset "setup! deploys example job (Kit demos + DistSSHKit)" begin
             session = KitSession(
                 project = JOB_PROJECT,
                 workers = HOSTS,
@@ -88,56 +147,114 @@ end
         end
 
         mktempdir() do d
-            store = joinpath(d, "jobs.toml")
-            # go! treats output_dir as a project-relative path on the worker, so
-            # the batch root must live inside the deployed project tree.
-            out_dir = joinpath(JOB_PROJECT, "go_out")
-            isdir(out_dir) && rm(out_dir; recursive = true)
-            job_script = joinpath(JOB_PROJECT, "jobs", "pi_file.jl")
             host = HOSTS[1]
+            token = "$(host):1"
 
-            h = Placeholder(; store = store)
-            id = placeholder!(
-                h,
-                job_script,
-                "$(host):1";
-                project = JOB_PROJECT,
-                remote = REMOTE_ROOT,
-                output_dir = out_dir,
-                julia = "auto",
-                args = ["20000"],
-                yes = true,
-                quiet = true,
-            )
-            @testset "orderer enqueues a go job" begin
-                rows = DistSSHKitQueue.load_jobs_raw(store)
-                @test length(rows) == 1
-                @test rows[1].id == id
-                @test rows[1].state === :queued
-                @test rows[1].kind === :go
+            @testset "Kit go/drive demos through the waiter" begin
+                cases = (
+                    (
+                        :go,
+                        joinpath(JOB_PROJECT, "demos", "without_kit", "pi_file.jl"),
+                        "pi_file",
+                        ["64"],
+                        "pi_results.txt",
+                        "pi=",
+                    ),
+                    (
+                        :go,
+                        joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl"),
+                        "pi_echo",
+                        ["64"],
+                        nothing,
+                        nothing,
+                    ),
+                    (
+                        :drive,
+                        joinpath(JOB_PROJECT, "demos", "with_kit", "square_file.jl"),
+                        "square_file",
+                        ["3"],
+                        "square_results.csv",
+                        "param,result",
+                    ),
+                    (
+                        :drive,
+                        joinpath(JOB_PROJECT, "demos", "with_kit", "square_echo.jl"),
+                        "square_echo",
+                        ["3"],
+                        nothing,
+                        nothing,
+                    ),
+                )
+                for (kind, script, label, args, artifact, needle) in cases
+                    @testset "$label" begin
+                        case_store = joinpath(d, "store_$label.toml")
+                        out = joinpath(JOB_PROJECT, "go_out", label)
+                        isdir(out) && rm(out; recursive = true)
+                        h = Placeholder(; store = case_store)
+                        id = enqueue_kit!(h, kind, script, token; out = out, args = args)
+                        @test placeholder_get(h, id).kind === kind
+                        waiter = Placeholder(; store = case_store)
+                        placeholder_load!(waiter)
+                        st = drive_until_terminal!(waiter, id)
+                        job = placeholder_get(waiter, id)
+                        st === :done || @warn "job not done" label state = st error = job.error
+                        @test st === :done
+                        @test job.kind === kind
+                        if artifact !== nothing
+                            found = find_named(out, artifact)
+                            @test found !== nothing
+                            if found !== nothing
+                                @test occursin(needle, read(found, String))
+                            end
+                        end
+                    end
+                end
             end
 
-            @testset "controller waiter runs it to :done" begin
-                waiter = Placeholder(; store = store)
-                placeholder_load!(waiter)
-                st = drive_until_terminal!(waiter, id)
-                job = placeholder_get(waiter, id)
-                st === :done || @warn "job not done" state = st error = job.error
-                @test st === :done
-                @test job.result_path !== nothing
-                @test job.result_path == DistSSHKit.canonical_local_path(out_dir)
+            @testset "FIFO one Kit job at a time" begin
+                store_fifo = joinpath(d, "fifo.toml")
+                echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
+                h = Placeholder(; store = store_fifo)
+                out_a = joinpath(JOB_PROJECT, "go_out", "fifo_a")
+                out_b = joinpath(JOB_PROJECT, "go_out", "fifo_b")
+                isdir(out_a) && rm(out_a; recursive = true)
+                isdir(out_b) && rm(out_b; recursive = true)
+                a = enqueue_kit!(h, :go, echo, token; out = out_a, args = ["64"])
+                b = enqueue_kit!(h, :go, echo, token; out = out_b, args = ["64"])
+                @test placeholder_step!(h) == 1
+                @test placeholder_get(h, a).state === :running
+                @test placeholder_get(h, b).state === :queued
+                @test placeholder_step!(h) == 0
+                @test drive_until_terminal!(h, a) === :done
+                @test placeholder_step!(h) == 1
+                @test drive_until_terminal!(h, b) === :done
+                fa = placeholder_get(h, a).finished_at
+                sb = placeholder_get(h, b).started_at
+                @test fa isa DateTime && sb isa DateTime && fa <= sb
             end
 
-            @testset "peek + fetch the collected result" begin
-                buf = IOBuffer()
-                DistSSHKitQueue.print_status(store; io = buf)
-                text = String(take!(buf))
-                @test occursin(id, text)
-                @test occursin(":done", text) || occursin("done", text)
-
-                collected = joinpath(out_dir, host, "pi_results.txt")
-                @test isfile(collected)
-                @test occursin("pi=", read(collected, String))
+            @testset "cancel queued skips that row" begin
+                store_c = joinpath(d, "cancel.toml")
+                echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
+                h = Placeholder(; store = store_c)
+                outs = [joinpath(JOB_PROJECT, "go_out", "skip_$i") for i = 1:3]
+                for o in outs
+                    isdir(o) && rm(o; recursive = true)
+                end
+                a = enqueue_kit!(h, :go, echo, token; out = outs[1], args = ["64"])
+                b = enqueue_kit!(h, :go, echo, token; out = outs[2], args = ["64"])
+                c = enqueue_kit!(h, :go, echo, token; out = outs[3], args = ["64"])
+                @test placeholder_cancel!(h, b)
+                @test placeholder_get(h, b).state === :cancelled
+                @test placeholder_step!(h) == 1
+                @test placeholder_get(h, a).state === :running
+                @test !placeholder_cancel!(h, a)
+                @test drive_until_terminal!(h, a) === :done
+                @test placeholder_step!(h) == 1
+                @test placeholder_get(h, c).state === :running
+                @test drive_until_terminal!(h, c) === :done
+                @test placeholder_get(h, b).state === :cancelled
+                @test placeholder_step!(h) == 0
             end
         end
     end

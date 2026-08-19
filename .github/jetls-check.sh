@@ -14,7 +14,6 @@ files=(
     src/DistSSHKitQueue.jl
     test/runtests.jl
     test/e2e.jl
-    testenv/example-job/jobs/pi_file.jl
 )
 
 if ((${#files[@]} == 0)); then
