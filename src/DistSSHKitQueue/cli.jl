@@ -1,35 +1,39 @@
-function print_queue_usage(; io::IO=stdout)
+function show_usage(; io::IO=stdout)
     println(io, "DistSSHKitQueue — FIFO waiter for DistSSHKit go / drive")
     println(io)
-    println(io, "  julia --project=. -m DistSSHKitQueue serve")
-    println(io, "  julia --project=. -m DistSSHKitQueue status")
-    println(io, "  julia --project=. -m DistSSHKitQueue submit go [same argv as DistSSHKit go]")
-    println(io, "  julia --project=. -m DistSSHKitQueue submit drive [same argv as DistSSHKit drive]")
+    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue serve")
+    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue status")
+    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue submit go [DistSSHKit go argv]")
+    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue submit drive [DistSSHKit drive argv]")
     println(io)
-    println(io, "No subcommand prints this help. `serve` is the waiter. `submit` enqueues; it does not run Kit.")
-    println(io, "Bare `go` / `drive` are aliases of `submit go` / `submit drive`.")
+    println(io, "`serve` waits. `submit` writes the table and exits (does not run Kit).")
+    println(io, "`--project=<queue-env>` loads Queue. The job tree is cwd / DISTRIBUTED_PROJECT_ROOT.")
+    println(io, "Bare `go` / `drive` alias `submit go` / `submit drive`.")
     println(io, "Ctrl-C leaves the waiter; running Kit is not killed.")
     println(io, "Store: $(default_store_path())   override: DISTSSHKITQUEUE_STORE")
     return nothing
 end
 
-function cli_store_path()::String
+function store_path()::String
     env = strip(get(ENV, "DISTSSHKITQUEUE_STORE", ""))
     return isempty(env) ? default_store_path() : env
 end
 
-function print_status(store::AbstractString; io::IO=stdout)
-    jobs = isfile(store) ? load_jobs_raw(store) : PlaceholderJob[]
+function show_status(store::AbstractString; io::IO=stdout)
+    rows = isfile(store) ? read_jobs(store) : Job[]
     println(io, "store: $store")
-    isempty(jobs) && (println(io, "(empty)"); return nothing)
-    for j in jobs
-        extra = j.result_path === nothing ? "" : "  $(j.result_path)"
-        println(io, "$(j.id)  $(j.state)  $(j.kind)  $(j.script)  $(join(j.hosts, ','))$extra")
+    isempty(rows) && (println(io, "(empty)"); return nothing)
+    for j in rows
+        parts = String[j.id, String(j.state), String(j.kind), j.script, join(j.hosts, ',')]
+        proj = get(j.kwargs, "project", nothing)
+        proj === nothing || push!(parts, String(proj))
+        j.result_path === nothing || push!(parts, j.result_path)
+        println(io, join(parts, "  "))
     end
     return nothing
 end
 
-function toml_kw(d::Dict{String,Any})
+function drop_nothing(d::Dict{String,Any})
     out = Dict{String,Any}()
     for (k, v) in d
         v === nothing && continue
@@ -44,7 +48,7 @@ function toml_kw(d::Dict{String,Any})
     return out
 end
 
-function drive_job_hosts(parsed)::Vector{String}
+function drive_hosts(parsed)::Vector{String}
     out = String[]
     if parsed.local_workers > 0
         push!(out, "local:$(parsed.local_workers)")
@@ -57,25 +61,24 @@ function drive_job_hosts(parsed)::Vector{String}
     return out
 end
 
-function enqueue_cli!(store::AbstractString, kind::Symbol, script::AbstractString, hosts, kw::Dict{String,Any})
-    h = Placeholder(; store=store)
+function submit_cli(store::AbstractString, kind::Symbol, script::AbstractString, hosts, kw::Dict{String,Any})
+    q = Queue(; store=store)
     nt = isempty(kw) ? NamedTuple() : (; (Symbol(k) => v for (k, v) in kw)...)
-    id = placeholder!(h, String(script), String[String(x) for x in hosts]; drive=(kind === :drive), nt...)
+    id = submit!(q, String(script), String[String(x) for x in hosts]; kind=kind, nt...)
     println(id)
     return 0
 end
 
-cli_script_path(::Nothing, verb::AbstractString) = throw(ArgumentError("$verb: missing SCRIPT.jl"))
-cli_script_path(path::AbstractString, ::AbstractString) = String(path)
+script_arg(::Nothing, verb::AbstractString) = throw(ArgumentError("$verb: missing SCRIPT.jl"))
+script_arg(path::AbstractString, ::AbstractString) = resolve_script(path)
 
-function cli_go(args::Vector{String})::Cint
+function submit_go(args::Vector{String})::Cint
     parsed = DistSSHKit.parse_go_args(args)
     parsed.help && (DistSSHKit.show_go_usage(); return 0)
     parsed.show_version && (DistSSHKit.println_kit_version(); return 0)
-    script = cli_script_path(parsed.script_path, "go")
     hosts = String[String(h) for h in parsed.hosts]
     isempty(hosts) && (hosts = String["local"])
-    kw = toml_kw(Dict{String,Any}(
+    kw = drop_nothing(Dict{String,Any}(
         "args" => parsed.script_args,
         "output_dir" => parsed.output_dir,
         "julia" => parsed.julia,
@@ -83,15 +86,14 @@ function cli_go(args::Vector{String})::Cint
         "quiet" => parsed.cli_session.quiet,
         "yes" => true,
     ))
-    return enqueue_cli!(cli_store_path(), :go, script, hosts, kw)
+    return submit_cli(store_path(), :go, script_arg(parsed.script_path, "go"), hosts, kw)
 end
 
-function cli_drive(args::Vector{String})::Cint
+function submit_drive(args::Vector{String})::Cint
     parsed = DistSSHKit.parse_drive_args(args)
     parsed.help && (DistSSHKit.show_drive_requirements(); return 0)
     parsed.show_version && (DistSSHKit.println_kit_version(); return 0)
-    script = cli_script_path(parsed.script_path, "drive")
-    kw = toml_kw(Dict{String,Any}(
+    kw = drop_nothing(Dict{String,Any}(
         "args" => parsed.script_args,
         "output_dir" => parsed.output_dir,
         "log_dir" => parsed.log_dir,
@@ -102,51 +104,59 @@ function cli_drive(args::Vector{String})::Cint
         "quiet" => parsed.cli_session.quiet,
         "yes" => true,
     ))
-    return enqueue_cli!(cli_store_path(), :drive, script, drive_job_hosts(parsed), kw)
+    return submit_cli(
+        store_path(),
+        :drive,
+        script_arg(parsed.script_path, "drive"),
+        drive_hosts(parsed),
+        kw,
+    )
 end
 
-function cli_submit(args::Vector{String})::Cint
+function submit_main(args::Vector{String})::Cint
     isempty(args) && throw(ArgumentError("submit: need `go` or `drive`"))
     kit, rest = String(args[1]), String[String(a) for a in args[2:end]]
-    kit in ("-h", "--help") && (print_queue_usage(); return 0)
-    kit == "go" && return cli_go(rest)
-    kit == "drive" && return cli_drive(rest)
+    kit in ("-h", "--help") && (show_usage(); return 0)
+    kit == "go" && return submit_go(rest)
+    kit == "drive" && return submit_drive(rest)
     throw(ArgumentError("submit: unknown kit command $(repr(kit)) (want go or drive)"))
 end
+
+"""CLI entry. Prefer `julia -m DistSSHKitQueue serve` / `submit`."""
 function main(args::Vector{String}=copy(ARGS))::Cint
     if isempty(args) || args[1] in ("-h", "--help", "help")
-        print_queue_usage()
+        show_usage()
         return 0
     end
     sub, rest = String(args[1]), String[String(a) for a in args[2:end]]
     if sub == "serve"
-        poll = 0.2
+        interval = 0.2
         i = 1
         while i <= length(rest)
-            if rest[i] == "--poll" && i < length(rest)
-                poll = parse(Float64, rest[i+1])
+            if rest[i] == "--interval" && i < length(rest)
+                interval = parse(Float64, rest[i+1])
                 i += 2
             elseif rest[i] in ("-h", "--help")
-                print_queue_usage()
+                show_usage()
                 return 0
             else
                 throw(ArgumentError("unknown serve option: $(rest[i])"))
             end
         end
-        serve(; store=cli_store_path(), poll=poll)
+        serve(; store=store_path(), interval=interval)
         return 0
     elseif sub == "status"
-        print_status(cli_store_path())
+        show_status(store_path())
         return 0
     elseif sub == "submit"
-        return cli_submit(rest)
+        return submit_main(rest)
     elseif sub == "go"
-        return cli_go(rest)
+        return submit_go(rest)
     elseif sub == "drive"
-        return cli_drive(rest)
+        return submit_drive(rest)
     else
         println(stderr, "unknown subcommand: $sub")
-        print_queue_usage(io=stderr)
+        show_usage(io=stderr)
         return 1
     end
 end

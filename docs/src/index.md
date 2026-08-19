@@ -6,18 +6,19 @@ Small-lab job queue on [DistSSHKit.jl](https://github.com/yamanori99/DistSSHKit.
 
 **DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a long-lived waiter (FIFO, one table job).
 
-This package is not on General yet. Public Julia names are placeholders. Read [Design](@ref Design).
+This package is not on General yet. Read [Design](@ref Design).
 
 ## CLI
 
 ```bash
-julia --project=Lab.jl -m DistSSHKitQueue serve
-julia --project=Lab.jl -m DistSSHKitQueue status
-julia --project=Lab.jl -m DistSSHKitQueue submit go SCRIPT.jl worker:4
-julia --project=Lab.jl -m DistSSHKitQueue submit drive local:2 SCRIPT.jl
+julia --project=<queue-env> -m DistSSHKitQueue serve
+julia --project=<queue-env> -m DistSSHKitQueue status
+cd /work/Thesis.jl
+julia --project=<queue-env> -m DistSSHKitQueue submit go SCRIPT.jl worker:4
+julia --project=<queue-env> -m DistSSHKitQueue submit drive local:2 SCRIPT.jl
 ```
 
-`submit` writes the store and exits. It does not run DistSSHKit. Bare `go` / `drive` are aliases of `submit go` / `submit drive`.
+`submit` writes the store and exits. `--project=<queue-env>` loads Queue; the job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Bare `go` / `drive` alias `submit`.
 
 ## Installation
 

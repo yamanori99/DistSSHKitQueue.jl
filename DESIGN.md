@@ -8,7 +8,8 @@ Queue code `using DistSSHKit` (hard dependency). Submitters `using DistSSHKitQue
 
 Name: DataFramesMeta pattern (parent + layer). `*HPC` is a bad AutoMerge fit. A Queue submodule would share SemVer with DistSSHKit.
 
-**Public names are placeholders.** Freeze them after the CLI feels right. Shape is pattern 2: one verb; kit kind via `--drive` / `drive=true`.
+Queue verbs: `serve`, `status`, `submit`. After `submit`, Kit’s `go` / `drive` argv.
+Julia: `Queue`, `submit!(q, script, hosts...; kind=:go|:drive)`, `job` / `jobs`, `cancel!`, `serve!`.
 
 ## Containment
 
@@ -26,7 +27,7 @@ orderer = controller ─┘                                  Queue waiter (one t
 - **Orderer** — any machine that talks to that table (laptop, another workstation, the controller itself). Several orderers at once is the point. An orderer must not become the Kit master.
 - **Workers** — DistSSHKit `host:N` / `local:N` on the controller and the other machines.
 
-Jobs from every orderer share one FIFO. No per-user or per-machine queues (fair-share stays out of scope). Script paths and the project tree are what the **controller** will pass to Kit; orderers do not run `go!` locally.
+Jobs from every orderer share one FIFO. No per-user or per-machine queues (fair-share stays out of scope). Script paths and the **job** project tree are what the controller will pass to Kit; they are not the waiter's Julia `--project`. Orderers do not run `go!` locally.
 
 Kit has no “master lives on that host” today: `go!` / `drive!` make the calling process the master. That is why Queue sits on the controller. A later DistSSHKit hook (`master=` or equivalent) may hide the hand-off behind Kit names. Until then, Queue is the face from every orderer; Kit remains the executor on the controller.
 
@@ -34,7 +35,7 @@ Kit has no “master lives on that host” today: `go!` / `drive!` make the call
 
 ## How the master sits under Queue
 
-**First slice (now):** the waiter process calls `go!` / `drive!`. Orderers enqueue by writing the store (`submit go` / `submit drive`). Same host: the REPL can `@async serve!(h)` and `placeholder!`.
+**First slice (now):** the waiter process calls `go!` / `drive!`. Orderers enqueue by writing the store (`submit go` / `submit drive`). Same host: the REPL can `@async serve!(q)` and `submit!`.
 
 **Later:** Queue only waits. Each table job is a child (`julia -m DistSSHKit go|drive …`). That child is the Kit master. Queue watches the PID, exit status, and Kit output paths. Use this when waiter and run must not share a fate.
 
@@ -57,14 +58,16 @@ Day-to-day: Kit-shaped arguments (`script`, `host:N…`, kit kwargs). Queue adds
 User-facing actions are Julia (`using DistSSHKitQueue`) or `julia -m DistSSHKitQueue`.
 
 ```bash
-# controller: start the waiter (no subcommand is the same)
-julia --project=Lab.jl -m DistSSHKitQueue serve
-julia --project=Lab.jl -m DistSSHKitQueue status
+# waiter: env that has DistSSHKitQueue (not a student job)
+julia --project=<queue-env> -m DistSSHKitQueue serve
+julia --project=<queue-env> -m DistSSHKitQueue status
 
-# orderer: enqueue only (does not run go! / drive!)
-ssh controller 'julia --project=Lab.jl -m DistSSHKitQueue submit go SCRIPT.jl worker:4'
-ssh controller 'julia --project=Lab.jl -m DistSSHKitQueue submit drive local:2 SCRIPT.jl'
+# submit: cd to that job on the controller (does not run go! / drive!)
+ssh controller 'cd /work/Thesis.jl && julia --project=<queue-env> -m DistSSHKitQueue submit go SCRIPT.jl worker:4'
+ssh controller 'cd /work/Other.jl && julia --project=<queue-env> -m DistSSHKitQueue submit drive local:2 SCRIPT.jl'
 ```
+
+`<queue-env>` loads Queue. The **job** tree is Kit’s (`job_project()`: `pwd` / `DISTRIBUTED_PROJECT_ROOT`), stored on the row. Students keep separate projects; Queue is not a dependency of each job.
 
 Store: `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE`). Whole-file rewrite under a directory lock. No listen socket, no HTTP, no `stop` subcommand (Ctrl-C / OS unit). Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. Ctrl-C leaves the waiter; running Kit is not killed.
 
@@ -72,11 +75,11 @@ Store: `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE`). Whole-file rewr
 
 Order from anywhere **feel later (optional Kit change):** type DistSSHKit on the orderer (`go!(…; master="controller")`). DistSSHKit [issue #50](https://github.com/yamanori99/DistSSHKit.jl/issues/50) / [#129](https://github.com/yamanori99/DistSSHKit.jl/issues/129) is that hand-off, not a scheduler inside DistSSHKit.
 
-- `serve` / `serve!` — load store, one FIFO job at a time until interrupt
+- `serve` / `serve!` — load store, one FIFO job at a time until interrupt (`serve --interval`)
 - `status` — print the table
 - CLI `submit go` / `submit drive` — enqueue (Kit parsers). Bare `go` / `drive` are aliases.
-- `placeholder!` — Julia enqueue (`drive=true` → `drive!`)
-- `placeholder_cancel!` — `:queued` only
+- `submit!(q, …; kind=:drive)` — Julia enqueue
+- `cancel!` — `:queued` only
 
 Boot auto-restart is optional. Julia helpers may write and control a unit; users should not hand-edit those files as the primary path. `launchctl` / `systemctl` stay inside the helpers.
 
@@ -87,11 +90,11 @@ Boot auto-restart is optional. Julia helpers may write and control a unit; users
 
 ## In process
 
-`Placeholder`, `placeholder!`, `serve!` / `serve`, `status` CLI, TOML `store`. Change this file if the default changes.
+`Queue`, `Job`, `submit!`, `serve!` / `serve`, `status` CLI, TOML `store`. Change this file if the default changes.
 
 `-m` and OS-service helpers are the same surface, not a second protocol. The in-memory table does not depend on them.
 
-First-slice tests and the controller REPL still pass an explicit `Placeholder` handle. The human-facing shape is Kit’s `script, hosts...; kwargs...` (handle optional / default queue on the controller).
+First-slice tests and the controller REPL still pass an explicit `Queue` handle. The human-facing shape is Kit’s `script, hosts...; kwargs...` (handle optional / default queue on the controller).
 
 ### Job record
 
@@ -99,7 +102,7 @@ First-slice tests and the controller REPL still pass an explicit `Placeholder` h
 | --- | --- |
 | `id` | Stable string (UUID). |
 | `kind` | `:go` or `:drive`. |
-| `script` | Path DistSSHKit would get (resolved on the controller). |
+| `script` | Path DistSSHKit would get (absolute at `submit` time). |
 | `hosts` | DistSSHKit tokens (`local:2`, `user@box:4`). |
 | `state` | `:queued` / `:running` / `:done` / `:failed` / `:cancelled`. |
 | `queued_at` / `started_at` / `finished_at` | UTC. |
@@ -124,15 +127,14 @@ A DistSSHKit throw, `GoResult`/`DriveResult` with `ok=false`, or (later) a non-z
 
 ### Public names
 
-Placeholders. Split should not move: job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
+Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
-- `serve` / `status` / `submit` (Queue). After `submit`, `go` / `drive` (Kit argv, enqueue).
-- `placeholder!` / `placeholder_list` / `placeholder_get` / `placeholder_cancel!` (Julia; names not frozen)
-- `serve!` until interrupt (alias `placeholder_head`)
+- CLI: `serve` / `status` / `submit go` / `submit drive`
+- Julia: `Queue`, `Job`, `submit!`, `job` / `jobs`, `cancel!`, `step!`, `load!`, `serve!` / `serve`
 
 ### Tests
 
-`Pkg.test` needs no SSH. An SSH scenario borrows DistSSHKit `testenv/docker-ssh/scripts/up.sh` and `DISTSSHKIT_WORKER_IMAGE=ghcr.io/yamanori99/distsshkit-linux-ssh-worker:latest`. Do not copy `testenv/` or the DistSSHKit `test/e2e.jl` suite. Share a testenv repo only if both CIs own the same `up.sh`.
+`Pkg.test` needs no SSH (`test/unit/queue.jl`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`), not DistSSHKit’s suite. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
 
 ## Out of scope
 

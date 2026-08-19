@@ -6,6 +6,6 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 ## Unreleased
 
 - Design: waiter is `serve`; orderers use Kit `go` / `drive` argv. FIFO one table job. No Queue slot ceiling.
-- CLI: `julia -m DistSSHKitQueue serve|status|submit go|submit drive` (bare `go`/`drive` aliases). Store `~/.distsshkitqueue/jobs.toml`.
+- Names: `Queue`, `Job`, `submit!` / CLI `submit`, `cancel!`, `job` / `jobs`, `serve!` (`--interval`).
   DistSSHKit **0.3.1+**. `ok=false` is `:failed`. `result_path` recorded.
   Not registered.

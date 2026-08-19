@@ -1,5 +1,5 @@
-"""One table row. `kwargs` is forwarded to DistSSHKit `go!` / `drive!`."""
-mutable struct PlaceholderJob
+"""One table row. `kwargs` is forwarded to DistSSHKit `go!` / `drive!` (`project` is the job tree)."""
+mutable struct Job
     id::String
     kind::Symbol
     script::String
@@ -13,7 +13,7 @@ mutable struct PlaceholderJob
     kwargs::Dict{String,Any}
 end
 
-function PlaceholderJob(;
+function Job(;
     id::AbstractString=string(Base.UUID(rand(UInt128))),
     kind::Symbol,
     script::AbstractString,
@@ -30,7 +30,7 @@ function PlaceholderJob(;
     state in (:queued, :running, :done, :failed, :cancelled) ||
         throw(ArgumentError("bad job state $state"))
     isempty(hosts) && throw(ArgumentError("job needs at least one host token"))
-    return PlaceholderJob(
+    return Job(
         String(id),
         kind,
         String(script),
@@ -45,8 +45,8 @@ function PlaceholderJob(;
     )
 end
 
-function Base.copy(j::PlaceholderJob)
-    return PlaceholderJob(
+function Base.copy(j::Job)
+    return Job(
         j.id,
         j.kind,
         j.script,

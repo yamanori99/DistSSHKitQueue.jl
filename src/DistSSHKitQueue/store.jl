@@ -33,7 +33,7 @@ function _dt(x)::Union{Nothing,DateTime}
     return DateTime(String(x))
 end
 
-function job_to_toml(j::PlaceholderJob)::Dict{String,Any}
+function job_to_toml(j::Job)::Dict{String,Any}
     return Dict{String,Any}(
         "id" => j.id,
         "kind" => String(j.kind),
@@ -49,13 +49,13 @@ function job_to_toml(j::PlaceholderJob)::Dict{String,Any}
     )
 end
 
-function job_from_toml(d::AbstractDict)::PlaceholderJob
+function job_from_toml(d::AbstractDict)::Job
     err = String(get(d, "error", ""))
     result_path = String(get(d, "result_path", ""))
     started = String(get(d, "started_at", ""))
     finished = String(get(d, "finished_at", ""))
     kw = get(d, "kwargs", Dict{String,Any}())
-    return PlaceholderJob(;
+    return Job(;
         id=String(d["id"]),
         kind=Symbol(d["kind"]),
         script=String(d["script"]),
@@ -70,7 +70,7 @@ function job_from_toml(d::AbstractDict)::PlaceholderJob
     )
 end
 
-function save_jobs(path::AbstractString, jobs::AbstractVector{PlaceholderJob})
+function save_jobs(path::AbstractString, jobs::AbstractVector{Job})
     p = String(path)
     mkpath(dirname(p))
     data = Dict{String,Any}("jobs" => [job_to_toml(j) for j in jobs])
@@ -80,15 +80,15 @@ function save_jobs(path::AbstractString, jobs::AbstractVector{PlaceholderJob})
     return nothing
 end
 
-function load_jobs_raw(path::AbstractString)::Vector{PlaceholderJob}
-    isfile(path) || return PlaceholderJob[]
+function read_jobs(path::AbstractString)::Vector{Job}
+    isfile(path) || return Job[]
     raw = TOML.parsefile(String(path))
     rows = get(raw, "jobs", nothing)
-    rows isa AbstractVector || return PlaceholderJob[]
-    return PlaceholderJob[job_from_toml(r) for r in rows]
+    rows isa AbstractVector || return Job[]
+    return Job[job_from_toml(r) for r in rows]
 end
 
-function fail_stale_running!(jobs::Vector{PlaceholderJob})
+function fail_stale_running!(jobs::Vector{Job})
     for j in jobs
         if j.state === :running
             j.state = :failed
@@ -99,6 +99,6 @@ function fail_stale_running!(jobs::Vector{PlaceholderJob})
     return jobs
 end
 
-function load_jobs(path::AbstractString)::Vector{PlaceholderJob}
-    return fail_stale_running!(load_jobs_raw(path))
+function load_jobs(path::AbstractString)::Vector{Job}
+    return fail_stale_running!(read_jobs(path))
 end

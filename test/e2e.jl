@@ -81,23 +81,23 @@ function stage_kit_demos!(proj::AbstractString)
 end
 
 """Poll until `id` is terminal. Does not start a later queued job once `id` is done."""
-function drive_until_terminal!(h, id; tries = 600, sleep_s = 0.2)
+function drive_until_terminal!(q, id; tries = 600, sleep_s = 0.2)
     terminal = (:done, :failed, :cancelled)
     for _ = 1:tries
-        st = placeholder_get(h, id).state
+        st = job(q, id).state
         st in terminal && return st
-        placeholder_step!(h)
+        step!(q)
         sleep(sleep_s)
     end
-    return placeholder_get(h, id).state
+    return job(q, id).state
 end
 
-function enqueue_kit!(h, kind::Symbol, script::AbstractString, token::AbstractString; out::AbstractString, args::Vector{String})
-    return placeholder!(
-        h,
+function enqueue_kit!(q, kind::Symbol, script::AbstractString, token::AbstractString; out::AbstractString, args::Vector{String})
+    return submit!(
+        q,
         script,
         String[token];
-        drive = (kind === :drive),
+        kind = kind,
         project = JOB_PROJECT,
         remote = REMOTE_ROOT,
         output_dir = out,
@@ -191,16 +191,16 @@ end
                         case_store = joinpath(d, "store_$label.toml")
                         out = joinpath(JOB_PROJECT, "go_out", label)
                         isdir(out) && rm(out; recursive = true)
-                        h = Placeholder(; store = case_store)
-                        id = enqueue_kit!(h, kind, script, token; out = out, args = args)
-                        @test placeholder_get(h, id).kind === kind
-                        waiter = Placeholder(; store = case_store)
-                        placeholder_load!(waiter)
+                        q = Queue(; store = case_store)
+                        id = enqueue_kit!(q, kind, script, token; out = out, args = args)
+                        @test job(q, id).kind === kind
+                        waiter = Queue(; store = case_store)
+                        load!(waiter)
                         st = drive_until_terminal!(waiter, id)
-                        job = placeholder_get(waiter, id)
-                        st === :done || @warn "job not done" label state = st error = job.error
+                        row = job(waiter, id)
+                        st === :done || @warn "job not done" label state = st error = row.error
                         @test st === :done
-                        @test job.kind === kind
+                        @test row.kind === kind
                         if artifact !== nothing
                             found = find_named(out, artifact)
                             @test found !== nothing
@@ -215,29 +215,29 @@ end
             @testset "FIFO one Kit job at a time" begin
                 store_fifo = joinpath(d, "fifo.toml")
                 echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
-                h = Placeholder(; store = store_fifo)
+                q = Queue(; store = store_fifo)
                 out_a = joinpath(JOB_PROJECT, "go_out", "fifo_a")
                 out_b = joinpath(JOB_PROJECT, "go_out", "fifo_b")
                 isdir(out_a) && rm(out_a; recursive = true)
                 isdir(out_b) && rm(out_b; recursive = true)
                 a = enqueue_kit!(h, :go, echo, token; out = out_a, args = ["64"])
                 b = enqueue_kit!(h, :go, echo, token; out = out_b, args = ["64"])
-                @test placeholder_step!(h) == 1
-                @test placeholder_get(h, a).state === :running
-                @test placeholder_get(h, b).state === :queued
-                @test placeholder_step!(h) == 0
+                @test step!(h) == 1
+                @test job(h, a).state === :running
+                @test job(h, b).state === :queued
+                @test step!(h) == 0
                 @test drive_until_terminal!(h, a) === :done
-                @test placeholder_step!(h) == 1
+                @test step!(h) == 1
                 @test drive_until_terminal!(h, b) === :done
-                fa = placeholder_get(h, a).finished_at
-                sb = placeholder_get(h, b).started_at
+                fa = job(h, a).finished_at
+                sb = job(h, b).started_at
                 @test fa isa DateTime && sb isa DateTime && fa <= sb
             end
 
             @testset "cancel queued skips that row" begin
                 store_c = joinpath(d, "cancel.toml")
                 echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
-                h = Placeholder(; store = store_c)
+                h = Queue(; store = store_c)
                 outs = [joinpath(JOB_PROJECT, "go_out", "skip_$i") for i = 1:3]
                 for o in outs
                     isdir(o) && rm(o; recursive = true)
@@ -245,17 +245,17 @@ end
                 a = enqueue_kit!(h, :go, echo, token; out = outs[1], args = ["64"])
                 b = enqueue_kit!(h, :go, echo, token; out = outs[2], args = ["64"])
                 c = enqueue_kit!(h, :go, echo, token; out = outs[3], args = ["64"])
-                @test placeholder_cancel!(h, b)
-                @test placeholder_get(h, b).state === :cancelled
-                @test placeholder_step!(h) == 1
-                @test placeholder_get(h, a).state === :running
-                @test !placeholder_cancel!(h, a)
+                @test cancel!(h, b)
+                @test job(h, b).state === :cancelled
+                @test step!(h) == 1
+                @test job(h, a).state === :running
+                @test !cancel!(h, a)
                 @test drive_until_terminal!(h, a) === :done
-                @test placeholder_step!(h) == 1
-                @test placeholder_get(h, c).state === :running
+                @test step!(h) == 1
+                @test job(h, c).state === :running
                 @test drive_until_terminal!(h, c) === :done
-                @test placeholder_get(h, b).state === :cancelled
-                @test placeholder_step!(h) == 0
+                @test job(h, b).state === :cancelled
+                @test step!(h) == 0
             end
         end
     end
