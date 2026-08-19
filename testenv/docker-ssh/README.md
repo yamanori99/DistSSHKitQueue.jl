@@ -12,7 +12,7 @@ independent in this repo. `Pkg.test()` does **not** start Docker or run this.
 The host is both **controller** and **orderer** (first slice: the waiter calls
 `go!` / `drive!` in-process). The flow in [`test/e2e.jl`](../../test/e2e.jl):
 
-1. `setup!` deploys [`testenv/lab`](../lab) to the workers (rsync + instantiate).
+1. `setup!` deploys [`testenv/example-job`](../example-job) to the workers (rsync + instantiate).
 2. Enqueue a `go` job into the Queue store (orderer side).
 3. Drive the waiter (`placeholder_step!`); it runs `go!` on the worker.
 4. Job reaches `:done`; `result_path` is the collected batch root.

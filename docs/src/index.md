@@ -1,5 +1,7 @@
 # [DistSSHKitQueue.jl](@id DistSSHKitQueue.jl)
 
+!!! warning "Under construction. Do not use this."
+
 Small-lab job queue on [DistSSHKit.jl](https://github.com/yamanori99/DistSSHKit.jl).
 
 **DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a long-lived waiter (FIFO, one table job).

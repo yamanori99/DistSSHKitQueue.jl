@@ -3,7 +3,7 @@
 # stay plain). Monte Carlo π; writes pi_results.txt into the slot output dir
 # that DistSSHKit sets, so `go!(output_dir=)` collects it to the controller.
 #
-#   julia --project=testenv/lab -m DistSSHKitQueue go testenv/lab/jobs/pi_file.jl dskq-w1:1
+#   julia --project=testenv/example-job -m DistSSHKitQueue go testenv/example-job/jobs/pi_file.jl dskq-w1:1
 
 using Random
 

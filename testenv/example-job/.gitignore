@@ -1,0 +1,6 @@
+# Kit run outputs / logs written under the example job project during E2E.
+go_out/
+output/
+.distsshkit/
+*.log
+Manifest.toml

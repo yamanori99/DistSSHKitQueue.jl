@@ -2,7 +2,7 @@
 # Queue happy-path E2E against testenv/docker-ssh workers. Not part of Pkg.test().
 #
 # Proves the first-slice contract end to end with real SSH:
-#   setup! deploys the lab project to the workers (DistSSHKit)
+#   setup! deploys the example job project to the workers (DistSSHKit)
 #   → enqueue a `go` job into the Queue store (orderer side)
 #   → drive the waiter (controller side); it calls go! on the worker
 #   → job reaches :done, result_path is the collected batch root
@@ -21,7 +21,7 @@ using DistSSHKitQueue
 
 const QUEUE_ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCKER_SSH = joinpath(QUEUE_ROOT, "testenv", "docker-ssh")
-const LAB_PROJECT = joinpath(QUEUE_ROOT, "testenv", "lab")
+const JOB_PROJECT = joinpath(QUEUE_ROOT, "testenv", "example-job")
 const REMOTE_ROOT = "/home/dev/dskq-e2e"
 
 _e2e_enabled() = get(ENV, "DSKQ_SSH_E2E", "") == "1"
@@ -73,9 +73,9 @@ end
 
 @testset "Queue SSH E2E (docker-ssh)" verbose = true begin
     withenv(SSH_ENV...) do
-        @testset "setup! deploys lab project to workers" begin
+        @testset "setup! deploys example job project to workers" begin
             session = KitSession(
-                project = LAB_PROJECT,
+                project = JOB_PROJECT,
                 workers = HOSTS,
                 remote = REMOTE_ROOT,
                 yes = true,
@@ -89,8 +89,11 @@ end
 
         mktempdir() do d
             store = joinpath(d, "jobs.toml")
-            out_dir = joinpath(d, "go_out")
-            job_script = joinpath(LAB_PROJECT, "jobs", "pi_file.jl")
+            # go! treats output_dir as a project-relative path on the worker, so
+            # the batch root must live inside the deployed project tree.
+            out_dir = joinpath(JOB_PROJECT, "go_out")
+            isdir(out_dir) && rm(out_dir; recursive = true)
+            job_script = joinpath(JOB_PROJECT, "jobs", "pi_file.jl")
             host = HOSTS[1]
 
             @testset "orderer enqueues a go job" begin
@@ -99,7 +102,7 @@ end
                     h,
                     job_script,
                     "$(host):1";
-                    project = LAB_PROJECT,
+                    project = JOB_PROJECT,
                     remote = REMOTE_ROOT,
                     output_dir = out_dir,
                     julia = "auto",
@@ -124,6 +127,7 @@ end
                 finished_id = id
                 st = drive_until_terminal!(h, id)
                 job = placeholder_get(h, id)
+                st === :done || @warn "job not done" state = st error = job.error
                 @test st === :done
                 @test job.result_path !== nothing
                 @test job.result_path == DistSSHKit.canonical_local_path(out_dir)

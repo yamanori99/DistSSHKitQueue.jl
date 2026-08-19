@@ -1,5 +1,8 @@
 # DistSSHKitQueue.jl
 
+> [!WARNING]
+> **Under construction.** Do not use this.
+
 Small-lab job queue on top of [DistSSHKit.jl](https://github.com/yamanori99/DistSSHKit.jl).
 
 **DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a long-lived waiter on an always-on Mac mini (FIFO, one table job).
