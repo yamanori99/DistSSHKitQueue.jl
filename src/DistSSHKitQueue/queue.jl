@@ -34,12 +34,14 @@ function kit_kwargs(d::Dict{String,Any})
     acc = Pair{Symbol,Any}[]
     for (k, v) in d
         key = Symbol(k)
-        if key === :sync && v isa AbstractString && (v == "sync" || v == "rsync")
-            v = Symbol(v)
+        val = if key === :sync && v isa AbstractString && (v == "sync" || v == "rsync")
+            Symbol(v)
         elseif key === :args && v isa AbstractVector
-            v = String[String(x) for x in v]
+            String[String(x) for x in v]
+        else
+            v
         end
-        push!(acc, key => v)
+        push!(acc, key => val)
     end
     return (; acc...)
 end
