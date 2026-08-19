@@ -72,6 +72,7 @@ of building locally.
 
 [`.github/workflows/ssh-e2e.yml`](../../.github/workflows/ssh-e2e.yml) runs
 `./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
-`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. `Pkg.test()` still
-does not start Docker. No GHCR bake, no daily macOS / WSL controllers (those
-stay DistSSHKit's).
+`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. CI sets
+`DSKQ_CODE_COVERAGE=1` (`--code-coverage=user`) and uploads flag `e2e` to Codecov.
+`Pkg.test()` still does not start Docker. No GHCR bake, no daily macOS / WSL
+controllers (those stay DistSSHKit's).

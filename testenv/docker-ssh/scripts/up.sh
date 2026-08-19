@@ -17,6 +17,7 @@ for arg in "$@"; do
     -h|--help)
       echo "usage: $0 [--e2e]"
       echo "  DSKQ_WORKER_IMAGE  pull this tag (skip compose build)"
+      echo "  DSKQ_CODE_COVERAGE=1  e2e with --code-coverage=user"
       exit 0
       ;;
     *)
@@ -55,5 +56,9 @@ echo "SSH config: ${ROOT}/.generated/ssh_config"
 if [[ "$RUN_E2E" -eq 1 ]]; then
   export DSKQ_SSH_E2E=1
   cd "${QUEUE_ROOT}"
-  exec julia --project=test --color=yes test/e2e.jl
+  julia_e2e=(julia --project=test --color=yes)
+  if [[ "${DSKQ_CODE_COVERAGE:-}" == "1" ]]; then
+    julia_e2e+=(--code-coverage=user)
+  fi
+  exec "${julia_e2e[@]}" test/e2e.jl
 fi
