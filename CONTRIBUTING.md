@@ -58,6 +58,13 @@ julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DSKQ_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
+Required to merge (ruleset `main` uses these names). A skipped E2E still leaves the job green. E2E daily is not required.
+
+- `Pkg.test - 1.12 - ubuntu-latest`
+- `JETLS - 1.12 - ubuntu-latest`
+- `Gitleaks`
+- `ubuntu-latest → ubuntu-24.04`
+
 ## Pull requests
 
 - Branch from `main`. Squash-merge only. Merged heads are deleted.
