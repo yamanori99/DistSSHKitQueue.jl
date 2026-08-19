@@ -67,15 +67,16 @@ function kit_runner(j::PlaceholderJob)
 end
 
 function _persist!(h::Placeholder)
-    h.store === nothing && return nothing
-    save_jobs(h.store, h.jobs)
-    return nothing
+    return _persist!(h, h.store)
 end
+_persist!(::Placeholder, ::Nothing) = nothing
+_persist!(h::Placeholder, store::String) = save_jobs(store, h.jobs)
 
 function _with_store(f, h::Placeholder)
-    h.store === nothing && return f()
-    return with_store_lock(f, h.store)
+    return _with_store(f, h.store)
 end
+_with_store(f, ::Nothing) = f()
+_with_store(f, store::String) = with_store_lock(f, store)
 
 function _running(h::Placeholder)::Bool
     return any(j -> j.state === :running, h.jobs)
@@ -84,17 +85,24 @@ end
 function placeholder_load!(h::Placeholder)
     _with_store(h) do
         lock(h.lock) do
-            h.store === nothing && return nothing
-            h.jobs = load_jobs(h.store)
-            _persist!(h)
+            _load_from_store!(h, h.store)
             return nothing
         end
     end
 end
+_load_from_store!(::Placeholder, ::Nothing) = nothing
+function _load_from_store!(h::Placeholder, store::String)
+    h.jobs = load_jobs(store)
+    _persist!(h)
+    return nothing
+end
 
 function reload_keep_live!(h::Placeholder)
-    h.store === nothing && return nothing
-    disk = load_jobs_raw(h.store)
+    return reload_keep_live!(h, h.store)
+end
+reload_keep_live!(::Placeholder, ::Nothing) = nothing
+function reload_keep_live!(h::Placeholder, store::String)
+    disk = load_jobs_raw(store)
     live = h.live_id
     live_job = nothing
     if live !== nothing
@@ -140,9 +148,7 @@ function _submit!(h::Placeholder, kind::Symbol, script::AbstractString, hosts; k
     j = PlaceholderJob(; kind=kind, script=script, hosts=toks, kwargs=kw)
     _with_store(h) do
         lock(h.lock) do
-            if h.store !== nothing
-                reload_keep_live!(h)
-            end
+            reload_keep_live!(h)
             push!(h.jobs, j)
             _persist!(h)
         end
@@ -222,7 +228,7 @@ end
 function placeholder_step!(h::Placeholder)::Int
     return _with_store(h) do
         lock(h.lock) do
-            h.store !== nothing && reload_keep_live!(h)
+            reload_keep_live!(h)
             _running(h) && return 0
             q = findfirst(j -> j.state === :queued, h.jobs)
             q === nothing && return 0

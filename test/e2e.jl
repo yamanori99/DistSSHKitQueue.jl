@@ -96,20 +96,20 @@ end
             job_script = joinpath(JOB_PROJECT, "jobs", "pi_file.jl")
             host = HOSTS[1]
 
+            h = Placeholder(; store = store)
+            id = placeholder!(
+                h,
+                job_script,
+                "$(host):1";
+                project = JOB_PROJECT,
+                remote = REMOTE_ROOT,
+                output_dir = out_dir,
+                julia = "auto",
+                args = ["20000"],
+                yes = true,
+                quiet = true,
+            )
             @testset "orderer enqueues a go job" begin
-                h = Placeholder(; store = store)
-                id = placeholder!(
-                    h,
-                    job_script,
-                    "$(host):1";
-                    project = JOB_PROJECT,
-                    remote = REMOTE_ROOT,
-                    output_dir = out_dir,
-                    julia = "auto",
-                    args = ["20000"],
-                    yes = true,
-                    quiet = true,
-                )
                 rows = DistSSHKitQueue.load_jobs_raw(store)
                 @test length(rows) == 1
                 @test rows[1].id == id
@@ -117,16 +117,11 @@ end
                 @test rows[1].kind === :go
             end
 
-            local finished_id = ""
             @testset "controller waiter runs it to :done" begin
-                h = Placeholder(; store = store)
-                placeholder_load!(h)
-                rows = placeholder_list(h)
-                @test length(rows) == 1
-                id = rows[1].id
-                finished_id = id
-                st = drive_until_terminal!(h, id)
-                job = placeholder_get(h, id)
+                waiter = Placeholder(; store = store)
+                placeholder_load!(waiter)
+                st = drive_until_terminal!(waiter, id)
+                job = placeholder_get(waiter, id)
                 st === :done || @warn "job not done" state = st error = job.error
                 @test st === :done
                 @test job.result_path !== nothing
@@ -134,14 +129,12 @@ end
             end
 
             @testset "peek + fetch the collected result" begin
-                # Peek: status renders the terminal row with its result_path.
                 buf = IOBuffer()
                 DistSSHKitQueue.print_status(store; io = buf)
                 text = String(take!(buf))
-                @test occursin(finished_id, text)
+                @test occursin(id, text)
                 @test occursin(":done", text) || occursin("done", text)
 
-                # Fetch: the collected batch root is on the controller (host).
                 collected = joinpath(out_dir, host, "pi_results.txt")
                 @test isfile(collected)
                 @test occursin("pi=", read(collected, String))

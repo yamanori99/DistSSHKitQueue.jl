@@ -5,9 +5,12 @@ function default_store_path()::String
 end
 
 function with_store_lock(f, path::AbstractString)
-    p = String(path)
-    lockdir = p * ".lock"
-    mkpath(dirname(p))
+    return with_store_lock(f, String(path))
+end
+
+function with_store_lock(f, path::String)
+    lockdir = string(path, ".lock")
+    mkpath(dirname(path))
     while true
         try
             mkdir(lockdir)

@@ -34,19 +34,18 @@ julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
 ./.github/jetls-check.sh    # hint+; same files as CI
+./.github/aqua-check.sh     # latest registry Aqua; not part of Pkg.test()
 ./testenv/docker-ssh/scripts/up.sh --e2e
+julia --project=docs -e 'using Pkg; Pkg.instantiate()'
+julia --project=docs --color=yes docs/make.jl
+gitleaks detect --source .
 ```
 
 Layout: [test/README.md](test/README.md).
 
-```bash
-julia --project=docs -e 'using Pkg; Pkg.instantiate()'
-julia --project=docs --color=yes docs/make.jl
-```
-
 JETLS is the type gate (`./.github/jetls-check.sh`, hint+). Do not commit `.vscode/settings.json` to silence the Language Server.
 
-[Fatou](https://fatou.dev) is local only. Do not add `fatou.toml` or Fatou to `.vscode/extensions.json`.
+[Fatou](https://fatou.dev) is local only. Do not add `fatou.toml` or Fatou to `.vscode/extensions.json`. After a Fatou bump, check it did not rewrite files you did not mean to touch.
 
 ### PR CI
 

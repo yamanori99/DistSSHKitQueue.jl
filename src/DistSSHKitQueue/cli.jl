@@ -55,7 +55,7 @@ function drive_job_hosts(parsed)::Vector{String}
     return out
 end
 
-function enqueue_cli!(store::AbstractString, kind::Symbol, script, hosts, kw::Dict{String,Any})
+function enqueue_cli!(store::AbstractString, kind::Symbol, script::AbstractString, hosts, kw::Dict{String,Any})
     h = Placeholder(; store=store)
     nt = isempty(kw) ? NamedTuple() : (; (Symbol(k) => v for (k, v) in kw)...)
     id = placeholder!(h, String(script), String[String(x) for x in hosts]; drive=(kind === :drive), nt...)
@@ -63,11 +63,14 @@ function enqueue_cli!(store::AbstractString, kind::Symbol, script, hosts, kw::Di
     return 0
 end
 
+cli_script_path(::Nothing, verb::AbstractString) = throw(ArgumentError("$verb: missing SCRIPT.jl"))
+cli_script_path(path::AbstractString, ::AbstractString) = String(path)
+
 function cli_go(args::Vector{String})::Cint
     parsed = DistSSHKit.parse_go_args(args)
     parsed.help && (DistSSHKit.show_go_usage(); return 0)
     parsed.show_version && (DistSSHKit.println_kit_version(); return 0)
-    parsed.script_path === nothing && throw(ArgumentError("go: missing SCRIPT.jl"))
+    script = cli_script_path(parsed.script_path, "go")
     hosts = String[String(h) for h in parsed.hosts]
     isempty(hosts) && (hosts = String["local"])
     kw = toml_kw(Dict{String,Any}(
@@ -78,14 +81,14 @@ function cli_go(args::Vector{String})::Cint
         "quiet" => parsed.cli_session.quiet,
         "yes" => true,
     ))
-    return enqueue_cli!(cli_store_path(), :go, parsed.script_path, hosts, kw)
+    return enqueue_cli!(cli_store_path(), :go, script, hosts, kw)
 end
 
 function cli_drive(args::Vector{String})::Cint
     parsed = DistSSHKit.parse_drive_args(args)
     parsed.help && (DistSSHKit.show_drive_requirements(); return 0)
     parsed.show_version && (DistSSHKit.println_kit_version(); return 0)
-    parsed.script_path === nothing && throw(ArgumentError("drive: missing DRIVER.jl"))
+    script = cli_script_path(parsed.script_path, "drive")
     kw = toml_kw(Dict{String,Any}(
         "args" => parsed.script_args,
         "output_dir" => parsed.output_dir,
@@ -97,7 +100,7 @@ function cli_drive(args::Vector{String})::Cint
         "quiet" => parsed.cli_session.quiet,
         "yes" => true,
     ))
-    return enqueue_cli!(cli_store_path(), :drive, parsed.script_path, drive_job_hosts(parsed), kw)
+    return enqueue_cli!(cli_store_path(), :drive, script, drive_job_hosts(parsed), kw)
 end
 
 """CLI entry. Prefer `julia -m DistSSHKitQueue serve`."""

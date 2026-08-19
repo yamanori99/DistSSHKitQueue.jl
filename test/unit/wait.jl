@@ -41,7 +41,7 @@ end
     b = placeholder!(h, "ok.jl", "local:1")
     @test placeholder_step!(h) == 1
     _wait_state(h, a, :failed)
-    @test occursin("boom", placeholder_get(h, a).error)
+    @test occursin("boom", something(placeholder_get(h, a).error, ""))
     @test placeholder_step!(h) == 1
     _wait_state(h, b, :done)
 end
@@ -65,7 +65,7 @@ end
         notify(ev)
         _wait_state(h, id, :done)
         @test placeholder_get(h2, id).state === :failed
-        @test occursin("serve restarted", placeholder_get(h2, id).error)
+        @test occursin("serve restarted", something(placeholder_get(h2, id).error, ""))
     end
 end
 
