@@ -1,3 +1,5 @@
 # [Design](@id Design)
 
-The living design note is [`DESIGN.md`](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/DESIGN.md) at the repo root. Public names are placeholders until the CLI exists.
+The living design note is [`DESIGN.md`](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/DESIGN.md) at the repo root.
+
+Queue verbs: `serve`, `status`, `submit`. After `submit`, Kit argv (`go` / `drive`). Public Julia names are placeholders.

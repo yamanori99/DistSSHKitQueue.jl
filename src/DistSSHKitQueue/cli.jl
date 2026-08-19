@@ -3,10 +3,12 @@ function print_queue_usage(; io::IO=stdout)
     println(io)
     println(io, "  julia --project=. -m DistSSHKitQueue serve")
     println(io, "  julia --project=. -m DistSSHKitQueue status")
-    println(io, "  julia --project=. -m DistSSHKitQueue go [same argv as DistSSHKit go]")
-    println(io, "  julia --project=. -m DistSSHKitQueue drive [same argv as DistSSHKit drive]")
+    println(io, "  julia --project=. -m DistSSHKitQueue submit go [same argv as DistSSHKit go]")
+    println(io, "  julia --project=. -m DistSSHKitQueue submit drive [same argv as DistSSHKit drive]")
     println(io)
-    println(io, "No subcommand prints this help. `serve` is the waiter. Ctrl-C leaves it; running Kit is not killed.")
+    println(io, "No subcommand prints this help. `serve` is the waiter. `submit` enqueues; it does not run Kit.")
+    println(io, "Bare `go` / `drive` are aliases of `submit go` / `submit drive`.")
+    println(io, "Ctrl-C leaves the waiter; running Kit is not killed.")
     println(io, "Store: $(default_store_path())   override: DISTSSHKITQUEUE_STORE")
     return nothing
 end
@@ -103,7 +105,14 @@ function cli_drive(args::Vector{String})::Cint
     return enqueue_cli!(cli_store_path(), :drive, script, drive_job_hosts(parsed), kw)
 end
 
-"""CLI entry. Prefer `julia -m DistSSHKitQueue serve`."""
+function cli_submit(args::Vector{String})::Cint
+    isempty(args) && throw(ArgumentError("submit: need `go` or `drive`"))
+    kit, rest = String(args[1]), String[String(a) for a in args[2:end]]
+    kit in ("-h", "--help") && (print_queue_usage(); return 0)
+    kit == "go" && return cli_go(rest)
+    kit == "drive" && return cli_drive(rest)
+    throw(ArgumentError("submit: unknown kit command $(repr(kit)) (want go or drive)"))
+end
 function main(args::Vector{String}=copy(ARGS))::Cint
     if isempty(args) || args[1] in ("-h", "--help", "help")
         print_queue_usage()
@@ -129,6 +138,8 @@ function main(args::Vector{String}=copy(ARGS))::Cint
     elseif sub == "status"
         print_status(cli_store_path())
         return 0
+    elseif sub == "submit"
+        return cli_submit(rest)
     elseif sub == "go"
         return cli_go(rest)
     elseif sub == "drive"

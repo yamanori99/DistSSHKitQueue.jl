@@ -34,7 +34,7 @@ Kit has no “master lives on that host” today: `go!` / `drive!` make the call
 
 ## How the master sits under Queue
 
-**First slice (now):** the waiter process calls `go!` / `drive!`. Orderers enqueue by writing the store (CLI `go` / `drive`). Same host: the REPL can `@async serve!(h)` and `placeholder!`.
+**First slice (now):** the waiter process calls `go!` / `drive!`. Orderers enqueue by writing the store (`submit go` / `submit drive`). Same host: the REPL can `@async serve!(h)` and `placeholder!`.
 
 **Later:** Queue only waits. Each table job is a child (`julia -m DistSSHKit go|drive …`). That child is the Kit master. Queue watches the PID, exit status, and Kit output paths. Use this when waiter and run must not share a fate.
 
@@ -61,20 +61,20 @@ User-facing actions are Julia (`using DistSSHKitQueue`) or `julia -m DistSSHKitQ
 julia --project=Lab.jl -m DistSSHKitQueue serve
 julia --project=Lab.jl -m DistSSHKitQueue status
 
-# orderer: Kit argv, enqueue only (does not run go! / drive!)
-ssh controller 'julia --project=Lab.jl -m DistSSHKitQueue go SCRIPT.jl worker:4'
-ssh controller 'julia --project=Lab.jl -m DistSSHKitQueue drive local:2 SCRIPT.jl'
+# orderer: enqueue only (does not run go! / drive!)
+ssh controller 'julia --project=Lab.jl -m DistSSHKitQueue submit go SCRIPT.jl worker:4'
+ssh controller 'julia --project=Lab.jl -m DistSSHKitQueue submit drive local:2 SCRIPT.jl'
 ```
 
 Store: `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE`). Whole-file rewrite under a directory lock. No listen socket, no HTTP, no `stop` subcommand (Ctrl-C / OS unit). Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. Ctrl-C leaves the waiter; running Kit is not killed.
 
-`serve` / `status` are Queue. `go` / `drive` are Kit's CLI, stored as a table row.
+`serve` / `status` / `submit` are Queue. After `submit`, `go` / `drive` are Kit's CLI, stored as a table row. Bare `go` / `drive` remain aliases of `submit`.
 
 Order from anywhere **feel later (optional Kit change):** type DistSSHKit on the orderer (`go!(…; master="controller")`). DistSSHKit [issue #50](https://github.com/yamanori99/DistSSHKit.jl/issues/50) / [#129](https://github.com/yamanori99/DistSSHKit.jl/issues/129) is that hand-off, not a scheduler inside DistSSHKit.
 
 - `serve` / `serve!` — load store, one FIFO job at a time until interrupt
 - `status` — print the table
-- CLI `go` / `drive` — enqueue (Kit parsers)
+- CLI `submit go` / `submit drive` — enqueue (Kit parsers). Bare `go` / `drive` are aliases.
 - `placeholder!` — Julia enqueue (`drive=true` → `drive!`)
 - `placeholder_cancel!` — `:queued` only
 
@@ -126,7 +126,7 @@ A DistSSHKit throw, `GoResult`/`DriveResult` with `ok=false`, or (later) a non-z
 
 Placeholders. Split should not move: job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
-- `serve` / `status` (Queue). CLI `go` / `drive` (Kit argv, enqueue).
+- `serve` / `status` / `submit` (Queue). After `submit`, `go` / `drive` (Kit argv, enqueue).
 - `placeholder!` / `placeholder_list` / `placeholder_get` / `placeholder_cancel!` (Julia; names not frozen)
 - `serve!` until interrupt (alias `placeholder_head`)
 

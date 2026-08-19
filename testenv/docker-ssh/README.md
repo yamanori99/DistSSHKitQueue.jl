@@ -15,10 +15,10 @@ The host is both **controller** and **orderer** (first slice: the waiter calls
 1. Copy DistSSHKit `demos/` file/echo scripts into `example-job` (not `pipeline_*`;
    those call `go!` / `pipeline!` themselves).
 2. `setup!` deploys that project to the workers (rsync + instantiate).
-3. Enqueue each remaining demo (`go` / `drive`) and drive the waiter to `:done`.
+3. Enqueue each remaining demo (same as CLI `submit go` / `submit drive`) and drive the waiter to `:done`.
 4. FIFO: two queued Kit jobs, one running at a time.
 5. Cancel the middle queued row; waiter skips it and runs the next.
-2. Enqueue a `go` job into the Queue store (orderer side).
+2. Enqueue a `go` job into the Queue store (orderer side; CLI: `submit go`).
 3. Drive the waiter (`placeholder_step!`); it runs `go!` on the worker.
 4. Job reaches `:done`; `result_path` is the collected batch root.
 5. Peek (`status`) + fetch (read the collected file on the controller).

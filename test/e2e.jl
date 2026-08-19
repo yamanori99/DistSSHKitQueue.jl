@@ -2,7 +2,8 @@
 # Queue SSH E2E against testenv/docker-ssh workers. Not part of Pkg.test().
 #
 # Stages DistSSHKit `demos/` into testenv/example-job, setup! to the workers,
-# then enqueue Kit go/drive jobs through the Queue waiter.
+# then enqueue Kit go/drive jobs through the Queue waiter
+# (same as CLI `submit go` / `submit drive`).
 #
 # Table jobs are the four *file*/*echo* demos. `pipeline_pi.jl` /
 # `pipeline_square.jl` call `go!` / `pipeline!` themselves — not Queue rows.

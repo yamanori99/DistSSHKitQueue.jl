@@ -117,13 +117,22 @@ end
         withenv("DISTSSHKITQUEUE_STORE" => p) do
             @test DistSSHKitQueue.main(["-h"]) == 0
             @test DistSSHKitQueue.main(["status"]) == 0
-            @test DistSSHKitQueue.cli_go(["worker:4", "job.jl"]) == 0
+            @test DistSSHKitQueue.main(["submit", "go", "worker:4", "job.jl"]) == 0
             jobs = DistSSHKitQueue.load_jobs_raw(p)
             @test length(jobs) == 1
             @test jobs[1].kind === :go
             @test jobs[1].script == "job.jl"
             @test jobs[1].hosts == ["worker:4"]
             @test jobs[1].state === :queued
+            @test DistSSHKitQueue.main(["go", "local:1", "alias.jl"]) == 0
+            @test DistSSHKitQueue.main(["submit", "drive", "local:2", "drv.jl"]) == 0
+            jobs = DistSSHKitQueue.load_jobs_raw(p)
+            @test length(jobs) == 3
+            @test jobs[2].kind === :go
+            @test jobs[2].script == "alias.jl"
+            @test jobs[3].kind === :drive
+            @test jobs[3].script == "drv.jl"
+            @test jobs[3].hosts == ["local:2"]
         end
     end
 end

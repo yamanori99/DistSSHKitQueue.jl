@@ -1,8 +1,11 @@
 """
 DistSSHKitQueue — small-lab job queue on DistSSHKit (`go` / `drive`).
 
+Enqueue from the CLI with `submit go` / `submit drive` (Kit argv after that).
+`serve` waits; `status` lists the table.
+
 Design: [`DESIGN.md`](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/DESIGN.md).
-Public names are placeholders until the CLI exists.
+Public Julia names are placeholders.
 """
 module DistSSHKitQueue
 
