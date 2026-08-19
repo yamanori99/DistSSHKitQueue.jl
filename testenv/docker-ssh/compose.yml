@@ -1,0 +1,27 @@
+# Linux SSH workers for DistSSHKitQueue local Docker E2E.
+# These are DistSSHKit go/drive targets (host:N). The Queue controller and the
+# waiter run on the host, not here.
+services:
+  worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: local/dskq-linux-ssh-worker:latest
+    container_name: distsshkitqueue-worker-1
+    ports:
+      - "2222:22"
+    volumes:
+      - ./mounted-keys:/mounted-keys:ro
+    restart: "no"
+
+  worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: local/dskq-linux-ssh-worker:latest
+    container_name: distsshkitqueue-worker-2
+    ports:
+      - "2223:22"
+    volumes:
+      - ./mounted-keys:/mounted-keys:ro
+    restart: "no"

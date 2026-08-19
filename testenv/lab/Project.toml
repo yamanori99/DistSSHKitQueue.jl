@@ -1,0 +1,9 @@
+name = "QueueLab"
+uuid = "b1a9f0d2-3c4e-4f5a-9b6c-7d8e9f0a1b2c"
+version = "0.0.1"
+
+# Minimal lab project deployed to the workers by DistSSHKit setup!. The go job
+# below imports no kit and no queue — only stdlib — so worker instantiate is
+# cheap and the run proves the Queue → Kit → worker → collect path.
+[deps]
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
