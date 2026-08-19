@@ -1,0 +1,34 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: jetls-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Queue CI is Julia 1.12 only (Project.toml). Kit also runs JETLS on
+  # JULIA_SLOT_JETLS_MAX (~1.13); that slot machinery stays in DistSSHKit.
+  jetls:
+    name: JETLS - 1.12 - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - id: files
+        run: echo "list=$(./.github/jetls-check.sh --print-files)" >> "$GITHUB_OUTPUT"
+      # Official check action: https://aviatesk.github.io/JETLS.jl/dev/cli-check/#cli-check/github-actions
+      - uses: aviatesk/JETLS.jl/.github/actions/check@release
+        with:
+          files: ${{ steps.files.outputs.list }}
+          julia-version: "1.12"
+          exit-severity: hint
+          progress: none

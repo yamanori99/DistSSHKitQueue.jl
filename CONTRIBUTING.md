@@ -2,7 +2,7 @@
 
 Internals of this repo. Users: [README.md](README.md), [DESIGN.md](DESIGN.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit E2E, Julia slots, bake, or `testenv/`. Later SSH E2E borrows Kit workers (GHCR / `up.sh`); see [DESIGN.md](DESIGN.md). CI is `Pkg.test` on Julia 1.12 plus Gitleaks, not a Kit clone.
+This is a **separate** package from DistSSHKit. Do not copy Kit E2E, Julia slots, bake, or `testenv/`. Later SSH E2E borrows Kit workers (GHCR / `up.sh`); see [DESIGN.md](DESIGN.md). CI is `Pkg.test` and JETLS on Julia 1.12 plus Gitleaks, not a Kit clone.
 
 ## Requirements
 
@@ -33,6 +33,7 @@ julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
+./.github/jetls-check.sh    # hint+; same files as CI
 ```
 
 Layout: [test/README.md](test/README.md).
@@ -42,13 +43,13 @@ julia --project=docs -e 'using Pkg; Pkg.instantiate()'
 julia --project=docs --color=yes docs/make.jl
 ```
 
-JETLS is the type gate when it is added. Do not commit `.vscode/settings.json` to silence the Language Server.
+JETLS is the type gate (`./.github/jetls-check.sh`, hint+). Do not commit `.vscode/settings.json` to silence the Language Server.
 
 [Fatou](https://fatou.dev) is local only. Do not add `fatou.toml` or Fatou to `.vscode/extensions.json`.
 
 ### PR CI
 
-Ubuntu: `Pkg.test` on **1.12**, Gitleaks. No slots, no SSH E2E, no Documenter deploy yet.
+Ubuntu: `Pkg.test` and JETLS on **1.12**, Gitleaks. No slots, no SSH E2E, no Documenter deploy yet.
 
 ## Pull requests
 
