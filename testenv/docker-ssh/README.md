@@ -64,3 +64,11 @@ DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl
 
 `DSKQ_WORKER_IMAGE=<tag> ./scripts/up.sh` pulls a prebuilt worker image instead
 of building locally.
+
+## CI
+
+[`.github/workflows/ssh-e2e.yml`](../../.github/workflows/ssh-e2e.yml) runs
+`./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
+`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. `Pkg.test()` still
+does not start Docker. No GHCR bake, no daily macOS / WSL controllers (those
+stay DistSSHKit's).

@@ -2,7 +2,7 @@
 
 Internals of this repo. Users: [README.md](README.md), [DESIGN.md](DESIGN.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit E2E, Julia slots, bake, or `testenv/`. Later SSH E2E borrows Kit workers (GHCR / `up.sh`); see [DESIGN.md](DESIGN.md). CI is `Pkg.test` and JETLS on Julia 1.12 plus Gitleaks, not a Kit clone.
+This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots, bake, or daily E2E controllers. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test`, JETLS, and PR SSH E2E on Julia 1.12 plus Gitleaks.
 
 ## Requirements
 
@@ -34,6 +34,7 @@ julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
 ./.github/jetls-check.sh    # hint+; same files as CI
+./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
 Layout: [test/README.md](test/README.md).
@@ -49,7 +50,7 @@ JETLS is the type gate (`./.github/jetls-check.sh`, hint+). Do not commit `.vsco
 
 ### PR CI
 
-Ubuntu: `Pkg.test` and JETLS on **1.12**, Gitleaks. No slots, no SSH E2E, no Documenter deploy yet.
+Ubuntu: `Pkg.test`, JETLS, and path-gated SSH E2E on **1.12**, Gitleaks. No slots, no daily macOS / WSL controllers, no Documenter deploy yet.
 
 ## Pull requests
 
