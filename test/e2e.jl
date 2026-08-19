@@ -220,17 +220,17 @@ end
                 out_b = joinpath(JOB_PROJECT, "go_out", "fifo_b")
                 isdir(out_a) && rm(out_a; recursive = true)
                 isdir(out_b) && rm(out_b; recursive = true)
-                a = enqueue_kit!(h, :go, echo, token; out = out_a, args = ["64"])
-                b = enqueue_kit!(h, :go, echo, token; out = out_b, args = ["64"])
-                @test step!(h) == 1
-                @test job(h, a).state === :running
-                @test job(h, b).state === :queued
-                @test step!(h) == 0
-                @test drive_until_terminal!(h, a) === :done
-                @test step!(h) == 1
-                @test drive_until_terminal!(h, b) === :done
-                fa = job(h, a).finished_at
-                sb = job(h, b).started_at
+                a = enqueue_kit!(q, :go, echo, token; out = out_a, args = ["64"])
+                b = enqueue_kit!(q, :go, echo, token; out = out_b, args = ["64"])
+                @test step!(q) == 1
+                @test job(q, a).state === :running
+                @test job(q, b).state === :queued
+                @test step!(q) == 0
+                @test drive_until_terminal!(q, a) === :done
+                @test step!(q) == 1
+                @test drive_until_terminal!(q, b) === :done
+                fa = job(q, a).finished_at
+                sb = job(q, b).started_at
                 @test fa isa DateTime && sb isa DateTime && fa <= sb
             end
 

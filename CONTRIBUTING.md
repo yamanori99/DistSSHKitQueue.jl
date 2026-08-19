@@ -2,7 +2,7 @@
 
 Internals of this repo. Users: [README.md](README.md), [DESIGN.md](DESIGN.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test`, JETLS, path-gated PR SSH E2E on Julia 1.12, Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
+This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (Codecov), JETLS, path-gated PR SSH E2E on Julia 1.12, Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
 
 ## Requirements
 
@@ -49,7 +49,14 @@ JETLS is the type gate (`./.github/jetls-check.sh`, hint+). Do not commit `.vsco
 
 ### PR CI
 
-Ubuntu: `Pkg.test`, JETLS, and path-gated SSH E2E on **1.12**, Gitleaks. **E2E daily** (`ssh-e2e-daily.yml`) is not a PR check: cron 04:00 JST plus `workflow_dispatch`, GHCR image `dskq-linux-ssh-worker`, Linux / `macos-15-intel` (Colima) / WSL2. Failure opens issue `E2E daily failed` (`ci`). No slots, no Documenter deploy yet.
+Ubuntu: `Pkg.test` (Codecov `pkgtest`), JETLS, and path-gated SSH E2E (Codecov `e2e`) on **1.12**, Gitleaks. **E2E daily** (`ssh-e2e-daily.yml`) is not a PR check: cron 04:00 JST plus `workflow_dispatch`, GHCR image `dskq-linux-ssh-worker`, Linux / `macos-15-intel` (Colima) / WSL2. Failure opens issue `E2E daily failed` (`ci`). No slots, no Documenter deploy yet. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`).
+
+CI E2E (`DSKQ_CODE_COVERAGE=1`) writes `.cov` and uploads to Codecov (merged with `Pkg.test`). Daily E2E does not upload coverage. Local coverage:
+
+```bash
+julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
+DSKQ_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
+```
 
 ## Pull requests
 

@@ -134,7 +134,7 @@ Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
 ### Tests
 
-`Pkg.test` needs no SSH (`test/unit/queue.jl`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`), not DistSSHKit’s suite. Daily E2E (Linux / macOS / WSL) does not upload coverage. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
+`Pkg.test` needs no SSH (`test/unit/queue.jl`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`), not DistSSHKit’s suite. PR CI uploads Codecov flags `pkgtest` and `e2e` (OIDC, carryforward). Daily E2E (Linux / macOS / WSL) does not upload coverage. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
 
 ## Out of scope
 

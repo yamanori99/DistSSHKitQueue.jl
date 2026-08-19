@@ -74,12 +74,13 @@ build, `DSKQ_PUSH_IMAGE=<tag>` tags and pushes that image.
 
 [`.github/workflows/ssh-e2e.yml`](../../.github/workflows/ssh-e2e.yml) runs
 `./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
-`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. `Pkg.test()` still
-does not start Docker.
+`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. CI sets
+`DSKQ_CODE_COVERAGE=1` (`--code-coverage=user`) and uploads flag `e2e` to Codecov.
+`Pkg.test()` still does not start Docker.
 
 [`.github/workflows/ssh-e2e-daily.yml`](../../.github/workflows/ssh-e2e-daily.yml)
 is **not** a PR check (schedule 04:00 JST + `workflow_dispatch`). It builds
 `ghcr.io/<owner>/dskq-linux-ssh-worker:<sha>`, runs E2E on Ubuntu, `macos-15-intel`
 (Colima via [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh)), and WSL2,
-then tags `latest`. Make the GHCR package public after the first push so forks
-can pull if needed.
+then tags `latest`. Daily does not upload Codecov. Make the GHCR package public
+after the first push so forks can pull if needed.
