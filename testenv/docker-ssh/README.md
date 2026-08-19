@@ -29,6 +29,7 @@ The host is both **controller** and **orderer** (first slice: the waiter calls
 | [`compose.yml`](compose.yml) | Two workers (`worker-1` / `worker-2`) |
 | [`scripts/gen-keys.sh`](scripts/gen-keys.sh) | Controller + inter-worker keys, SSH config |
 | [`scripts/up.sh`](scripts/up.sh) | Keys → build → up → wait (`--e2e` also runs the suite) |
+| [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh) | macOS Intel GitHub runner: Lima + Colima |
 | [`scripts/wait-ready.sh`](scripts/wait-ready.sh) | BatchMode SSH + Julia probe |
 | [`scripts/down.sh`](scripts/down.sh) | Compose down |
 | `.generated/` | gitignored SSH config / keys (created by scripts) |
@@ -66,7 +67,8 @@ DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl
 ```
 
 `DSKQ_WORKER_IMAGE=<tag> ./scripts/up.sh` pulls a prebuilt worker image instead
-of building locally.
+of building locally (`DSKQ_WORKER_PULL_RETRIES` for wait-on-push). After a local
+build, `DSKQ_PUSH_IMAGE=<tag>` tags and pushes that image.
 
 ## CI
 
@@ -74,5 +76,11 @@ of building locally.
 `./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
 `test` / `testenv` / `Project.toml`, and `workflow_dispatch`. CI sets
 `DSKQ_CODE_COVERAGE=1` (`--code-coverage=user`) and uploads flag `e2e` to Codecov.
-`Pkg.test()` still does not start Docker. No GHCR bake, no daily macOS / WSL
-controllers (those stay DistSSHKit's).
+`Pkg.test()` still does not start Docker.
+
+[`.github/workflows/ssh-e2e-daily.yml`](../../.github/workflows/ssh-e2e-daily.yml)
+is **not** a PR check (schedule 04:00 JST + `workflow_dispatch`). It builds
+`ghcr.io/<owner>/dskq-linux-ssh-worker:<sha>`, runs E2E on Ubuntu, `macos-15-intel`
+(Colima via [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh)), and WSL2,
+then tags `latest`. Daily does not upload Codecov. Make the GHCR package public
+after the first push so forks can pull if needed.

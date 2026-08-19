@@ -17,6 +17,8 @@ for arg in "$@"; do
     -h|--help)
       echo "usage: $0 [--e2e]"
       echo "  DSKQ_WORKER_IMAGE  pull this tag (skip compose build)"
+      echo "  DSKQ_WORKER_PULL_RETRIES  pull attempts (default 1; daily CI uses 40)"
+      echo "  DSKQ_PUSH_IMAGE  after local build, tag and push this name"
       echo "  DSKQ_CODE_COVERAGE=1  e2e with --code-coverage=user"
       exit 0
       ;;
@@ -40,12 +42,34 @@ else
   exit 1
 fi
 
+pull_worker_image() {
+  local image="$1"
+  local retries="${DSKQ_WORKER_PULL_RETRIES:-1}"
+  local attempt=1
+  while true; do
+    if docker pull "$image"; then
+      docker tag "$image" "$LOCAL_IMAGE"
+      return 0
+    fi
+    if (( attempt >= retries )); then
+      echo "docker pull failed after ${retries} attempts: ${image}" >&2
+      return 1
+    fi
+    echo "waiting for worker image (${attempt}/${retries}): ${image}" >&2
+    sleep 15
+    attempt=$((attempt + 1))
+  done
+}
+
 if [[ -n "${DSKQ_WORKER_IMAGE:-}" ]]; then
-  docker pull "${DSKQ_WORKER_IMAGE}"
-  docker tag "${DSKQ_WORKER_IMAGE}" "${LOCAL_IMAGE}"
+  pull_worker_image "$DSKQ_WORKER_IMAGE"
 else
   # Build a single service so logs are not interleaved (both share the image).
   "${COMPOSE[@]}" -f compose.yml build worker-1
+  if [[ -n "${DSKQ_PUSH_IMAGE:-}" ]]; then
+    docker tag "$LOCAL_IMAGE" "$DSKQ_PUSH_IMAGE"
+    docker push "$DSKQ_PUSH_IMAGE"
+  fi
 fi
 
 "${COMPOSE[@]}" -f compose.yml up -d --no-build
