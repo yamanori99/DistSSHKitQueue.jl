@@ -9,6 +9,7 @@ mutable struct PlaceholderJob
     started_at::Union{Nothing,DateTime}
     finished_at::Union{Nothing,DateTime}
     error::Union{Nothing,String}
+    result_path::Union{Nothing,String}
     kwargs::Dict{String,Any}
 end
 
@@ -22,6 +23,7 @@ function PlaceholderJob(;
     started_at=nothing,
     finished_at=nothing,
     error=nothing,
+    result_path=nothing,
     kwargs::Dict{String,Any}=Dict{String,Any}(),
 )
     kind in (:go, :drive) || throw(ArgumentError("kind must be :go or :drive"))
@@ -38,6 +40,7 @@ function PlaceholderJob(;
         started_at,
         finished_at,
         error === nothing ? nothing : String(error),
+        result_path === nothing ? nothing : String(result_path),
         kwargs,
     )
 end
@@ -53,6 +56,7 @@ function Base.copy(j::PlaceholderJob)
         j.started_at,
         j.finished_at,
         j.error,
+        j.result_path,
         copy(j.kwargs),
     )
 end

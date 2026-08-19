@@ -2,7 +2,7 @@
 
 Not a DistSSHKit.jl feature. Not a fork. Separate git repository.
 
-**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is the always-on entry on the controller: FIFO, occupancy, a waiter, and records of where Kit wrote results. Queue does not swallow Kit. Direct kit use (bypass the queue) stays valid. `go` job files do not import the kit or the queue.
+**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is the always-on entry on the controller: FIFO (one table job at a time), a waiter, and records of where Kit wrote results. Queue does not swallow Kit. Direct kit use (bypass the queue) stays valid. `go` job files do not import the kit or the queue.
 
 Queue code `using DistSSHKit` (hard dependency). Submitters `using DistSSHKitQueue` (and, later, may keep typing DistSSHKit names if Kit grows a thin hand-off).
 
@@ -12,7 +12,7 @@ Name: DataFramesMeta pattern (parent + layer). `*HPC` is a bad AutoMerge fit. A 
 
 ## Containment
 
-The long-lived process on the controller is Queue. The Kit **master** lives **under** it for one table job at a time. Queue is not a bigger Kit.
+The long-lived process on the controller is Queue. One table job runs at a time (the Kit master). Queue is not a bigger Kit. `host:N` is what that job passes to DistSSHKit; Queue does not keep a lab-wide slot ceiling.
 
 ```text
 orderer A (laptop)  ──┐
@@ -34,7 +34,7 @@ Kit has no “master lives on that host” today: `go!` / `drive!` make the call
 
 ## How the master sits under Queue
 
-**First slice (now):** same Julia process. The waiter calls `go!` / `drive!`. While a job runs, that process **is** the Kit master. Enqueue from a REPL on the controller uses the same handle (`@async` the wait loop so the REPL can still submit).
+**First slice (now):** the waiter process calls `go!` / `drive!`. Orderers enqueue by writing the store (CLI `go` / `drive`). Same host: the REPL can `@async serve!(h)` and `placeholder!`.
 
 **Later:** Queue only waits. Each table job is a child (`julia -m DistSSHKit go|drive …`). That child is the Kit master. Queue watches the PID, exit status, and Kit output paths. Use this when waiter and run must not share a fate.
 
@@ -43,43 +43,40 @@ Stopping the waiter does not cancel a running Kit/SSH tree. If the waiter proces
 ## Shape
 
 - Platforms: macOS and Linux (WSL2 Ubuntu). Not native Windows (`ssh` / `rsync`).
-- Occupancy: DistSSHKit `host:N`. FIFO. No preemption, no backfill.
+- Occupancy / lab-wide `host:N` ceilings: Kit (`size!`, job tokens). Queue is FIFO, one table job.
 - SSH to workers: new `ssh` per job, as in `go`. Keepalives only during a long run.
 - Workers: `Distributed.jl` processes, not threads. Same Pkg/Manifest story as DistSSHKit.
 - Control plane: Julia only. No HyperQueue / Slurm CLI, no HTTP, no third-party supervisor as the user API.
-- Compat: Julia **1.12+**, DistSSHKit **0.3**. Queue work uses `dev` / git until a kit hook needs a DistSSHKit General patch (see [CONTRIBUTING.md](CONTRIBUTING.md#distsshkit-cuts)).
+- Compat: Julia **1.12+**, DistSSHKit **0.3.1+**. Queue work uses `dev` / git until a kit hook needs a DistSSHKit General patch (see [CONTRIBUTING.md](CONTRIBUTING.md#distsshkit-cuts)).
 - House files follow DistSSHKit, slimmed. CI is `Pkg.test` on 1.12 plus Gitleaks, not a DistSSHKit clone.
 
 ## Operations
 
 Day-to-day: Kit-shaped arguments (`script`, `host:N…`, kit kwargs). Queue adds wait, order, list, cancel-queued, and pointers to Kit output. Job files stay unchanged.
 
-User-facing actions are Julia (`using DistSSHKitQueue`) or the same via `julia -m DistSSHKitQueue` when `@main` exists (same `[apps.*]` pattern as DistSSHKit).
-
-Placeholder CLI (names not frozen):
+User-facing actions are Julia (`using DistSSHKitQueue`) or `julia -m DistSSHKitQueue`.
 
 ```bash
-# on the controller (waiter)
-julia -m DistSSHKitQueue placeholder-head
+# controller: start the waiter (no subcommand is the same)
+julia --project=Lab.jl -m DistSSHKitQueue serve
+julia --project=Lab.jl -m DistSSHKitQueue status
 
-# from any orderer: SSH into the controller (or a REPL already there)
-julia -m DistSSHKitQueue placeholder SCRIPT.jl host:N
-julia -m DistSSHKitQueue placeholder --drive SCRIPT.jl host:N
-julia -m DistSSHKitQueue placeholder-list
-julia -m DistSSHKitQueue placeholder-get ID
-julia -m DistSSHKitQueue placeholder-slots
-julia -m DistSSHKitQueue placeholder-cancel ID
+# orderer: Kit argv, enqueue only (does not run go! / drive!)
+ssh mini 'julia --project=Lab.jl -m DistSSHKitQueue go SCRIPT.jl mini:4'
+ssh mini 'julia --project=Lab.jl -m DistSSHKitQueue drive local:2 SCRIPT.jl'
 ```
 
-Order from anywhere **first slice:** each orderer runs `ssh controller julia -m DistSSHKitQueue placeholder …` with the same tokens and kwargs Kit would take. The controller TOML is the hand-off. Whole-file rewrite under a lock so two orderers do not clobber the table. No listen socket, no HTTP.
+Store: `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE`). Whole-file rewrite under a directory lock. No listen socket, no HTTP, no `stop` subcommand (Ctrl-C / OS unit). Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. Ctrl-C leaves the waiter; running Kit is not killed.
 
-Order from anywhere **feel later (optional Kit change):** keep typing DistSSHKit on the orderer (`go!(script, hosts...; master="controller")` or CLI equivalent). Kit must not start the master locally; it forwards the same argv to Queue on the controller. DistSSHKit [issue #50](https://github.com/yamanori99/DistSSHKit.jl/issues/50) is the kit-side placeholder for that hand-off, not a scheduler inside DistSSHKit.
+`serve` / `status` are Queue. `go` / `drive` are Kit's CLI, stored as a table row.
 
-- `placeholder_head` — load store, `placeholder_step!` until interrupt
-- `placeholder!` — enqueue (`drive=true` → DistSSHKit `drive!`, else `go!`)
-- `placeholder_list` / `placeholder_get` / `placeholder_slots`
+Order from anywhere **feel later (optional Kit change):** type DistSSHKit on the orderer (`go!(…; master="controller")`). DistSSHKit [issue #50](https://github.com/yamanori99/DistSSHKit.jl/issues/50) / [#129](https://github.com/yamanori99/DistSSHKit.jl/issues/129) is that hand-off, not a scheduler inside DistSSHKit.
+
+- `serve` / `serve!` — load store, one FIFO job at a time until interrupt
+- `status` — print the table
+- CLI `go` / `drive` — enqueue (Kit parsers)
+- `placeholder!` — Julia enqueue (`drive=true` → `drive!`)
 - `placeholder_cancel!` — `:queued` only
-- stop — `InterruptException` on the wait loop; return, do not crash the REPL
 
 Boot auto-restart is optional. Julia helpers may write and control a unit; users should not hand-edit those files as the primary path. `launchctl` / `systemctl` stay inside the helpers.
 
@@ -90,7 +87,7 @@ Boot auto-restart is optional. Julia helpers may write and control a unit; users
 
 ## In process
 
-`Placeholder`, `placeholder!`, `placeholder_list` / `placeholder_get`, `placeholder_cancel!`, `placeholder_step!`, `placeholder_head`, TOML `store`. Change this file if the default changes.
+`Placeholder`, `placeholder!`, `serve!` / `serve`, `status` CLI, TOML `store`. Change this file if the default changes.
 
 `-m` and OS-service helpers are the same surface, not a second protocol. The in-memory table does not depend on them.
 
@@ -107,17 +104,13 @@ First-slice tests and the controller REPL still pass an explicit `Placeholder` h
 | `state` | `:queued` / `:running` / `:done` / `:failed` / `:cancelled`. |
 | `queued_at` / `started_at` / `finished_at` | UTC. |
 | `error` | Short string if `:failed`. |
-| result path | Where Kit already wrote (go batch root / drive output). Queue records the path; it does not invent a second collect tree. |
+| `result_path` | Where Kit already wrote (go batch root / drive `output_dir`). Queue records the path; it does not invent a second collect tree. |
 
-Kit kwargs (`args`, project, collect, …) travel as an opaque bag and are forwarded. Do not reimplement kit flags. `drive::Bool` is Queue-only and is not forwarded.
+Kit kwargs (`args`, `project`, `output_dir`, …) travel as an opaque bag and are forwarded. DistSSHKit **0.3.1+**: `go!` and `drive!` both take `output_dir`. Do not reimplement kit flags. `drive::Bool` is Queue-only and is not forwarded.
 
-### Occupancy and FIFO
+### FIFO
 
-Parse `host:N` as DistSSHKit does. A job **fits** when every token’s free slots `>= N` for that host. Scan from the FIFO head; start the first job that fits. If job 1 needs 8 and 2 are free, job 2 does not jump.
-
-Slots are held **per table job**, not per `pmap` item. `drive` + `pmap` keeps all `host:N` workers until that drive returns.
-
-Lab work is mostly `pmap`-shaped: allocated workers stay busy and tend to finish together, so the next job sees a clean block of slots. `go` is N independent runs; a slow replica can free N-1 slots while one run continues. FIFO does not fill that hole.
+One table job at a time. `host:N` on the job is forwarded to DistSSHKit; Queue does not keep a lab-wide slot map. No backfill, no packing.
 
 ### Persistence
 
@@ -127,18 +120,15 @@ On waiter death: reload `:queued`; mark `:running` as `:failed` (do not guess ab
 
 ### Failure
 
-A DistSSHKit throw (or non-zero child exit, later) marks `:failed`. The dispatcher takes the next fitting job. Do not stall the table on one failure.
+A DistSSHKit throw, `GoResult`/`DriveResult` with `ok=false`, or (later) a non-zero child exit marks `:failed`. The dispatcher takes the next fitting job. Do not stall the table on one failure.
 
 ### Public names
 
 Placeholders. Split should not move: job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
-- `placeholder!(script, hosts...; drive=false, kwargs...)` — enqueue, return `id`
-- `placeholder_list()` / `placeholder_get(id)` / `placeholder_slots`
-- `placeholder_cancel!(id)` — `:queued` only
-- `placeholder_head(; store=...)` — until interrupt
-
-CLI stems match the Julia names without `!`. Decide the real verb after using `-m`.
+- `serve` / `status` (Queue). CLI `go` / `drive` (Kit argv, enqueue).
+- `placeholder!` / `placeholder_list` / `placeholder_get` / `placeholder_cancel!` (Julia; names not frozen)
+- `serve!` until interrupt (alias `placeholder_head`)
 
 ### Tests
 
@@ -149,6 +139,7 @@ CLI stems match the Julia names without `!`. Decide the real verb after using `-
 - Scheduler inside DistSSHKit (a `master=` / forward hook is allowed; a kit-side job table is not)
 - Weakdeps from Queue to DistSSHKit
 - Glue package / `() -> go!(...)` callbacks
+- Lab-wide slot ceilings / occupancy packing (Kit `size!` / job tokens)
 - Preemption, fair-share, priorities, reservations, backfill
 - HTTP, listen socket, third-party queue APIs
 - Laptop as Kit master when using Queue (sleeping laptop as waiter stays forbidden)

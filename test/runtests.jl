@@ -7,5 +7,5 @@ using Test
 using DistSSHKitQueue
 
 @testset "DistSSHKitQueue" verbose=true begin
-    include(joinpath(@__DIR__, "unit", "hall.jl"))
+    include(joinpath(@__DIR__, "unit", "wait.jl"))
 end

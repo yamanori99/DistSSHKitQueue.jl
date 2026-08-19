@@ -19,11 +19,18 @@ export placeholder_cancel!
 export placeholder_step!
 export placeholder_head
 export placeholder_load!
-export placeholder_slots
+export serve!
+export serve
+export default_store_path
+export main
 
-include("DistSSHKitQueue/occupancy.jl")
 include("DistSSHKitQueue/types.jl")
 include("DistSSHKitQueue/store.jl")
-include("DistSSHKitQueue/hall.jl")
+include("DistSSHKitQueue/wait.jl")
+include("DistSSHKitQueue/cli.jl")
+
+if VERSION >= v"1.12"
+    Base.eval(@__MODULE__, :(@main))
+end
 
 end # module DistSSHKitQueue
