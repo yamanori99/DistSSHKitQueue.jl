@@ -63,6 +63,8 @@ Required to merge (ruleset `main` uses these names). A skipped E2E still leaves 
 
 - `Pkg.test - 1.12 - ubuntu-latest`
 - `JETLS - 1.12 - ubuntu-latest`
+- `Documenter - 1.12 - ubuntu-latest`
+- `CLI E2E - 1.12 - ubuntu-latest`
 - `Gitleaks`
 - `ubuntu-latest → ubuntu-24.04`
 
