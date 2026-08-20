@@ -34,6 +34,33 @@ using DistSSHKitQueue
     end
 end
 
+@testset "waiter pidfile" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        @test !DistSSHKitQueue.waiter_alive(store)
+        DistSSHKitQueue.write_pid_file(store)
+        @test DistSSHKitQueue.waiter_alive(store)
+        DistSSHKitQueue.remove_pid_file(store)
+        @test !DistSSHKitQueue.waiter_alive(store)
+        write(DistSSHKitQueue.store_pid_path(store), "999999999")
+        @test !DistSSHKitQueue.waiter_alive(store)
+    end
+end
+
+@testset "ensure_waiter! skips when alive or opted out" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        withenv("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1") do
+            @test !DistSSHKitQueue.ensure_waiter!(store)
+        end
+        DistSSHKitQueue.write_pid_file(store)
+        withenv("DISTSSHKITQUEUE_NO_AUTOSERVE" => nothing) do
+            @test !DistSSHKitQueue.ensure_waiter!(store) # already alive (this test's own pid)
+        end
+        DistSSHKitQueue.remove_pid_file(store)
+    end
+end
+
 @testset "wrapper_body and setup --write-only" begin
     body = DistSSHKitQueue.wrapper_body("/opt/bin/julia", "/opt/Queue.jl")
     @test startswith(body, "#!/bin/sh\n")

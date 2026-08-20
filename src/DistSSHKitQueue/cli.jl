@@ -13,7 +13,9 @@ function show_usage(; io::IO=stdout)
     println(io, "Same verbs as `julia --project=<queue-env> -m DistSSHKitQueue …`.")
     println(io, "`setup` writes ~/.local/bin/dskq and a config.toml if missing.")
     println(io, "Orderer: ssh controller ~/.local/bin/dskq submit go SCRIPT.jl local:1")
-    println(io, "`serve` waits. `submit` / `cancel` write the table and exit (do not run Kit).")
+    println(io, "Like Kit: `submit` starts a waiter itself if none is running (opt out:")
+    println(io, "DISTSSHKITQUEUE_NO_AUTOSERVE=1). `serve` / `service install` stay for a")
+    println(io, "long-lived controller. `submit` / `cancel` write the table and exit.")
     println(io, "The job tree is cwd / DISTRIBUTED_PROJECT_ROOT, not the waiter --project.")
     println(io, "Bare `go` / `drive` alias `submit go` / `submit drive`.")
     println(io, "Ctrl-C leaves the waiter; running Kit is not killed.")
@@ -72,10 +74,29 @@ function drive_hosts(parsed)::Vector{String}
     return out
 end
 
+"""Like Kit `go!`/`drive!`: no separate "start the server" step. If no `serve` is
+watching `store`, spawn one detached (log next to the store). Opt out with
+`DISTSSHKITQUEUE_NO_AUTOSERVE=1` (tests, or a harness that manages `serve` itself).
+"""
+function ensure_waiter!(store::AbstractString)::Bool
+    get(ENV, "DISTSSHKITQUEUE_NO_AUTOSERVE", "") == "1" && return false
+    waiter_alive(store) && return false
+    julia = default_julia_bin()
+    project = default_queue_env()
+    log = string(store, ".log")
+    mkpath(dirname(log))
+    io = open(log, "a")
+    cmd = `$julia --startup-file=no --project=$project -m DistSSHKitQueue serve`
+    run(pipeline(detach(cmd); stdout=io, stderr=io); wait=false)
+    println(stderr, "submit: no waiter running; started one (log: $log)")
+    return true
+end
+
 function submit_cli(store::AbstractString, kind::Symbol, script::AbstractString, hosts, kw::Dict{String,Any})
     q = Queue(; store=store)
     nt = isempty(kw) ? NamedTuple() : (; (Symbol(k) => v for (k, v) in kw)...)
     id = submit!(q, String(script), String[String(x) for x in hosts]; kind=kind, nt...)
+    ensure_waiter!(store)
     println(id)
     return 0
 end

@@ -158,7 +158,12 @@ end
         write(joinpath(jobdir, "job.jl"), "1\n")
         write(joinpath(jobdir, "alias.jl"), "1\n")
         write(joinpath(jobdir, "drv.jl"), "1\n")
-        withenv("DISTSSHKITQUEUE_STORE" => p, "DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml"), "DISTRIBUTED_PROJECT_ROOT" => nothing) do
+        withenv(
+            "DISTSSHKITQUEUE_STORE" => p,
+            "DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml"),
+            "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1",
+            "DISTRIBUTED_PROJECT_ROOT" => nothing,
+        ) do
             cd(jobdir) do
                 proj = DistSSHKit.canonical_local_path(pwd())
                 @test DistSSHKitQueue.main(["-h"]) == 0

@@ -37,6 +37,7 @@ end
         env = Dict(
             "DISTSSHKITQUEUE_CONFIG" => cfg,
             "DISTSSHKIT_YES" => "1",
+            "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1", # this test drives serve explicitly
         )
         withenv(env...) do
             @test DistSSHKitQueue.main([
