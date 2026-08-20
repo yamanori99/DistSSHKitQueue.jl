@@ -168,6 +168,11 @@ end
     @test occursin("ssh", s)
     @test occursin("m4-mini-ts", s)
     @test occursin("DistSSHKitQueue", s)
+    @test !occursin(" -t ", " $s ")
+    wcmd = DistSSHKitQueue.remote_command("m4-mini-ts", "julia", "watch", String[]; tty=true)
+    ws = string(wcmd)
+    @test occursin("-t", ws)
+    @test occursin("watch", ws)
 end
 
 @testset "setup writes config, not a dskq shim" begin

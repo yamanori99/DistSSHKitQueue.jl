@@ -169,6 +169,7 @@ end
                 help = sprint(DistSSHKitQueue.print_queue_usage)
                 @test occursin("Usage", help)
                 @test occursin("--qhost HOST", help)
+                @test occursin("watch", help)
                 code_h, out_h, _ = capture_stdio() do
                     DistSSHKitQueue.main(["-h"])
                 end
@@ -223,6 +224,46 @@ end
                 @test strip(out_c) == cid
                 cancelled = DistSSHKitQueue.read_jobs(p)
                 @test any(j -> j.id == cid && j.state === :cancelled, cancelled)
+            end
+        end
+    end
+end
+
+@testset "watch reprints status then exits on --ticks" begin
+    mktempdir() do d
+        p = joinpath(d, "jobs.toml")
+        jobdir = joinpath(d, "jobtree")
+        mkpath(jobdir)
+        write(joinpath(jobdir, "a.jl"), "1\n")
+        withenv(
+            "DISTSSHKITQUEUE_STORE" => p,
+            "DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml"),
+            "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1",
+            "DISTRIBUTED_PROJECT_ROOT" => nothing,
+        ) do
+            cd(jobdir) do
+                code, out, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["watch", "--ticks", "1", "--interval", "0.01"])
+                end
+                @test code == 0
+                @test occursin("DistSSHKitQueue watch", out)
+                @test occursin("waiter", out)
+                @test occursin("(empty)", out)
+                @test occursin("Ctrl-C stops watch", out)
+                code_go, _, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "go", "local:1", "a.jl"])
+                end
+                @test code_go == 0
+                code2, out2, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["watch", "--ticks", "2", "--interval", "0.01"])
+                end
+                @test code2 == 0
+                @test occursin("queued", out2)
+                errc, _, err = capture_stdio() do
+                    DistSSHKitQueue.main(["watch", "--bogus"])
+                end
+                @test errc == 1
+                @test occursin("unknown watch option", err)
             end
         end
     end

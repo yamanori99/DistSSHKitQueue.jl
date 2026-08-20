@@ -1,0 +1,47 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+jobs:
+  build:
+    name: Documenter - 1.12 - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Documenter hosting template: push docs + report documenter/deploy status.
+      contents: write
+      statuses: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: "1.12"
+      - uses: julia-actions/cache@v3
+      - name: Install docs dependencies
+        run: |
+          julia --project=docs -e '
+            using Pkg
+            Pkg.instantiate()
+          '
+      - name: Doctests
+        run: |
+          julia --project=docs -e '
+            using Documenter, DistSSHKitQueue, Test
+            DocMeta.setdocmeta!(DistSSHKitQueue, :DocTestSetup, :(using DistSSHKitQueue); recursive=true)
+            doctest(DistSSHKitQueue)
+          '
+      - name: Build and deploy
+        env:
+          # Deploy via HTTPS + contents:write (no DOCUMENTER_KEY SSH secret required).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: julia --project=docs --color=yes docs/make.jl
