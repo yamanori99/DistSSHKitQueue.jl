@@ -3,16 +3,18 @@ function show_usage(; io::IO=stdout)
     println(io)
     println(io, "  dskq setup [--service] [--bindir DIR]")
     println(io, "  dskq serve")
-    println(io, "  dskq [--on HOST] status")
-    println(io, "  dskq [--on HOST] submit go [DistSSHKit go argv]")
-    println(io, "  dskq [--on HOST] submit drive [DistSSHKit drive argv]")
-    println(io, "  dskq [--on HOST] cancel <id>")
+    println(io, "  dskq --on HOST status")
+    println(io, "  dskq --on HOST submit go [DistSSHKit go argv]")
+    println(io, "  dskq --on HOST submit drive [DistSSHKit drive argv]")
+    println(io, "  dskq --on HOST cancel <id>")
     println(io, "  dskq service install")
     println(io, "  dskq service uninstall")
     println(io)
     println(io, "Same verbs as `julia --project=<queue-env> -m DistSSHKitQueue …`.")
-    println(io, "`--on HOST` orders on that ssh controller (runs `julia -m DistSSHKitQueue`")
-    println(io, "there; add `--remote-julia PATH` if julia is off the non-interactive PATH).")
+    println(io, "`--on HOST` before the verb picks the controller (several clusters: pass it")
+    println(io, "every time). `status` is an orderer command:")
+    println(io, "  julia --project=. -m DistSSHKitQueue --on HOST status")
+    println(io, "Remote Julia is Kit auto-detect; `--remote-julia` / JULIA_DISTRIBUTED_EXE override.")
     println(io, "`setup` writes ~/.local/bin/dskq and a config.toml if missing.")
     println(io, "Orderer: ssh controller ~/.local/bin/dskq submit go SCRIPT.jl local:1")
     println(io, "Like Kit: `submit` starts a waiter itself if none is running (opt out:")
@@ -94,15 +96,15 @@ function ensure_waiter!(store::AbstractString)::Bool
     return true
 end
 
-"""Peel leading `--on HOST` / `--remote-julia PATH` off a subcommand's argv.
+function default_remote_julia()::String
+    envj = strip(get(ENV, "JULIA_DISTRIBUTED_EXE", ""))
+    return isempty(envj) ? "auto" : envj
+end
 
-`--on` orders on a remote controller instead of the local store; the dev machine
-stays stateless (no config, no shim). Everything after the first non-option token
-is forwarded verbatim, so Kit's own `go` / `drive` flags are untouched.
-"""
+"""Peel leading `--on HOST` / `--remote-julia PATH`. `rjulia` is `nothing` if omitted."""
 function extract_remote_opts(args::Vector{String})
     host = nothing
-    rjulia = "julia"
+    rjulia = nothing
     i = 1
     while i <= length(args)
         a = args[i]
@@ -119,6 +121,21 @@ function extract_remote_opts(args::Vector{String})
     return host, rjulia, args[i:end]
 end
 
+function coalesce_remote(
+    ahost::Union{Nothing,AbstractString},
+    ajulia::Union{Nothing,AbstractString},
+    bhost::Union{Nothing,AbstractString},
+    bjulia::Union{Nothing,AbstractString},
+)
+    if ahost !== nothing && bhost !== nothing && String(ahost) != String(bhost)
+        throw(ArgumentError("`--on` given twice ($(ahost) and $(bhost))"))
+    end
+    host = ahost !== nothing ? String(ahost) : (bhost === nothing ? nothing : String(bhost))
+    spec = ajulia !== nothing ? String(ajulia) :
+           (bjulia !== nothing ? String(bjulia) : default_remote_julia())
+    return host, spec
+end
+
 """`julia -m DistSSHKitQueue <sub> <payload…>`, each token shell-quoted for ssh."""
 function remote_inner(rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::String
     parts = String[String(rjulia), "-m", "DistSSHKitQueue", String(sub)]
@@ -126,11 +143,23 @@ function remote_inner(rjulia::AbstractString, sub::AbstractString, payload::Vect
     return join((sh_single_quote(p) for p in parts), " ")
 end
 
-remote_command(host::AbstractString, rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::Cmd =
-    `ssh $host $(remote_inner(rjulia, sub, payload))`
+function remote_command(host::AbstractString, rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::Cmd
+    inner = remote_inner(rjulia, sub, payload)
+    return Cmd(vcat(["ssh"], collect(DistSSHKit.ssh_opts()), [String(host), inner]))
+end
+
+function resolve_on_julia(host::AbstractString, spec::AbstractString)::String
+    found = DistSSHKit.resolve_remote_julia(String(host), spec)
+    found === nothing && throw(ArgumentError(
+        "no Julia on $(host) (ssh PATH is often empty; Kit tries juliaup then Homebrew). " *
+        "Pass --remote-julia PATH or set JULIA_DISTRIBUTED_EXE, like Kit --julia.",
+    ))
+    return found
+end
 
 function remote_dispatch(host::AbstractString, rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::Cint
-    proc = run(ignorestatus(remote_command(host, rjulia, sub, payload)))
+    jl = resolve_on_julia(host, rjulia)
+    proc = run(ignorestatus(remote_command(host, jl, sub, payload)))
     return Cint(proc.exitcode)
 end
 
@@ -213,11 +242,12 @@ end
 """CLI entry. Prefer `dskq serve` / `submit` / `cancel` (or `julia -m DistSSHKitQueue`)."""
 function main(args::Vector{String}=copy(ARGS))::Cint
     apply_config_env!(load_config())
-    if isempty(args) || args[1] in ("-h", "--help", "help")
+    ghost, gjulia, after = extract_remote_opts(args)
+    if isempty(after) || after[1] in ("-h", "--help", "help")
         show_usage()
         return 0
     end
-    sub, rest = String(args[1]), String[String(a) for a in args[2:end]]
+    sub, rest = String(after[1]), String[String(a) for a in after[2:end]]
     if sub == "serve"
         interval = 0.2
         i = 1
@@ -236,12 +266,14 @@ function main(args::Vector{String}=copy(ARGS))::Cint
         return 0
     elseif sub == "status"
         host, rjulia, payload = extract_remote_opts(rest)
-        host === nothing || return remote_dispatch(host, rjulia, "status", payload)
+        dest, spec = coalesce_remote(ghost, gjulia, host, rjulia)
+        dest === nothing || return remote_dispatch(dest, spec, "status", payload)
         show_status(store_path())
         return 0
     elseif sub == "submit"
         host, rjulia, payload = extract_remote_opts(rest)
-        host === nothing || return remote_dispatch(host, rjulia, "submit", payload)
+        dest, spec = coalesce_remote(ghost, gjulia, host, rjulia)
+        dest === nothing || return remote_dispatch(dest, spec, "submit", payload)
         return submit_main(payload)
     elseif sub == "go"
         return submit_go(rest)
@@ -249,7 +281,8 @@ function main(args::Vector{String}=copy(ARGS))::Cint
         return submit_drive(rest)
     elseif sub == "cancel"
         host, rjulia, payload = extract_remote_opts(rest)
-        host === nothing || return remote_dispatch(host, rjulia, "cancel", payload)
+        dest, spec = coalesce_remote(ghost, gjulia, host, rjulia)
+        dest === nothing || return remote_dispatch(dest, spec, "cancel", payload)
         return cancel_cli(payload)
     elseif sub == "service"
         return service_main(rest)

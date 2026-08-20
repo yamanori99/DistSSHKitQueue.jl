@@ -23,10 +23,9 @@ Install where the queue runs (once): `pkg> add DistSSHKitQueue` (pre-General: `p
 **Dev machine — order to a controller, no files, no shim.** The dev machine only needs Queue in the env it runs `-m` from; nothing is written to it. `--on HOST` runs `julia -m DistSSHKitQueue` on that ssh controller (which has Queue in its default env):
 
 ```bash
-julia --project=. -m DistSSHKitQueue submit --on m4-mini-ts go SCRIPT.jl host:2
-julia --project=. -m DistSSHKitQueue status --on m4-mini-ts
-julia --project=. -m DistSSHKitQueue cancel --on m4-mini-ts <id>
-# julia off the controller's non-interactive PATH? add: --remote-julia /opt/homebrew/bin/julia
+julia --project=. -m DistSSHKitQueue --on m4-mini-ts submit go SCRIPT.jl host:2
+julia --project=. -m DistSSHKitQueue --on m4-mini-ts status
+julia --project=. -m DistSSHKitQueue --on m4-mini-ts cancel <id>
 ```
 
 `SCRIPT.jl` / `host:2` are interpreted on the controller (cwd there is the job tree, like Kit). The controller's waiter is auto-started by `submit`; the store lives on the controller.
