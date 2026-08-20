@@ -10,6 +10,6 @@ function cancel_cli(args::Vector{String})::Cint
         println(id)
         return 0
     end
-    println(stderr, "cancel: job $(repr(id)) is not queued")
+    DistSSHKit.print_cli_error("job $(repr(id)) is not queued")
     return 1
 end

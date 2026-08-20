@@ -82,13 +82,13 @@ function service_install(; julia::AbstractString=default_julia_bin(), project::A
         path = launch_agent_path()
         write_serve_unit(path, launch_agent_plist(jl, proj))
         apply && _launchctl_load(path)
-        println(path)
+        print_wrote(path)
         return 0
     elseif Sys.islinux()
         path = systemd_user_path()
         write_serve_unit(path, systemd_user_unit(jl, proj))
         apply && _systemd_enable()
-        println(path)
+        print_wrote(path)
         return 0
     end
     throw(ArgumentError("service install: macOS or Linux only"))

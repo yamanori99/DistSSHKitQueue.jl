@@ -33,6 +33,7 @@ include("DistSSHKitQueue/job.jl")
 include("DistSSHKitQueue/store.jl")
 include("DistSSHKitQueue/paths.jl")
 include("DistSSHKitQueue/config.jl")
+include("DistSSHKitQueue/display.jl")
 include("DistSSHKitQueue/queue.jl")
 include("client/qhost.jl")
 include("client/submit.jl")
@@ -43,35 +44,7 @@ include("qhost/setup.jl")
 include("qhost/teardown.jl")
 include("qhost/serve.jl")
 
-function show_usage(; io::IO=stdout)
-    println(io, "DistSSHKitQueue — FIFO waiter for DistSSHKit go / drive")
-    println(io)
-    println(io, "Client (dev laptop). Queue in --project=.; no files written here.")
-    println(io, "  julia --project=. -m DistSSHKitQueue --qhost HOST status")
-    println(io, "  julia --project=. -m DistSSHKitQueue --qhost HOST submit go [Kit go argv]")
-    println(io, "  julia --project=. -m DistSSHKitQueue --qhost HOST submit drive [Kit drive argv]")
-    println(io, "  julia --project=. -m DistSSHKitQueue --qhost HOST cancel <id>")
-    println(io, "  julia --project=. -m DistSSHKitQueue --qhost HOST teardown -y")
-    println(io)
-    println(io, "Queue host (always-on). Default env has Queue. Store and waiter live here.")
-    println(io, "  julia -m DistSSHKitQueue setup [--service]")
-    println(io, "  julia -m DistSSHKitQueue serve")
-    println(io, "  julia -m DistSSHKitQueue service install|uninstall")
-    println(io, "  julia -m DistSSHKitQueue teardown -y")
-    println(io)
-    println(io, "Same machine as the queue host: omit `--qhost` on client verbs.")
-    println(io, "`--qhost HOST` is client-only (several clusters: pass it every time).")
-    println(io, "Do not pass `--qhost` to setup / serve / service.")
-    println(io, "Remote Julia is Kit auto-detect; `--remote-julia` / JULIA_DISTRIBUTED_EXE override.")
-    println(io, "`teardown -y` stops the waiter and removes dskq, the OS unit, and ~/.distsshkitqueue.")
-    println(io, "Like Kit: `submit` starts a waiter if none is running (opt out:")
-    println(io, "DISTSSHKITQUEUE_NO_AUTOSERVE=1). Bare `go` / `drive` alias `submit go` / `submit drive`.")
-    println(io, "The job tree is cwd / DISTRIBUTED_PROJECT_ROOT, not the waiter --project.")
-    println(io, "Ctrl-C leaves the waiter; running Kit is not killed.")
-    println(io, "Config: $(default_config_path())   override: DISTSSHKITQUEUE_CONFIG")
-    println(io, "Store: $(default_store_path())   override: DISTSSHKITQUEUE_STORE / config store=")
-    return nothing
-end
+show_usage(; io::IO=stdout) = print_queue_usage(io)
 
 """CLI entry. Prefer `julia -m DistSSHKitQueue` (client `--qhost HOST` / queue-host `setup`)."""
 function main(args::Vector{String}=copy(ARGS))::Cint
@@ -118,7 +91,7 @@ function main(args::Vector{String}=copy(ARGS))::Cint
     elseif sub == "setup"
         return setup_main(rest)
     else
-        println(stderr, "unknown subcommand: $sub")
+        DistSSHKit.print_cli_error("unknown subcommand: $sub")
         show_usage(io=stderr)
         return 1
     end

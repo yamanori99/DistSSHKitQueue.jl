@@ -12,7 +12,7 @@ function ensure_waiter!(store::AbstractString)::Bool
     io = open(log, "a")
     cmd = `$julia --startup-file=no --project=$project -m DistSSHKitQueue serve`
     run(pipeline(detach(cmd); stdout=io, stderr=io); wait=false)
-    println(stderr, "submit: no waiter running; started one (log: $log)")
+    print_waiter_started(log)
     return true
 end
 

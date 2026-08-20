@@ -304,10 +304,10 @@ end
 """Load `store` (stale `:running` → `:failed`), then `step!` until interrupt. Ctrl-C stops the waiter, not Kit."""
 function serve!(q::Queue; interval::Real=0.2)
     load!(q)
-    st = q.store === nothing ? "(memory)" : q.store
-    st isa String && write_pid_file(st)
-    println("DistSSHKitQueue serve  pid=$(getpid())  store=$st")
-    println("Ctrl-C leaves the waiter; a running Kit job is not killed.")
+    store = q.store
+    label = store isa String ? store : "(memory)"
+    store isa String && write_pid_file(store)
+    print_serve_banner(getpid(), label)
     flush(stdout)
     try
         while true
@@ -318,7 +318,7 @@ function serve!(q::Queue; interval::Real=0.2)
         e isa InterruptException || rethrow()
         return nothing
     finally
-        st isa String && remove_pid_file(st)
+        store isa String && remove_pid_file(store)
     end
 end
 

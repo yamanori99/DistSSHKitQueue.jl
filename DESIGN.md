@@ -66,6 +66,7 @@ One module (`DistSSHKitQueue`). Roles sit next to the FIFO, not under DistSSHKit
 | Path | Role |
 | --- | --- |
 | `src/DistSSHKitQueue.jl` | Package entry: exports, `include`s, `main` / usage, `@main` |
+| `src/DistSSHKitQueue/display.jl` | Help / status / setup lines (DistSSHKit `print_help_*`) |
 | `src/DistSSHKitQueue/` | FIFO table / waiter / config |
 | `src/client/` | `--qhost` (`qhost.jl`) plus `submit` / `status` / `cancel` |
 | `src/qhost/` | `setup` / `teardown` / `serve` / `service` |

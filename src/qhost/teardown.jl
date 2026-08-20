@@ -51,9 +51,10 @@ function teardown(;
     targets = teardown_targets(; home=home, bindir=bindir, config=config)
     existing = String[p for p in targets if ispath(p)]
     if !yes
-        println(stderr, "teardown: need -y / --yes (would remove queue-host files)")
+        DistSSHKit.print_cli_error("teardown needs -y / --yes")
+        DistSSHKit.print_help_section("Would remove"; io=stderr)
         for p in existing
-            println(stderr, "  ", p)
+            DistSSHKit.print_help_lines(stderr, "  $(_q_short(p))")
         end
         return 1
     end
@@ -72,7 +73,7 @@ function teardown(;
     data = queue_data_dir(; home=home)
     isdir(data) && rm(data; force=true, recursive=true)
     for p in existing
-        println(io, p)
+        print_removed(p; io=io)
     end
     return 0
 end

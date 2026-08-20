@@ -52,9 +52,9 @@ function setup(;
 )
     wrap = install_wrapper(; julia=julia, project=project, bindir=bindir)
     wrote = write_config_template(config)
-    println(wrap)
-    wrote && println(config)
-    path_has_dir(bindir) || println(stderr, "setup: $(bindir) is not on PATH; use the absolute path or add it")
+    print_wrote(wrap)
+    wrote && print_wrote(config)
+    path_has_dir(bindir) || print_path_hint(bindir)
     if service
         return service_install(; julia=julia, project=project, apply=apply)
     end
