@@ -14,16 +14,19 @@ function with_store_lock(f, path::String)
     while true
         try
             mkdir(lockdir)
-            break
-        catch
-            isdir(lockdir) || rethrow()
-            sleep(0.05)
+        catch e
+            # Holder still has it, or they just `rm`'d it (EEXIST then !isdir). Retry.
+            if e isa Base.IOError && e.code == Base.UV_EEXIST
+                sleep(0.05)
+                continue
+            end
+            rethrow()
         end
-    end
-    try
-        return f()
-    finally
-        rm(lockdir; force=true, recursive=true)
+        try
+            return f()
+        finally
+            rm(lockdir; force=true, recursive=true)
+        end
     end
 end
 

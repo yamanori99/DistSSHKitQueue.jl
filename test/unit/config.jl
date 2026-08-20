@@ -35,6 +35,23 @@ using DistSSHKitQueue
     end
 end
 
+@testset "with_store_lock retries EEXIST races" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        n = Threads.Atomic{Int}(0)
+        tasks = [@async begin
+            for _ in 1:40
+                DistSSHKitQueue.with_store_lock(store) do
+                    Threads.atomic_add!(n, 1)
+                    sleep(0.001)
+                end
+            end
+        end for _ in 1:4]
+        foreach(wait, tasks)
+        @test n[] == 160
+    end
+end
+
 @testset "waiter pidfile" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
