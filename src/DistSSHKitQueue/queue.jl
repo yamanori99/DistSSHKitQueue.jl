@@ -112,7 +112,8 @@ function execute_kwargs(j::Job)
 end
 
 function run_kit(j::Job)
-    result = wait(DistSSHKit.execute!(j.kind, j.script, j.hosts; detached=true, execute_kwargs(j)...))
+    kp = DistSSHKit.execute!(j.kind, j.script, j.hosts; detached=true, execute_kwargs(j)...)::DistSSHKit.KitProcess
+    result = wait(kp)
     require_kit_ok(result)
     return kit_result_path(j, result)
 end

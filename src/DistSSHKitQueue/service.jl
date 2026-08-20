@@ -107,7 +107,7 @@ end
 function service_uninstall(; apply::Bool=true)
     if Sys.isapple()
         path = launch_agent_path()
-        apply && isfile(path) && _launchctl_unload(path)
+        apply && isfile(path) && _launchctl_unload()
         isfile(path) && rm(path)
         return 0
     elseif Sys.islinux()
@@ -130,7 +130,7 @@ function _launchctl_load(path::AbstractString)
     return nothing
 end
 
-function _launchctl_unload(path::AbstractString)
+function _launchctl_unload()
     uid = string(Libc.getuid())
     try
         run(pipeline(`launchctl bootout gui/$uid/$(SERVICE_LABEL)`; stdout=devnull, stderr=devnull))
