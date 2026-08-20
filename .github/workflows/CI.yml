@@ -30,3 +30,19 @@ jobs:
       - uses: ./.github/actions/pkg-test
         with:
           coverage: "true"
+
+  cli-e2e:
+    name: CLI E2E - 1.12 - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: "1.12"
+      - uses: julia-actions/cache@v3
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: CLI E2E (dskq + local:1)
+        env:
+          DSKQ_CLI_E2E: "1"
+        run: julia --project=. test/cli_e2e.jl

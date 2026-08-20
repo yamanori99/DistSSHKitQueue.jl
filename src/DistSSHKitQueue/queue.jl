@@ -225,7 +225,7 @@ function submit!(q::Queue, script::AbstractString, hosts::AbstractVector{<:Abstr
     return _submit!(q, kind, script, hosts; kwargs...)
 end
 
-"""Cancel if `:queued`. Reloads the store first (orderer CLI). Returns `false` if not queued."""
+"""Cancel if `:queued`. Reloads the store first (client CLI). Returns `false` if not queued."""
 function cancel!(q::Queue, id::AbstractString)::Bool
     return _with_store(q) do
         lock(q.lock) do

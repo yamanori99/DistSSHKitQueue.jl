@@ -1,7 +1,7 @@
 using TOML
 
-function default_store_path()::String
-    return joinpath(homedir(), ".distsshkitqueue", "jobs.toml")
+function default_store_path(; home::AbstractString=homedir())::String
+    return joinpath(home, ".distsshkitqueue", "jobs.toml")
 end
 
 function with_store_lock(f, path::AbstractString)
@@ -115,6 +115,30 @@ function write_pid_file(store::AbstractString)
 end
 
 remove_pid_file(store::AbstractString) = rm(store_pid_path(store); force=true)
+
+"""SIGTERM a waiter recorded in the store pidfile. Does not kill this process."""
+function stop_waiter!(store::AbstractString)::Bool
+    p = store_pid_path(store)
+    isfile(p) || return false
+    pid = tryparse(Int, strip(read(p, String)))
+    if pid === nothing
+        remove_pid_file(store)
+        return false
+    end
+    pid == getpid() && return false
+    if process_alive(pid)
+        try
+            run(pipeline(`kill $pid`; stdout=devnull, stderr=devnull))
+        catch
+        end
+        for _ in 1:40
+            process_alive(pid) || break
+            sleep(0.05)
+        end
+    end
+    remove_pid_file(store)
+    return true
+end
 
 function fail_stale_running!(jobs::Vector{Job})
     for j in jobs

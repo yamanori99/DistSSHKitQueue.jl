@@ -1,5 +1,5 @@
 # Linux SSH workers for DistSSHKitQueue local Docker E2E.
-# These are DistSSHKit go/drive targets (host:N). The Queue controller and the
+# These are DistSSHKit go/drive targets (host:N). The queue host and the
 # waiter run on the host, not here.
 services:
   worker-1:

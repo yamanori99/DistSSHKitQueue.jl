@@ -75,7 +75,7 @@ end
 
 @testset "extract_remote_opts and remote_inner" begin
     withenv("JULIA_DISTRIBUTED_EXE" => nothing) do
-        host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "status"])
+        host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "status"])
         @test host == "m4"
         @test rjulia === nothing
         @test payload == ["status"]
@@ -84,13 +84,13 @@ end
         @test spec == "auto"
     end
     withenv("JULIA_DISTRIBUTED_EXE" => "/opt/from-env/julia") do
-        h, j, p = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "status"])
+        h, j, p = DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "status"])
         _, spec = DistSSHKitQueue.coalesce_remote(h, j, nothing, nothing)
         @test spec == "/opt/from-env/julia"
         @test p == ["status"]
     end
 
-    host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "--remote-julia", "/opt/julia", "go", "S.jl"])
+    host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "--remote-julia", "/opt/julia", "go", "S.jl"])
     @test host2 == "m4"
     @test rjulia2 == "/opt/julia"
     @test payload2 == ["go", "S.jl"]
@@ -101,6 +101,9 @@ end
     @test payload3 == ["go", "S.jl"]
 
     @test_throws ArgumentError DistSSHKitQueue.coalesce_remote("a", nothing, "b", nothing)
+    @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("setup", "m4")
+    DistSSHKitQueue.reject_qhost_on_local("status", "m4")
+    DistSSHKitQueue.reject_qhost_on_local("setup", nothing)
 
     host4, _, payload4 = DistSSHKitQueue.extract_remote_opts(String[])
     @test host4 === nothing
@@ -147,5 +150,30 @@ end
         @test occursin("[env]", read(cfg, String))
         @test DistSSHKitQueue.write_config_template(other) === false
         @test read(other, String) == "store = \"x\"\n"
+    end
+end
+
+@testset "teardown -y removes queue-host files" begin
+    mktempdir() do home
+        data = joinpath(home, ".distsshkitqueue")
+        mkpath(joinpath(data, "env"))
+        cfg = joinpath(data, "config.toml")
+        store = joinpath(data, "jobs.toml")
+        write(cfg, "store = $(repr(store))\n")
+        write(store, "jobs = []\n")
+        write(string(store, ".log"), "log\n")
+        write(joinpath(data, "env", "Project.toml"), "name = \"x\"\n")
+        bindir = joinpath(home, ".local", "bin")
+        mkpath(bindir)
+        wrap = joinpath(bindir, "dskq")
+        write(wrap, "#!/bin/sh\n")
+        withenv("DISTSSHKITQUEUE_CONFIG" => nothing, "DISTSSHKITQUEUE_STORE" => nothing) do
+            @test DistSSHKitQueue.teardown_main(["--home", home, "--write-only"]) == 1
+            @test isfile(store)
+            @test isfile(wrap)
+            @test DistSSHKitQueue.teardown_main(["--home", home, "-y", "--write-only"]) == 0
+        end
+        @test !ispath(data)
+        @test !isfile(wrap)
     end
 end

@@ -8,10 +8,6 @@ function wrapper_path(; bindir::AbstractString=default_bindir())::String
     return joinpath(bindir, "dskq")
 end
 
-function sh_single_quote(s::AbstractString)::String
-    return string('\'', replace(String(s), "'" => "'\\''"), '\'')
-end
-
 function wrapper_body(julia::AbstractString, project::AbstractString)::String
     j = sh_single_quote(julia)
     p = sh_single_quote(project)

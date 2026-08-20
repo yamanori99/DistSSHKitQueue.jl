@@ -116,7 +116,7 @@ end
     @test job(q2, id2).result_path == "/tmp/bag"
 end
 
-@testset "orderer cancel reloads store" begin
+@testset "client cancel reloads store" begin
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         q = Queue(; store=p, runner=_ -> sleep(0.05))
@@ -132,7 +132,7 @@ end
     end
 end
 
-@testset "orderer enqueue keeps running row" begin
+@testset "client enqueue keeps running row" begin
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         ev = Base.Event()
