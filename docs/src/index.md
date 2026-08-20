@@ -22,8 +22,9 @@ julia --project=. -m DistSSHKitQueue --qhost HOST cancel <id>
 **Queue host** (always-on):
 
 ```bash
-julia -m DistSSHKitQueue setup [--service]
+julia -m DistSSHKitQueue setup
 julia -m DistSSHKitQueue serve
+julia -m DistSSHKitQueue service install
 julia -m DistSSHKitQueue teardown -y
 ```
 

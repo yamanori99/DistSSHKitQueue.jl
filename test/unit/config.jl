@@ -243,17 +243,9 @@ end
         cfg = joinpath(d, "config.toml")
         other = joinpath(d, "keep.toml")
         write(other, "store = \"x\"\n")
-        julia = DistSSHKitQueue.default_julia_bin()
-        project = dirname(dirname(pathof(DistSSHKitQueue)))
         withenv("DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml")) do
             code, out, _ = capture_stdio() do
-                DistSSHKitQueue.main([
-                    "setup",
-                    "--julia", julia,
-                    "--project", project,
-                    "--config", cfg,
-                    "--write-only",
-                ])
+                DistSSHKitQueue.main(["setup", "--config", cfg])
             end
             @test code == 0
             @test occursin("Wrote", out)
@@ -269,13 +261,8 @@ end
 @testset "setup re-run is idempotent; --force rewrites" begin
     mktempdir() do d
         cfg = joinpath(d, "config.toml")
-        julia = DistSSHKitQueue.default_julia_bin()
-        project = dirname(dirname(pathof(DistSSHKitQueue)))
         run_setup(extra) = capture_stdio() do
-            DistSSHKitQueue.main(vcat(
-                ["setup", "--julia", julia, "--project", project, "--config", cfg, "--write-only"],
-                extra,
-            ))
+            DistSSHKitQueue.main(vcat(["setup", "--config", cfg], extra))
         end
         withenv("DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml")) do
             code1, out1, _ = run_setup(String[])
@@ -290,6 +277,9 @@ end
             @test code3 == 0
             @test occursin("Wrote", out3)
             @test occursin("[env]", read(cfg, String))
+            code4, _, err4 = run_setup(["--service"])
+            @test code4 == 1
+            @test occursin("service install", err4)
         end
     end
 end

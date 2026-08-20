@@ -61,7 +61,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Queue host"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  setup [--service] [--force]    Write config.toml (--force rewrites); optional OS unit",
+        "  setup [--force]                Write config.toml (--force rewrites)",
         "  serve                          Run the FIFO waiter",
         "  stop                           Stop the waiter, keep config / store",
         "  service install|uninstall      LaunchAgent / systemd user unit",

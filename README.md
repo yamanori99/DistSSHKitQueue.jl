@@ -51,7 +51,7 @@ Queue lives here: store `~/.distsshkitqueue/jobs.toml`, waiter, optional OS unit
 
 ```bash
 # on the queue host
-julia -m DistSSHKitQueue setup [--service]     # config.toml; optional LaunchAgent / systemd
+julia -m DistSSHKitQueue setup [--force]       # config.toml (re-run is a no-op unless --force)
 julia -m DistSSHKitQueue serve                 # optional; submit also auto-starts a waiter
 julia -m DistSSHKitQueue stop                  # stop the waiter, keep config / store
 julia -m DistSSHKitQueue service install       # boot auto-start (LaunchAgent / systemd user unit)
