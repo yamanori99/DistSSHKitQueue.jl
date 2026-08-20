@@ -33,6 +33,7 @@ julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
+DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl
 ./.github/jetls-check.sh    # hint+; same files as CI
 ./.github/aqua-check.sh     # latest registry Aqua; not part of Pkg.test()
 ./testenv/docker-ssh/scripts/up.sh --e2e

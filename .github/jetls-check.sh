@@ -14,6 +14,7 @@ files=(
     src/DistSSHKitQueue.jl
     test/runtests.jl
     test/e2e.jl
+    test/cli_e2e.jl
 )
 
 if ((${#files[@]} == 0)); then

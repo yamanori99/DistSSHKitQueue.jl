@@ -1,25 +1,33 @@
 function show_usage(; io::IO=stdout)
     println(io, "DistSSHKitQueue — FIFO waiter for DistSSHKit go / drive")
     println(io)
-    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue serve")
-    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue status")
-    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue submit go [DistSSHKit go argv]")
-    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue submit drive [DistSSHKit drive argv]")
-    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue cancel <id>")
-    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue service install")
-    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue service uninstall")
+    println(io, "  dskq setup [--service] [--bindir DIR]")
+    println(io, "  dskq serve")
+    println(io, "  dskq status")
+    println(io, "  dskq submit go [DistSSHKit go argv]")
+    println(io, "  dskq submit drive [DistSSHKit drive argv]")
+    println(io, "  dskq cancel <id>")
+    println(io, "  dskq service install")
+    println(io, "  dskq service uninstall")
     println(io)
+    println(io, "Same verbs as `julia --project=<queue-env> -m DistSSHKitQueue …`.")
+    println(io, "`setup` writes ~/.local/bin/dskq and a config.toml if missing.")
+    println(io, "Orderer: ssh controller ~/.local/bin/dskq submit go SCRIPT.jl local:1")
     println(io, "`serve` waits. `submit` / `cancel` write the table and exit (do not run Kit).")
-    println(io, "`--project=<queue-env>` loads Queue. The job tree is cwd / DISTRIBUTED_PROJECT_ROOT.")
+    println(io, "The job tree is cwd / DISTRIBUTED_PROJECT_ROOT, not the waiter --project.")
     println(io, "Bare `go` / `drive` alias `submit go` / `submit drive`.")
     println(io, "Ctrl-C leaves the waiter; running Kit is not killed.")
-    println(io, "Store: $(default_store_path())   override: DISTSSHKITQUEUE_STORE")
+    println(io, "Config: $(default_config_path())   override: DISTSSHKITQUEUE_CONFIG")
+    println(io, "Store: $(default_store_path())   override: DISTSSHKITQUEUE_STORE / config store=")
     return nothing
 end
 
 function store_path()::String
     env = strip(get(ENV, "DISTSSHKITQUEUE_STORE", ""))
-    return isempty(env) ? default_store_path() : env
+    isempty(env) || return env
+    st = config_store_path(load_config())
+    st === nothing || return st
+    return default_store_path()
 end
 
 function show_status(store::AbstractString; io::IO=stdout)
@@ -139,8 +147,9 @@ function cancel_cli(args::Vector{String})::Cint
     return 1
 end
 
-"""CLI entry. Prefer `julia -m DistSSHKitQueue serve` / `submit` / `cancel`."""
+"""CLI entry. Prefer `dskq serve` / `submit` / `cancel` (or `julia -m DistSSHKitQueue`)."""
 function main(args::Vector{String}=copy(ARGS))::Cint
+    apply_config_env!(load_config())
     if isempty(args) || args[1] in ("-h", "--help", "help")
         show_usage()
         return 0
@@ -175,6 +184,8 @@ function main(args::Vector{String}=copy(ARGS))::Cint
         return cancel_cli(rest)
     elseif sub == "service"
         return service_main(rest)
+    elseif sub == "setup"
+        return setup_main(rest)
     else
         println(stderr, "unknown subcommand: $sub")
         show_usage(io=stderr)

@@ -23,15 +23,16 @@ pkg> dev /path/to/DistSSHKitQueue.jl
 ```
 
 ```bash
-# waiter env = this checkout (smoke)
-julia --project=. -m DistSSHKitQueue serve
-julia --project=. -m DistSSHKitQueue status
-# job tree = wherever you cd
-cd /path/to/YourJob.jl
-julia --project=/path/to/DistSSHKitQueue.jl -m DistSSHKitQueue submit go SCRIPT.jl local:1
-julia --project=/path/to/DistSSHKitQueue.jl -m DistSSHKitQueue cancel <id>
+# controller, once (from the Queue checkout)
+julia --project=. -m DistSSHKitQueue setup --service
+# orderer (non-interactive ssh: use the absolute shim)
+ssh controller ~/.local/bin/dskq submit go SCRIPT.jl local:1
+ssh controller ~/.local/bin/dskq status
+ssh controller ~/.local/bin/dskq cancel <id>
 ```
 
-`<queue-env>` (`--project=` on `-m DistSSHKitQueue`) loads Queue. The job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`.
+`setup` writes `~/.local/bin/dskq` (julia + `--project` baked in) and `~/.distsshkitqueue/config.toml` if missing. `[env]` is applied at start (existing ENV wins). Store: config `store=` or `DISTSSHKITQUEUE_STORE` (default `~/.distsshkitqueue/jobs.toml`).
+
+`<queue-env>` loads Queue. The job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Julia 1.12 Pkg Apps: `[apps] dskq` (`pkg> app add .` → `~/.julia/bin/dskq`).
 
 Ctrl-C stops the waiter only. Julia **1.12+**, DistSSHKit **0.3.2+**. The waiter runs Kit `execute!(…; detached=true)`.
