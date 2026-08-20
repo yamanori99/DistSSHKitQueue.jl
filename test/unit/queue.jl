@@ -57,7 +57,7 @@ end
     gid = submit!(q, "g.jl", "local:1")
     g = job(q, gid)
     @test g.kind === :go
-    @test g.kwargs["path_anchor"] == g.kwargs["project"]
+    @test !haskey(g.kwargs, "path_anchor")
 end
 
 @testset "TOML store restart" begin
@@ -78,13 +78,28 @@ end
 end
 
 @testset "kit ok=false is failed" begin
-    @test_throws ErrorException DistSSHKitQueue.require_kit_ok(:go, (ok=false,))
-    @test DistSSHKitQueue.require_kit_ok(:go, (ok=true, output_dir="/tmp/out")) === nothing
+    @test_throws ErrorException DistSSHKitQueue.require_kit_ok((ok=false, kind=:go))
+    @test DistSSHKitQueue.require_kit_ok((ok=true, kind=:go, output_dir="/tmp/out")) === nothing
     @test DistSSHKitQueue.kit_result_path((ok=true, output_dir="/tmp/out")) == "/tmp/out"
     q = Queue(; runner=_ -> error("DistSSHKit go failed (ok=false)"))
     id = submit!(q, "a.jl", "local:1")
     @test step!(q) == 1
     _wait_state(q, id, :failed)
+end
+
+@testset "execute_kwargs drops names execute! detached rejects" begin
+    q = Queue(; runner=_ -> nothing)
+    gid = submit!(q, "g.jl", "local:1"; path_anchor="/x", yes=false, log_dir="/logs", quiet=true)
+    gkw = DistSSHKitQueue.execute_kwargs(job(q, gid))
+    @test gkw.yes === true
+    @test gkw.quiet === true
+    @test !haskey(gkw, :path_anchor)
+    @test !haskey(gkw, :log_dir)
+    did = submit!(q, "d.jl", "local:1"; kind=:drive, log_dir="/logs", skip_hash_check=false)
+    dkw = DistSSHKitQueue.execute_kwargs(job(q, did))
+    @test dkw.log_dir == "/logs"
+    @test dkw.skip_hash_check === false
+    @test dkw.yes === true
 end
 
 @testset "result_path from runner and kwargs" begin
@@ -99,6 +114,22 @@ end
     @test step!(q2) == 1
     _wait_state(q2, id2, :done)
     @test job(q2, id2).result_path == "/tmp/bag"
+end
+
+@testset "orderer cancel reloads store" begin
+    mktempdir() do d
+        p = joinpath(d, "jobs.toml")
+        q = Queue(; store=p, runner=_ -> sleep(0.05))
+        a = submit!(q, "a.jl", "local:1")
+        b = submit!(q, "b.jl", "local:1")
+        @test step!(q) == 1
+        other = Queue(; store=p)
+        @test cancel!(other, b)
+        @test !cancel!(other, a)
+        @test job(other, b).state === :cancelled
+        _wait_state(q, a, :done)
+        @test step!(q) == 0
+    end
 end
 
 @testset "orderer enqueue keeps running row" begin
@@ -150,7 +181,23 @@ end
                 @test rows[3].script == DistSSHKit.canonical_local_path(joinpath(pwd(), "drv.jl"))
                 @test rows[3].hosts == ["local:2"]
                 @test rows[3].kwargs["project"] == proj
+                cid = rows[2].id
+                @test DistSSHKitQueue.main(["cancel", cid]) == 0
+                cancelled = DistSSHKitQueue.read_jobs(p)
+                @test any(j -> j.id == cid && j.state === :cancelled, cancelled)
             end
         end
     end
+end
+
+@testset "service unit text is serve" begin
+    plist = DistSSHKitQueue.launch_agent_plist("/opt/bin/julia", "/opt/Queue.jl")
+    @test occursin("org.distsshkitqueue.serve", plist)
+    @test occursin("/opt/bin/julia", plist)
+    @test occursin("--project=/opt/Queue.jl", plist)
+    @test occursin("DistSSHKitQueue", plist)
+    @test occursin("serve", plist)
+    unit = DistSSHKitQueue.systemd_user_unit("/usr/bin/julia", "/opt/Queue.jl")
+    @test occursin("ExecStart=/usr/bin/julia --startup-file=no --project=/opt/Queue.jl -m DistSSHKitQueue serve", unit)
+    @test occursin("Restart=on-failure", unit)
 end

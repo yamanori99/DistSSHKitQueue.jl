@@ -11,7 +11,7 @@ macOS, Linux, or WSL2 Ubuntu. Not native Windows (the kit shells out to `ssh` / 
 | What | Need |
 | --- | --- |
 | Library, `Pkg.test()`, docs | Julia **1.12+** |
-| DistSSHKit | **0.3.1+** (hard dependency) |
+| DistSSHKit | **0.3.2+** (hard dependency; `execute!`) |
 
 Prefer [juliaup](https://github.com/JuliaLang/juliaup).
 

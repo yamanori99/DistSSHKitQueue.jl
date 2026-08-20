@@ -3,7 +3,8 @@
 #
 # Stages DistSSHKit `demos/` into testenv/example-job, setup! to the workers,
 # then enqueue Kit go/drive jobs through the Queue waiter
-# (same as CLI `submit go` / `submit drive`).
+# (same as CLI `submit go` / `submit drive`). The waiter runs
+# DistSSHKit `execute!(…; detached=true)`.
 #
 # Table jobs are the four *file*/*echo* demos. `pipeline_pi.jl` /
 # `pipeline_square.jl` call `go!` / `pipeline!` themselves — not Queue rows.
