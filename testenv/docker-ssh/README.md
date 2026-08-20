@@ -55,7 +55,7 @@ Requires Docker Compose. From this directory:
 Manual smoke (no suite): after workers are up, on the queue host:
 
 ```bash
-julia --project=../.. -m DistSSHKitQueue setup --write-only   # once; from repo root use --project=.
+julia --project=../.. -m DistSSHKitQueue setup   # once; from repo root use --project=.
 # put SSH opts in ~/.distsshkitqueue/config.toml [env], then:
 julia --project=../.. -m DistSSHKitQueue submit go SCRIPT.jl dskq-w1:1
 julia --project=../.. -m DistSSHKitQueue status

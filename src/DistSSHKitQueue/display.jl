@@ -61,7 +61,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Queue host"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  setup [--service]              Write config.toml; optional OS unit",
+        "  setup [--force]                Write config.toml (--force rewrites)",
         "  serve                          Run the FIFO waiter",
         "  stop                           Stop the waiter, keep config / store",
         "  service install|uninstall      LaunchAgent / systemd user unit",
@@ -94,6 +94,14 @@ end
 function print_removed(path::AbstractString; io::IO=stdout)
     DistSSHKit._print_colored(io, "Removed  ", :green, false)
     println(io, _q_short(path))
+    return nothing
+end
+
+function print_present(path::AbstractString; io::IO=stdout)
+    DistSSHKit._print_colored(io, "Present  ", :light_black, false)
+    print(io, _q_short(path))
+    DistSSHKit._print_colored(io, "  (unchanged; --force to rewrite)", :light_black, false)
+    println(io)
     return nothing
 end
 
