@@ -23,6 +23,16 @@ function _job_result_disp(j::Job)::String
     return _q_short(r)
 end
 
+const _ERROR_CELL_MAX = 60
+
+function _job_error_disp(j::Job)::String
+    e = j.error
+    e isa AbstractString || return ""
+    firstline = first(split(e, '\n'; limit=2))
+    length(firstline) > _ERROR_CELL_MAX && return string(firstline[1:_ERROR_CELL_MAX], "…")
+    return firstline
+end
+
 function _q_state_color(state::Symbol)
     state === :running && return :cyan
     state === :done && return :green
@@ -133,15 +143,11 @@ function print_status_table(store::AbstractString, rows::Vector{Job}; io::IO=std
         println(io)
         return nothing
     end
-    show_proj = any(j -> get(j.kwargs, "project", nothing) !== nothing, rows)
-    show_res = any(j -> j.result_path !== nothing, rows)
     ids = String[j.id for j in rows]
     states = String[String(j.state) for j in rows]
     kinds = String[String(j.kind) for j in rows]
     hosts = String[join(j.hosts, ',') for j in rows]
     scripts = String[_q_short(j.script) for j in rows]
-    projs = String[show_proj ? _job_project_disp(j) : "" for j in rows]
-    ress = String[show_res ? _job_result_disp(j) : "" for j in rows]
     w_id = max(2, maximum(length, ids; init=2))
     w_st = max(5, maximum(length, states; init=5))
     w_k = max(4, maximum(length, kinds; init=4))
@@ -149,34 +155,38 @@ function print_status_table(store::AbstractString, rows::Vector{Job}; io::IO=std
     w_sc = max(6, maximum(length, scripts; init=6))
     headers = String["ID", "STATE", "KIND", "HOSTS", "SCRIPT"]
     widths = Int[w_id, w_st, w_k, w_h, w_sc]
+
+    # Optional trailing columns: shown only when at least one row has a value.
+    optional = Tuple{String,Vector{String},Int}[]
+    show_proj = any(j -> get(j.kwargs, "project", nothing) !== nothing, rows)
     if show_proj
-        w_p = max(7, maximum(length, projs; init=7))
-        push!(headers, "PROJECT")
-        push!(widths, w_p)
+        projs = String[_job_project_disp(j) for j in rows]
+        push!(optional, ("PROJECT", projs, max(7, maximum(length, projs; init=7))))
     end
+    show_res = any(j -> j.result_path !== nothing, rows)
     if show_res
-        w_r = max(6, maximum(length, ress; init=6))
-        push!(headers, "RESULT")
-        push!(widths, w_r)
+        ress = String[_job_result_disp(j) for j in rows]
+        push!(optional, ("RESULT", ress, max(6, maximum(length, ress; init=6))))
     end
+    show_err = any(j -> j.error !== nothing, rows)
+    if show_err
+        errs = String[_job_error_disp(j) for j in rows]
+        push!(optional, ("ERROR", errs, max(5, maximum(length, errs; init=5))))
+    end
+    for (h, _, w) in optional
+        push!(headers, h)
+        push!(widths, w)
+    end
+
     head = join((_q_cell(headers[i], widths[i]) for i in eachindex(headers)), "  ")
     DistSSHKit._print_colored(io, "  " * head, :light_black, false)
     println(io)
     for (i, j) in enumerate(rows)
-        cells = String[
-            _q_cell(ids[i], w_id),
-            _q_cell(states[i], w_st),
-            _q_cell(kinds[i], w_k),
-            _q_cell(hosts[i], w_h),
-            _q_cell(scripts[i], w_sc),
-        ]
-        print(io, "  ", cells[1], "  ")
-        DistSSHKit._print_colored(io, cells[2], _q_state_color(j.state), false)
-        print(io, "  ", cells[3], "  ", cells[4], "  ", cells[5])
-        show_proj && print(io, "  ", _q_cell(projs[i], widths[6]))
-        if show_res
-            idx = show_proj ? 7 : 6
-            print(io, "  ", _q_cell(ress[i], widths[idx]))
+        print(io, "  ", _q_cell(ids[i], w_id), "  ")
+        DistSSHKit._print_colored(io, _q_cell(states[i], w_st), _q_state_color(j.state), false)
+        print(io, "  ", _q_cell(kinds[i], w_k), "  ", _q_cell(hosts[i], w_h), "  ", _q_cell(scripts[i], w_sc))
+        for (_, vals, w) in optional
+            print(io, "  ", _q_cell(vals[i], w))
         end
         println(io)
     end

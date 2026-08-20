@@ -6,7 +6,13 @@ function cancel_cli(args::Vector{String})::Cint
     length(args) == 1 || throw(ArgumentError("cancel: extra arguments"))
     id = String(args[1])
     q = Queue(; store=store_path())
-    if cancel!(q, id)
+    cancelled = try
+        cancel!(q, id)
+    catch e
+        e isa ArgumentError || rethrow()
+        false # unknown id reads the same as "not queued" to the caller
+    end
+    if cancelled
         println(id)
         return 0
     end

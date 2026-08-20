@@ -205,6 +205,81 @@ end
     end
 end
 
+@testset "cli surfaces friendly errors instead of stacktraces" begin
+    mktempdir() do d
+        p = joinpath(d, "jobs.toml")
+        jobdir = joinpath(d, "jobtree")
+        mkpath(jobdir)
+        withenv(
+            "DISTSSHKITQUEUE_STORE" => p,
+            "DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml"),
+            "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1",
+            "DISTRIBUTED_PROJECT_ROOT" => nothing,
+        ) do
+            cd(jobdir) do
+                # missing SCRIPT.jl: caught before queuing, not queued and stayed silent.
+                err = mktemp() do _, io
+                    redirect_stderr(io) do
+                        @test DistSSHKitQueue.main(["submit", "go", "local:1", "no_such.jl"]) == 1
+                    end
+                    flush(io)
+                    seekstart(io)
+                    read(io, String)
+                end
+                @test occursin("not found", err)
+                @test isempty(DistSSHKitQueue.read_jobs(p))
+
+                # missing job id: friendly message, no Julia stacktrace.
+                err2 = mktemp() do _, io
+                    redirect_stderr(io) do
+                        @test DistSSHKitQueue.main(["cancel"]) == 1
+                    end
+                    flush(io)
+                    seekstart(io)
+                    read(io, String)
+                end
+                @test occursin("Error:", err2)
+                @test occursin("need a job id", err2)
+
+                # unknown job id: same "is not queued" wording as an already-run job.
+                err3 = mktemp() do _, io
+                    redirect_stderr(io) do
+                        @test DistSSHKitQueue.main(["cancel", "no-such-id"]) == 1
+                    end
+                    flush(io)
+                    seekstart(io)
+                    read(io, String)
+                end
+                @test occursin("is not queued", err3)
+
+                # --qhost on a queue-host-only verb: friendly message, not a stacktrace.
+                err4 = mktemp() do _, io
+                    redirect_stderr(io) do
+                        @test DistSSHKitQueue.main(["--qhost", "h", "serve"]) == 1
+                    end
+                    flush(io)
+                    seekstart(io)
+                    read(io, String)
+                end
+                @test occursin("Error:", err4)
+            end
+        end
+    end
+end
+
+@testset "status table shows the ERROR column for failed jobs" begin
+    mktempdir() do d
+        p = joinpath(d, "jobs.toml")
+        q = Queue(; store=p, runner=_ -> error("boom: kaboom"))
+        id = submit!(q, "a.jl", "local:1")
+        @test step!(q) == 1
+        _wait_state(q, id, :failed)
+        listed = sprint(io -> DistSSHKitQueue.show_status(p; io=io))
+        @test occursin("ERROR", listed)
+        @test occursin("boom: kaboom", listed)
+    end
+end
+
 @testset "service unit text is serve" begin
     plist = DistSSHKitQueue.launch_agent_plist("/opt/bin/julia", "/opt/Queue.jl")
     @test occursin("org.distsshkitqueue.serve", plist)

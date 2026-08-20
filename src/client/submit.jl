@@ -38,7 +38,13 @@ function submit_cli(store::AbstractString, kind::Symbol, script::AbstractString,
 end
 
 script_arg(::Nothing, verb::AbstractString) = throw(ArgumentError("$verb: missing SCRIPT.jl"))
-script_arg(path::AbstractString, ::AbstractString) = resolve_script(path)
+function script_arg(path::AbstractString, ::AbstractString)::String
+    resolved = resolve_script(path)
+    isfile(resolved) && return resolved
+    throw(ArgumentError(
+        DistSSHKit.explain_script_not_found(resolved, job_project(); surface=:cli),
+    ))
+end
 
 function submit_go(args::Vector{String})::Cint
     parsed = DistSSHKit.parse_go_args(args)
