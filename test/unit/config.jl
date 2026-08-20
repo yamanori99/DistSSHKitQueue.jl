@@ -266,6 +266,34 @@ end
     end
 end
 
+@testset "setup re-run is idempotent; --force rewrites" begin
+    mktempdir() do d
+        cfg = joinpath(d, "config.toml")
+        julia = DistSSHKitQueue.default_julia_bin()
+        project = dirname(dirname(pathof(DistSSHKitQueue)))
+        run_setup(extra) = capture_stdio() do
+            DistSSHKitQueue.main(vcat(
+                ["setup", "--julia", julia, "--project", project, "--config", cfg, "--write-only"],
+                extra,
+            ))
+        end
+        withenv("DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml")) do
+            code1, out1, _ = run_setup(String[])
+            @test code1 == 0
+            @test occursin("Wrote", out1)
+            write(cfg, "store = \"edited\"\n")
+            code2, out2, _ = run_setup(String[])
+            @test code2 == 0
+            @test occursin("Present", out2)
+            @test read(cfg, String) == "store = \"edited\"\n"
+            code3, out3, _ = run_setup(["--force"])
+            @test code3 == 0
+            @test occursin("Wrote", out3)
+            @test occursin("[env]", read(cfg, String))
+        end
+    end
+end
+
 @testset "teardown -y removes queue-host files" begin
     mktempdir() do home
         data = joinpath(home, ".distsshkitqueue")

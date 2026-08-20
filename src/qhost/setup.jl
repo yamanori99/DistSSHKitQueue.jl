@@ -14,10 +14,14 @@ function setup(;
     project::AbstractString=default_queue_env(),
     config::AbstractString=config_path(),
     service::Bool=false,
+    force::Bool=false,
     apply::Bool=true,
 )
+    if force && isfile(config)
+        rm(config; force=true)
+    end
     wrote = write_config_template(config)
-    wrote && print_wrote(config)
+    wrote ? print_wrote(config) : print_present(config)
     if service
         return service_install(; julia=julia, project=project, apply=apply)
     end
@@ -29,6 +33,7 @@ function setup_main(args::Vector{String})::Cint
     project = default_queue_env()
     config = config_path()
     service = false
+    force = false
     apply = true
     i = 1
     while i <= length(args)
@@ -48,6 +53,9 @@ function setup_main(args::Vector{String})::Cint
         elseif a == "--service"
             service = true
             i += 1
+        elseif a == "--force"
+            force = true
+            i += 1
         elseif a == "--write-only"
             apply = false
             i += 1
@@ -55,5 +63,5 @@ function setup_main(args::Vector{String})::Cint
             throw(ArgumentError("unknown setup option: $(a)"))
         end
     end
-    return setup(; julia=julia, project=project, config=config, service=service, apply=apply)
+    return setup(; julia=julia, project=project, config=config, service=service, force=force, apply=apply)
 end
