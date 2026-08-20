@@ -8,7 +8,9 @@ using Test
 using Sockets
 using DistSSHKitQueue
 
-const README_CLI_JULIA = DistSSHKitQueue.default_julia_bin()
+function julia_depot_path_env()::String
+    return join((p for p in DEPOT_PATH if !isempty(p)), Sys.iswindows() ? ";" : ":")
+end
 
 function readme_qcmd(test_project::AbstractString, args)
     return Cmd(String[
@@ -179,6 +181,7 @@ function readme_cli_e2e(;
 
             host_env = Dict{String,String}(
                 "HOME" => e2e_home,
+                "JULIA_DEPOT_PATH" => julia_depot_path_env(),
                 "DISTSSHKITQUEUE_CONFIG" => cfg,
                 "DISTSSHKITQUEUE_STORE" => store,
                 "DISTSSHKIT_YES" => "1",
@@ -242,6 +245,7 @@ function readme_cli_e2e(;
                     probe.exitcode == 0 || error("loopback ssh to dskq-qh failed: $(read(joinpath(sshd_dir, "sshd.log"), String))")
                     remote_env = Dict{String,String}(
                         "HOME" => e2e_home,
+                        "JULIA_DEPOT_PATH" => julia_depot_path_env(),
                         "JULIA_PROJECT" => test_project,
                         "DISTSSHKITQUEUE_CONFIG" => cfg,
                         "DISTSSHKITQUEUE_STORE" => qh_store,
