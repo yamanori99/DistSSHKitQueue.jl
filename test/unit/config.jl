@@ -82,7 +82,11 @@ end
         store = joinpath(d, "jobs.toml")
         write(store, "jobs = []\n")
         withenv("DISTSSHKITQUEUE_STORE" => store, "DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml")) do
-            @test DistSSHKitQueue.stop_cli(String[]) == 0
+            code, out, _ = capture_stdio() do
+                DistSSHKitQueue.stop_cli(String[])
+            end
+            @test code == 0
+            @test occursin("Stopped waiter", out)
         end
         @test DistSSHKitQueue.waiter_stopped(store)
     end
@@ -94,16 +98,18 @@ end
         write(store, "jobs = []\n")
         DistSSHKitQueue.set_stopped!(store)
         q = DistSSHKitQueue.Queue(; store=store, runner=_ -> nothing)
-        t = @async DistSSHKitQueue.serve!(q; interval=0.02)
-        for _ in 1:100
-            DistSSHKitQueue.waiter_stopped(store) || break
-            sleep(0.02)
-        end
-        @test !DistSSHKitQueue.waiter_stopped(store)
-        schedule(t, InterruptException(); error=true)
-        try
-            wait(t)
-        catch
+        capture_stdio() do
+            t = @async DistSSHKitQueue.serve!(q; interval=0.02)
+            for _ in 1:100
+                DistSSHKitQueue.waiter_stopped(store) || break
+                sleep(0.02)
+            end
+            @test !DistSSHKitQueue.waiter_stopped(store)
+            schedule(t, InterruptException(); error=true)
+            try
+                wait(t)
+            catch
+            end
         end
     end
 end
@@ -173,13 +179,17 @@ end
         julia = DistSSHKitQueue.default_julia_bin()
         project = dirname(dirname(pathof(DistSSHKitQueue)))
         withenv("DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml")) do
-            @test DistSSHKitQueue.main([
-                "setup",
-                "--julia", julia,
-                "--project", project,
-                "--config", cfg,
-                "--write-only",
-            ]) == 0
+            code, out, _ = capture_stdio() do
+                DistSSHKitQueue.main([
+                    "setup",
+                    "--julia", julia,
+                    "--project", project,
+                    "--config", cfg,
+                    "--write-only",
+                ])
+            end
+            @test code == 0
+            @test occursin("Wrote", out)
         end
         @test !isfile(joinpath(bindir, "dskq"))
         @test isfile(cfg)
@@ -204,10 +214,18 @@ end
         wrap = joinpath(bindir, "dskq")
         write(wrap, "#!/bin/sh\n")
         withenv("DISTSSHKITQUEUE_CONFIG" => nothing, "DISTSSHKITQUEUE_STORE" => nothing) do
-            @test DistSSHKitQueue.teardown_main(["--home", home, "--write-only"]) == 1
+            code1, _, err1 = capture_stdio() do
+                DistSSHKitQueue.teardown_main(["--home", home, "--write-only"])
+            end
+            @test code1 == 1
+            @test occursin("teardown needs -y", err1)
             @test isfile(store)
             @test isfile(wrap)
-            @test DistSSHKitQueue.teardown_main(["--home", home, "-y", "--write-only"]) == 0
+            code2, out2, _ = capture_stdio() do
+                DistSSHKitQueue.teardown_main(["--home", home, "-y", "--write-only"])
+            end
+            @test code2 == 0
+            @test occursin("Removed", out2)
         end
         @test !ispath(data)
         @test !isfile(wrap)

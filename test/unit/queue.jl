@@ -169,14 +169,27 @@ end
                 help = sprint(DistSSHKitQueue.print_queue_usage)
                 @test occursin("Usage", help)
                 @test occursin("--qhost HOST", help)
-                @test DistSSHKitQueue.main(["-h"]) == 0
-                @test DistSSHKitQueue.main(["status"]) == 0
+                code_h, out_h, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["-h"])
+                end
+                @test code_h == 0
+                @test occursin("Usage", out_h)
+                code_st, out_st, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["status"])
+                end
+                @test code_st == 0
+                @test occursin("Store", out_st)
+                @test occursin("(empty)", out_st)
                 empty = sprint(io -> DistSSHKitQueue.show_status(p; io=io))
                 @test occursin("Store", empty)
                 @test occursin("(empty)", empty)
-                @test DistSSHKitQueue.main(["submit", "go", "worker:4", "job.jl"]) == 0
+                code_go, out_go, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "go", "worker:4", "job.jl"])
+                end
+                @test code_go == 0
                 rows = DistSSHKitQueue.read_jobs(p)
                 @test length(rows) == 1
+                @test strip(out_go) == rows[1].id
                 @test rows[1].kind === :go
                 @test rows[1].script == DistSSHKit.canonical_local_path(joinpath(pwd(), "job.jl"))
                 @test rows[1].hosts == ["worker:4"]
@@ -186,8 +199,14 @@ end
                 @test occursin(rows[1].id, listed)
                 @test occursin("queued", listed)
                 @test occursin("STATE", listed)
-                @test DistSSHKitQueue.main(["go", "local:1", "alias.jl"]) == 0
-                @test DistSSHKitQueue.main(["submit", "drive", "local:2", "drv.jl"]) == 0
+                code_alias, _, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["go", "local:1", "alias.jl"])
+                end
+                @test code_alias == 0
+                code_drv, _, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "drive", "local:2", "drv.jl"])
+                end
+                @test code_drv == 0
                 rows = DistSSHKitQueue.read_jobs(p)
                 @test length(rows) == 3
                 @test rows[2].kind === :go
@@ -197,7 +216,11 @@ end
                 @test rows[3].hosts == ["local:2"]
                 @test rows[3].kwargs["project"] == proj
                 cid = rows[2].id
-                @test DistSSHKitQueue.main(["cancel", cid]) == 0
+                code_c, out_c, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["cancel", cid])
+                end
+                @test code_c == 0
+                @test strip(out_c) == cid
                 cancelled = DistSSHKitQueue.read_jobs(p)
                 @test any(j -> j.id == cid && j.state === :cancelled, cancelled)
             end
@@ -217,50 +240,31 @@ end
             "DISTRIBUTED_PROJECT_ROOT" => nothing,
         ) do
             cd(jobdir) do
-                # missing SCRIPT.jl: caught before queuing, not queued and stayed silent.
-                err = mktemp() do _, io
-                    redirect_stderr(io) do
-                        @test DistSSHKitQueue.main(["submit", "go", "local:1", "no_such.jl"]) == 1
-                    end
-                    flush(io)
-                    seekstart(io)
-                    read(io, String)
+                code, _, err = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "go", "local:1", "no_such.jl"])
                 end
+                @test code == 1
                 @test occursin("not found", err)
                 @test isempty(DistSSHKitQueue.read_jobs(p))
 
-                # missing job id: friendly message, no Julia stacktrace.
-                err2 = mktemp() do _, io
-                    redirect_stderr(io) do
-                        @test DistSSHKitQueue.main(["cancel"]) == 1
-                    end
-                    flush(io)
-                    seekstart(io)
-                    read(io, String)
+                code2, _, err2 = capture_stdio() do
+                    DistSSHKitQueue.main(["cancel"])
                 end
+                @test code2 == 1
                 @test occursin("Error:", err2)
                 @test occursin("need a job id", err2)
+                @test !occursin("Stacktrace", err2)
 
-                # unknown job id: same "is not queued" wording as an already-run job.
-                err3 = mktemp() do _, io
-                    redirect_stderr(io) do
-                        @test DistSSHKitQueue.main(["cancel", "no-such-id"]) == 1
-                    end
-                    flush(io)
-                    seekstart(io)
-                    read(io, String)
+                code3, _, err3 = capture_stdio() do
+                    DistSSHKitQueue.main(["cancel", "no-such-id"])
                 end
+                @test code3 == 1
                 @test occursin("is not queued", err3)
 
-                # --qhost on a queue-host-only verb: friendly message, not a stacktrace.
-                err4 = mktemp() do _, io
-                    redirect_stderr(io) do
-                        @test DistSSHKitQueue.main(["--qhost", "h", "serve"]) == 1
-                    end
-                    flush(io)
-                    seekstart(io)
-                    read(io, String)
+                code4, _, err4 = capture_stdio() do
+                    DistSSHKitQueue.main(["--qhost", "h", "serve"])
                 end
+                @test code4 == 1
                 @test occursin("Error:", err4)
             end
         end

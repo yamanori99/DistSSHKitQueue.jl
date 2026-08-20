@@ -27,7 +27,6 @@ export serve!
 export serve
 export job_project
 export default_store_path
-export main
 
 include("DistSSHKitQueue/job.jl")
 include("DistSSHKitQueue/store.jl")

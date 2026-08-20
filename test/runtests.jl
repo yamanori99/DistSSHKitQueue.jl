@@ -6,6 +6,8 @@
 using Test
 using DistSSHKitQueue
 
+include(joinpath(@__DIR__, "support.jl"))
+
 @testset "DistSSHKitQueue" verbose=true begin
     include(joinpath(@__DIR__, "unit", "queue.jl"))
     include(joinpath(@__DIR__, "unit", "config.jl"))
