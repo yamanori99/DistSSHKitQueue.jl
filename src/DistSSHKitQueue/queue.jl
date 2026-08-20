@@ -347,8 +347,14 @@ function serve!(q::Queue; interval::Real=0.2)
     else
         nothing
     end
+    owns() = store isa String ? (waiter_pid(store) == getpid()) : true
+    gone = false
     try
         while true
+            if !owns()
+                gone = true
+                break
+            end
             step!(q)
             sleep(interval)
         end
@@ -362,8 +368,13 @@ function serve!(q::Queue; interval::Real=0.2)
             print(io, "\r\e[K")
             flush(io)
         end
-        store isa String && remove_pid_file(store)
+        if gone
+            print_waiter_gone(label; io=io)
+        elseif store isa String && waiter_pid(store) == getpid()
+            remove_pid_file(store)
+        end
     end
+    return nothing
 end
 
 function serve(; store::AbstractString=default_store_path(), interval::Real=0.2, runner::Function=run_kit)

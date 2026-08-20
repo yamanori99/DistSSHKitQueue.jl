@@ -113,6 +113,30 @@ end
     end
 end
 
+@testset "serve! stops when its pidfile is removed" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        write(store, "jobs = []\n")
+        q = DistSSHKitQueue.Queue(; store=store, runner=_ -> nothing)
+        _, out, _ = capture_stdio() do
+            t = @async DistSSHKitQueue.serve!(q; interval=0.02)
+            for _ in 1:200
+                DistSSHKitQueue.waiter_pid(store) == getpid() && break
+                sleep(0.02)
+            end
+            rm(d; force=true, recursive=true)
+            for _ in 1:200
+                istaskdone(t) && break
+                sleep(0.02)
+            end
+            @test istaskdone(t)
+            wait(t)
+        end
+        @test occursin("Waiter stopping", out)
+        @test !isfile(store)
+    end
+end
+
 @testset "serve! clears the stop latch on start" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")

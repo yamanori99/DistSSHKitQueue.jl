@@ -132,6 +132,16 @@ function print_serve_idle_note(; io::IO=stdout)
     return nothing
 end
 
+function print_waiter_gone(store::AbstractString; io::IO=stdout)
+    DistSSHKit._print_colored(io, "Waiter stopping", :yellow, false)
+    println(io)
+    DistSSHKit.print_help_lines(io,
+        "  store  $(_q_short(store)) (pidfile gone; removed or taken over)",
+        "  A DistSSHKit job already running is not killed.",
+    )
+    return nothing
+end
+
 function print_serve_already(pid::Integer, store::AbstractString; io::IO=stdout)
     DistSSHKit.print_help_chrome("DistSSHKitQueue serve"; io=io)
     DistSSHKit._print_colored(io, "Already running", :cyan, false)
