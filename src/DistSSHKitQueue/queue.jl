@@ -306,7 +306,10 @@ function serve!(q::Queue; interval::Real=0.2)
     load!(q)
     store = q.store
     label = store isa String ? store : "(memory)"
-    store isa String && write_pid_file(store)
+    if store isa String
+        clear_stopped!(store)
+        write_pid_file(store)
+    end
     print_serve_banner(getpid(), label)
     flush(stdout)
     try

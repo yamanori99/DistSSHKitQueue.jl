@@ -5,6 +5,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `stop` halts the waiter but keeps config / store / `dskq` / OS unit. It latches (`jobs.toml.stopped`) so `submit` will not auto-start; only an explicit `serve` resumes. Runs locally or via `--qhost HOST`.
 - CLI chrome matches DistSSHKit (`--help` sections, `~` paths, colored `status` table). Job ids stay a bare stdout line.
 - `dskq` shim (`setup` writes `~/.local/bin/dskq`) and `~/.distsshkitqueue/config.toml` (`store` + `[env]`; ENV wins). CLI `setup` / `setup --service`. Julia 1.12 Pkg Apps `[apps] dskq`.
 - `submit` starts a waiter itself if none is watching the store, like Kit `go!` (opt out: `DISTSSHKITQUEUE_NO_AUTOSERVE=1`). `serve` gets a pidfile next to the store.

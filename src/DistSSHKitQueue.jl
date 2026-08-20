@@ -58,6 +58,11 @@ function main(args::Vector{String}=copy(ARGS))::Cint
     reject_qhost_on_local(sub, qhost)
     if sub == "serve"
         return serve_cli(rest)
+    elseif sub == "stop"
+        r = maybe_remote(qhost, gjulia, "stop", rest)
+        r === nothing || return r
+        _, _, payload = extract_remote_opts(rest)
+        return stop_cli(payload)
     elseif sub == "status"
         r = maybe_remote(qhost, gjulia, "status", rest)
         r === nothing || return r

@@ -116,6 +116,20 @@ end
 
 remove_pid_file(store::AbstractString) = rm(store_pid_path(store); force=true)
 
+"""Latch that `stop` leaves next to the store so `submit` will not auto-serve.
+An explicit `serve` clears it; that is the only thing that resumes the waiter."""
+store_stop_path(store::AbstractString)::String = string(store, ".stopped")
+
+waiter_stopped(store::AbstractString)::Bool = isfile(store_stop_path(store))
+
+function set_stopped!(store::AbstractString)
+    mkpath(dirname(store))
+    write(store_stop_path(store), "")
+    return nothing
+end
+
+clear_stopped!(store::AbstractString) = rm(store_stop_path(store); force=true)
+
 """SIGTERM a waiter recorded in the store pidfile. Does not kill this process."""
 function stop_waiter!(store::AbstractString)::Bool
     p = store_pid_path(store)
