@@ -2,7 +2,7 @@
 
 Internals of this repo. Users: [README.md](README.md), [DESIGN.md](DESIGN.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (Codecov), JETLS, path-gated PR SSH E2E on Julia 1.12, CLI E2E (`dskq` + `local:1`), Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
+This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (Codecov), JETLS, path-gated PR SSH E2E on Julia 1.12, CLI E2E (`-m DistSSHKitQueue` + `local:1`), Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
 
 ## Requirements
 

@@ -42,7 +42,7 @@ jobs:
           version: "1.12"
       - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-buildpkg@v1
-      - name: CLI E2E (dskq + local:1)
+      - name: CLI E2E (local:1)
         env:
           DSKQ_CLI_E2E: "1"
         run: julia --project=. test/cli_e2e.jl

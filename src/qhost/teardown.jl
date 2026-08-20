@@ -1,4 +1,6 @@
-"""Remove queue-host state: waiter, OS unit, `dskq`, store, `~/.distsshkitqueue`.
+"""Remove queue-host state: waiter, OS unit, store, `~/.distsshkitqueue`.
+
+A leftover `dskq` shim from older `setup` is removed if present.
 
 Does not `Pkg.rm` or delete a git clone. Kit job trees (`.distsshkit/`) stay.
 Needs `-y` / `--yes` (or `DISTSSHKITQUEUE_YES=1`).
