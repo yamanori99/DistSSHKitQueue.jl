@@ -74,19 +74,33 @@ end
 end
 
 @testset "extract_remote_opts and remote_inner" begin
-    host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "go", "S.jl", "h:2"])
-    @test host == "m4"
-    @test rjulia == "julia"
-    @test payload == ["go", "S.jl", "h:2"]
+    withenv("JULIA_DISTRIBUTED_EXE" => nothing) do
+        host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "status"])
+        @test host == "m4"
+        @test rjulia === nothing
+        @test payload == ["status"]
+        dest, spec = DistSSHKitQueue.coalesce_remote(host, rjulia, nothing, nothing)
+        @test dest == "m4"
+        @test spec == "auto"
+    end
+    withenv("JULIA_DISTRIBUTED_EXE" => "/opt/from-env/julia") do
+        h, j, p = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "status"])
+        _, spec = DistSSHKitQueue.coalesce_remote(h, j, nothing, nothing)
+        @test spec == "/opt/from-env/julia"
+        @test p == ["status"]
+    end
 
     host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "--remote-julia", "/opt/julia", "go", "S.jl"])
     @test host2 == "m4"
     @test rjulia2 == "/opt/julia"
     @test payload2 == ["go", "S.jl"]
 
-    host3, _, payload3 = DistSSHKitQueue.extract_remote_opts(["go", "S.jl"])
+    host3, j3, payload3 = DistSSHKitQueue.extract_remote_opts(["go", "S.jl"])
     @test host3 === nothing
+    @test j3 === nothing
     @test payload3 == ["go", "S.jl"]
+
+    @test_throws ArgumentError DistSSHKitQueue.coalesce_remote("a", nothing, "b", nothing)
 
     host4, _, payload4 = DistSSHKitQueue.extract_remote_opts(String[])
     @test host4 === nothing
