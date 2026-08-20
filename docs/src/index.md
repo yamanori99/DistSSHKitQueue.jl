@@ -11,15 +11,15 @@ This package is not on General yet. Read [Design](@ref Design).
 ## CLI
 
 ```bash
-julia --project=<queue-env> -m DistSSHKitQueue serve
-julia --project=<queue-env> -m DistSSHKitQueue status
+julia --project=<queue-env> -m DistSSHKitQueue setup --service
+dskq status
 cd /work/Thesis.jl
-julia --project=<queue-env> -m DistSSHKitQueue submit go SCRIPT.jl worker:4
-julia --project=<queue-env> -m DistSSHKitQueue submit drive local:2 SCRIPT.jl
-julia --project=<queue-env> -m DistSSHKitQueue cancel <id>
+dskq submit go SCRIPT.jl worker:4
+dskq submit drive local:2 SCRIPT.jl
+dskq cancel <id>
 ```
 
-`submit` / `cancel` write the store and exit. `--project=<queue-env>` loads Queue; the job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Bare `go` / `drive` alias `submit`. The waiter calls DistSSHKit `execute!(…; detached=true)`.
+`setup` writes `~/.local/bin/dskq` and `~/.distsshkitqueue/config.toml` if missing. `submit` / `cancel` write the store and exit. The job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Bare `go` / `drive` alias `submit`. The waiter calls DistSSHKit `execute!(…; detached=true)`. Non-interactive ssh: `~/.local/bin/dskq`.
 
 ## Installation
 

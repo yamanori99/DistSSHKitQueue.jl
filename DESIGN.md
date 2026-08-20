@@ -8,7 +8,7 @@ Queue code `using DistSSHKit` (hard dependency). Submitters `using DistSSHKitQue
 
 Name: DataFramesMeta pattern (parent + layer). `*HPC` is a bad AutoMerge fit. A Queue submodule would share SemVer with DistSSHKit.
 
-Queue verbs: `serve`, `status`, `submit`, `cancel`. After `submit`, Kit’s `go` / `drive` argv.
+Queue verbs: `serve`, `status`, `submit`, `cancel`, `setup`, `service`. After `submit`, Kit’s `go` / `drive` argv.
 Julia: `Queue`, `submit!(q, script, hosts...; kind=:go|:drive)`, `job` / `jobs`, `cancel!`, `serve!`.
 
 ## Containment
@@ -54,25 +54,28 @@ Stopping the waiter does not cancel a running Kit/SSH tree. If the waiter dies, 
 
 Day-to-day: Kit-shaped arguments (`script`, `host:N…`, kit kwargs). Queue adds wait, order, list, cancel-queued, and pointers to Kit output. Job files stay unchanged.
 
-User-facing actions are Julia (`using DistSSHKitQueue`) or `julia -m DistSSHKitQueue`.
+User-facing actions are Julia (`using DistSSHKitQueue`) or `dskq` (shim from `setup`, or `julia -m DistSSHKitQueue`).
 
 ```bash
-# waiter: env that has DistSSHKitQueue (not a student job)
-julia --project=<queue-env> -m DistSSHKitQueue serve
-julia --project=<queue-env> -m DistSSHKitQueue status
+# controller, once
+julia --project=<queue-env> -m DistSSHKitQueue setup --service
 
-# submit / cancel: write the table (does not run Kit)
-ssh controller 'cd /work/Thesis.jl && julia --project=<queue-env> -m DistSSHKitQueue submit go SCRIPT.jl worker:4'
-ssh controller 'cd /work/Other.jl && julia --project=<queue-env> -m DistSSHKitQueue submit drive local:2 SCRIPT.jl'
-ssh controller 'julia --project=<queue-env> -m DistSSHKitQueue cancel <id>'
+# orderer: write the table (does not run Kit). Non-interactive ssh: use the absolute path.
+ssh controller 'cd /work/Thesis.jl && ~/.local/bin/dskq submit go SCRIPT.jl worker:4'
+ssh controller 'cd /work/Other.jl && ~/.local/bin/dskq submit drive local:2 SCRIPT.jl'
+ssh controller '~/.local/bin/dskq cancel <id>'
+ssh controller '~/.local/bin/dskq status'
 ```
 
 `<queue-env>` loads Queue. The **job** tree is Kit’s (`job_project()`: `pwd` / `DISTRIBUTED_PROJECT_ROOT`), stored on the row. Students keep separate projects; Queue is not a dependency of each job.
 
-Store: `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE`). Whole-file rewrite under a directory lock. No listen socket, no HTTP, no `stop` subcommand (Ctrl-C / OS unit). Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. Ctrl-C leaves the waiter; running Kit is not killed.
+Config: `~/.distsshkitqueue/config.toml` (`DISTSSHKITQUEUE_CONFIG`). `store` and `[env]` (applied with `get!` so ENV wins). Store default `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE` > config `store=`). Whole-file rewrite under a directory lock. No listen socket, no HTTP, no `stop` subcommand (Ctrl-C / OS unit). Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. Ctrl-C leaves the waiter; running Kit is not killed.
+
+`setup` writes `~/.local/bin/dskq` (julia absolute path + `--project=<queue-env>` + `--startup-file=no`). Julia 1.12 Pkg Apps (`[apps] dskq`) is an optional second path (`pkg> app add .` → `~/.julia/bin/dskq`). Neither PATH is guaranteed in non-interactive ssh.
 
 `serve` / `status` / `submit` / `cancel` are Queue. After `submit`, `go` / `drive` are Kit's CLI, stored as a table row. Bare `go` / `drive` remain aliases of `submit`. DistSSHKit **0.3.2** `execute!` is the waiter’s Kit seam ([issue #129](https://github.com/yamanori99/DistSSHKit.jl/issues/129)). Orderer `go!(…; master="controller")` is still a later Kit hook, not a scheduler inside DistSSHKit.
 
+- `setup` — write `dskq` + config.toml if missing (`--service` also installs the OS unit)
 - `serve` / `serve!` — load store, one FIFO job at a time until interrupt (`serve --interval`)
 - `status` — print the table
 - CLI `submit go` / `submit drive` — enqueue (Kit parsers). Bare `go` / `drive` are aliases.
@@ -127,12 +130,12 @@ A DistSSHKit throw or `KitRunResult` with `ok=false` (including a non-zero child
 
 Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
-- CLI: `serve` / `status` / `submit go` / `submit drive` / `cancel` / `service install` / `service uninstall`
+- CLI: `setup` / `serve` / `status` / `submit go` / `submit drive` / `cancel` / `service install` / `service uninstall`
 - Julia: `Queue`, `Job`, `submit!`, `job` / `jobs`, `cancel!`, `step!`, `load!`, `serve!` / `serve`
 
 ### Tests
 
-`Pkg.test` needs no SSH (`test/unit/queue.jl`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`), not DistSSHKit’s suite. PR CI uploads Codecov flags `pkgtest` and `e2e` (OIDC, carryforward). Daily E2E (Linux / macOS / WSL) does not upload coverage. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
+`Pkg.test` needs no SSH (`test/unit/`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`). CLI E2E (`DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl`) is `dskq` + `local:1`, not Docker. PR CI uploads Codecov flags `pkgtest` and `e2e` (OIDC, carryforward). Daily E2E (Linux / macOS / WSL) does not upload coverage. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
 
 ## Out of scope
 

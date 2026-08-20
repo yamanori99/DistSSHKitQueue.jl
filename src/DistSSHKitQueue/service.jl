@@ -14,6 +14,10 @@ function xml_escape(s::AbstractString)::String
 end
 
 function default_julia_bin()::String
+    exe = Base.julia_cmd().exec[1]
+    isfile(exe) && return DistSSHKit.canonical_local_path(exe)
+    w = Sys.which("julia")
+    w !== nothing && isfile(w) && return DistSSHKit.canonical_local_path(w)
     return joinpath(Sys.BINDIR, Sys.iswindows() ? "julia.exe" : "julia")
 end
 

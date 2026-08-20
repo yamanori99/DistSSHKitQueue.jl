@@ -6,7 +6,7 @@ CurrentModule = DistSSHKitQueue
 
 Submitters `using DistSSHKitQueue` or `julia -m DistSSHKitQueue submit go …`. Queue code `using DistSSHKit`. Job files for Kit `go` still do not import DistSSHKit.
 
-CLI: `submit go` / `submit drive` / `cancel`. Julia: `submit!(q, script, hosts...; kind=:drive)`. Waiter: DistSSHKit `execute!(…; detached=true)`.
+CLI: `setup` / `submit go` / `submit drive` / `cancel`. Prefer `dskq` after `setup`. Julia: `submit!(q, script, hosts...; kind=:drive)`. Waiter: DistSSHKit `execute!(…; detached=true)`. Config: `~/.distsshkitqueue/config.toml`.
 
 ```@docs
 DistSSHKitQueue

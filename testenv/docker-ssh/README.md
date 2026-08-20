@@ -52,7 +52,16 @@ Requires Docker Compose. From this directory:
 ./scripts/down.sh
 ```
 
-Manual smoke (no suite):
+Manual smoke (no suite): after workers are up, on the controller:
+
+```bash
+julia --project=../.. -m DistSSHKitQueue setup --write-only   # once; from repo root use --project=.
+# put SSH opts in ~/.distsshkitqueue/config.toml [env], then:
+~/.local/bin/dskq submit go SCRIPT.jl dskq-w1:1
+~/.local/bin/dskq status
+```
+
+Or probe a worker without Queue:
 
 ```bash
 ./scripts/up.sh
