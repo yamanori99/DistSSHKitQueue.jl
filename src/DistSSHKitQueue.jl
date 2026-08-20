@@ -55,49 +55,55 @@ function main(args::Vector{String}=copy(ARGS))::Cint
         return 0
     end
     sub, rest = String(after[1]), String[String(a) for a in after[2:end]]
-    reject_qhost_on_local(sub, qhost)
-    if sub == "serve"
-        return serve_cli(rest)
-    elseif sub == "stop"
-        r = maybe_remote(qhost, gjulia, "stop", rest)
-        r === nothing || return r
-        _, _, payload = extract_remote_opts(rest)
-        return stop_cli(payload)
-    elseif sub == "status"
-        r = maybe_remote(qhost, gjulia, "status", rest)
-        r === nothing || return r
-        show_status(store_path())
-        return 0
-    elseif sub == "submit"
-        r = maybe_remote(qhost, gjulia, "submit", rest)
-        r === nothing || return r
-        _, _, payload = extract_remote_opts(rest)
-        return submit_main(payload)
-    elseif sub == "go"
-        r = maybe_remote(qhost, gjulia, "go", rest)
-        r === nothing || return r
-        return submit_go(rest)
-    elseif sub == "drive"
-        r = maybe_remote(qhost, gjulia, "drive", rest)
-        r === nothing || return r
-        return submit_drive(rest)
-    elseif sub == "cancel"
-        r = maybe_remote(qhost, gjulia, "cancel", rest)
-        r === nothing || return r
-        _, _, payload = extract_remote_opts(rest)
-        return cancel_cli(payload)
-    elseif sub == "teardown"
-        r = maybe_remote(qhost, gjulia, "teardown", rest)
-        r === nothing || return r
-        _, _, payload = extract_remote_opts(rest)
-        return teardown_main(payload)
-    elseif sub == "service"
-        return service_main(rest)
-    elseif sub == "setup"
-        return setup_main(rest)
-    else
-        DistSSHKit.print_cli_error("unknown subcommand: $sub")
-        show_usage(io=stderr)
+    try
+        reject_qhost_on_local(sub, qhost)
+        if sub == "serve"
+            return serve_cli(rest)
+        elseif sub == "stop"
+            r = maybe_remote(qhost, gjulia, "stop", rest)
+            r === nothing || return r
+            _, _, payload = extract_remote_opts(rest)
+            return stop_cli(payload)
+        elseif sub == "status"
+            r = maybe_remote(qhost, gjulia, "status", rest)
+            r === nothing || return r
+            show_status(store_path())
+            return 0
+        elseif sub == "submit"
+            r = maybe_remote(qhost, gjulia, "submit", rest)
+            r === nothing || return r
+            _, _, payload = extract_remote_opts(rest)
+            return submit_main(payload)
+        elseif sub == "go"
+            r = maybe_remote(qhost, gjulia, "go", rest)
+            r === nothing || return r
+            return submit_go(rest)
+        elseif sub == "drive"
+            r = maybe_remote(qhost, gjulia, "drive", rest)
+            r === nothing || return r
+            return submit_drive(rest)
+        elseif sub == "cancel"
+            r = maybe_remote(qhost, gjulia, "cancel", rest)
+            r === nothing || return r
+            _, _, payload = extract_remote_opts(rest)
+            return cancel_cli(payload)
+        elseif sub == "teardown"
+            r = maybe_remote(qhost, gjulia, "teardown", rest)
+            r === nothing || return r
+            _, _, payload = extract_remote_opts(rest)
+            return teardown_main(payload)
+        elseif sub == "service"
+            return service_main(rest)
+        elseif sub == "setup"
+            return setup_main(rest)
+        else
+            DistSSHKit.print_cli_error("unknown subcommand: $sub")
+            show_usage(io=stderr)
+            return 1
+        end
+    catch e
+        e isa ArgumentError || rethrow()
+        DistSSHKit.print_cli_error(e.msg)
         return 1
     end
 end

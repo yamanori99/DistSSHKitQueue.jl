@@ -5,6 +5,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- CLI errors (`ArgumentError`) print as `Error: ...` on stderr, not a Julia stacktrace. `submit go/drive` checks the script exists before enqueuing (was silently queued, then failed). `cancel` reports an unknown id the same as `is not queued`. `status` shows an `ERROR` column when a job has failed.
 - `stop` halts the waiter but keeps config / store / `dskq` / OS unit. It latches (`jobs.toml.stopped`) so `submit` will not auto-start; only an explicit `serve` resumes. Runs locally or via `--qhost HOST`.
 - CLI chrome matches DistSSHKit (`--help` sections, `~` paths, colored `status` table). Job ids stay a bare stdout line.
 - `dskq` shim (`setup` writes `~/.local/bin/dskq`) and `~/.distsshkitqueue/config.toml` (`store` + `[env]`; ENV wins). CLI `setup` / `setup --service`. Julia 1.12 Pkg Apps `[apps] dskq`.
