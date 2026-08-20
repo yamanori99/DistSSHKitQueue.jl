@@ -172,6 +172,7 @@ end
                 @test occursin("watch", help)
                 @test occursin("enable", help)
                 @test occursin("disable", help)
+                @test occursin("sleeping laptop", help)
                 @test !occursin("service install", help)
                 code_h, out_h, _ = capture_stdio() do
                     DistSSHKitQueue.main(["-h"])

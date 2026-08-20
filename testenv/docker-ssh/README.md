@@ -9,8 +9,9 @@ independent in this repo. `Pkg.test()` does **not** start Docker or run this.
 
 ## What the E2E proves
 
-The host is both **queue host** and **client**. The waiter calls DistSSHKit
-`execute!(…; detached=true)` (Kit child master). The flow in [`test/e2e.jl`](../../test/e2e.jl):
+The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `host:N` workers only.
+
+[`test/e2e.jl`](../../test/e2e.jl) (Julia API):
 
 1. Copy DistSSHKit `demos/` file/echo scripts into `example-job` (not `pipeline_*`;
    those call `go!` / `pipeline!` themselves).
@@ -20,6 +21,17 @@ The host is both **queue host** and **client**. The waiter calls DistSSHKit
 4. FIFO: two queued Kit jobs, one running at a time.
 5. Cancel the middle queued row; waiter skips it and runs the next.
 6. `result_path` is Kit’s collected tree; peek it on the queue host (no second collect).
+
+[`test/e2e_readme_cli.jl`](../../test/e2e_readme_cli.jl) (README CLI):
+
+1. Queue-host verbs with omit `--qhost` and a fake `HOME`: `setup`, `enable --write-only`,
+   `disable --write-only`, foreground `serve`, `submit go dskq-w1:1 SCRIPT.jl`, `status`,
+   `watch --ticks 1`, `stop`.
+2. Client `--qhost dskq-qh` over a **loopback OpenSSH** (not a fake `ssh` binary):
+   `submit` / `status` / `watch` / `cancel` / `stop` / `teardown -y --write-only`.
+   `--qhost setup` is refused.
+3. Does not `systemctl enable --now` or `launchctl bootstrap`. Does not treat
+   `local:N` on a laptop as the product path.
 
 ## Layout
 
@@ -52,13 +64,17 @@ Requires Docker Compose. From this directory:
 ./scripts/down.sh
 ```
 
-Manual smoke (no suite): after workers are up, on the queue host:
+Manual smoke (no suite): after workers are up, this machine is the queue host.
+From a **client** (same box is fine if you still pass `--qhost` to a real ssh alias):
 
 ```bash
-julia --project=../.. -m DistSSHKitQueue setup   # once; from repo root use --project=.
-# put SSH opts in ~/.distsshkitqueue/config.toml [env], then:
-julia --project=../.. -m DistSSHKitQueue submit go SCRIPT.jl dskq-w1:1
-julia --project=../.. -m DistSSHKitQueue status
+# on the queue host, once
+julia --project=../.. -m DistSSHKitQueue setup
+# put SSH opts in ~/.distsshkitqueue/config.toml [env]
+
+# from a client
+julia --project=../.. -m DistSSHKitQueue --qhost HOST submit go dskq-w1:1 SCRIPT.jl
+julia --project=../.. -m DistSSHKitQueue --qhost HOST status
 ```
 
 Or probe a worker without Queue:

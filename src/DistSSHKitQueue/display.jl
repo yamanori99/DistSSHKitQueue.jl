@@ -71,7 +71,8 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Notes"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  Same machine: omit --qhost. Several clusters: pass --qhost every time.",
+        "  Day to day: --qhost HOST from a client. Logged into the queue host: omit it.",
+        "  A sleeping laptop is not a queue host.",
         "  Do not pass --qhost to setup / serve / enable / disable.",
         "  Remote Julia: Kit auto-detect; --remote-julia / JULIA_DISTRIBUTED_EXE override.",
         "  teardown -y: waiter, OS unit, ~/.distsshkitqueue (not a git clone).",

@@ -23,7 +23,6 @@ Not on General yet. Julia **1.12+**, DistSSHKit **0.3.2+**.
 - [What to run](#what-to-run)
 - [Queue host (always-on)](#queue-host-always-on)
 - [Client (dev laptop)](#client-dev-laptop)
-- [Same machine](#same-machine-laptop-is-the-queue-host)
 - [Job record](#job-record)
 - [Out of scope](#out-of-scope)
 - [Compatibility](#compatibility)
@@ -35,33 +34,35 @@ The long-lived process on the queue host is Queue: one table job runs at a time 
 ```text
 client A (laptop)  ──┐
 client B (another) ──┼── --qhost HOST  submit / status / watch / cancel / teardown ──►  queue host
-client = queue host ─┘     (omit --qhost)                                        Queue waiter
+                     ┘                                                                 Queue waiter
                                                                                store ~/.distsshkitqueue
                                                                                serve  (now)
                                                                                enable (after reboot)
 ```
 
-- **Queue host** — always-on machine where the Kit master must run for queued jobs (macOS or Linux, a VM is fine). Not a sleeping laptop. **One** waiter, **one** job table.
-- **Client** — any machine that talks to that table (laptop, another workstation, or the queue host itself). Several clients at once is the point. A client must not become the Kit master.
+Day to day you are a **client**. The queue host is a separate always-on box. A sleeping laptop is not that box.
+
+- **Queue host** — always-on machine where the Kit master must run for queued jobs (macOS or Linux, a VM is fine). **One** waiter, **one** job table. If you are already logged into that box, omit `--qhost`. That is not a reason to park the waiter on a laptop.
+- **Client** — any machine that talks to that table (laptop, another workstation). Several clients at once is the point. A client must not become the Kit master.
 - **Workers** — DistSSHKit `host:N` / `local:N` on the queue host and the other machines.
 
 Jobs from every client share one FIFO; there are no per-user or per-machine queues. The waiter calls DistSSHKit `execute!(kind, script, hosts; detached=true)` and waits — the child (`julia -m DistSSHKit go|drive`) is the Kit master, not the waiter itself. Stopping the waiter does not cancel a running Kit/SSH tree.
 
 ## What to run
 
-Day to day you only **submit**. If no waiter is up, `submit` starts one. You do not need `setup`, `serve`, or `enable` for a job to run.
+Day to day you only **submit** from a client (`--qhost HOST`). If no waiter is up, `submit` starts one on the queue host. You do not need `setup`, `serve`, or `enable` for a job to run.
 
 | Command | What it does | When you need it |
 | --- | --- | --- |
 | `submit` | Enqueue a Kit `go` / `drive`. Starts a waiter if none is running. | Always (this is the product) |
-| `serve` | Run the waiter **in this terminal, now**. Ctrl-C stops this waiter. | Watching the queue live, or running without autoserve |
+| `serve` | Run the waiter **in this terminal, now**. Ctrl-C stops this waiter. | Watching the queue live on the queue host, or running without autoserve |
 | `enable` | Tell the OS: after reboot / login, start `serve` again (LaunchAgent / systemd). | A dedicated queue host that should come back by itself |
 | `setup` | Write `~/.distsshkitqueue/config.toml` if missing (`--force` rewrites). | Optional. Defaults work without it. Use it for `store=` or `[env]`. |
 | `stop` | Stop the waiter, keep files. `submit` will not auto-start until you `serve`. | Pause the queue |
 | `disable` | Remove the OS unit. Does not delete the job table. | This machine should no longer auto-serve at boot |
 | `teardown -y` | Stop waiter, remove unit and `~/.distsshkitqueue`. | Wipe Queue state on this host |
 
-`serve` is “run the process”. `enable` is “register that process with the OS” (systemd’s word). They are not two ways to start the same thing. A sleeping laptop should not be the queue host, with or without a unit.
+`serve` is “run the process”. `enable` is “register that process with the OS” (systemd’s word). They are not two ways to start the same thing. `enable` does not make a laptop a queue host.
 
 ## Queue host (always-on)
 
@@ -85,16 +86,20 @@ julia -m DistSSHKitQueue serve
 
 `--qhost` is not valid here — `setup` / `serve` / `enable` / `disable` run only on this machine.
 
+Already on that box (ssh session, console): omit `--qhost` for `submit` / `status` / `watch` / `cancel` / `stop` / `teardown`. Kit argv is still DistSSHKit’s (`go host:N SCRIPT.jl`, not `local:N` unless the workers really are local).
+
 `stop` halts the waiter but leaves config, store, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `--qhost HOST stop`. `disable` is the opposite of `enable`, not of `serve`.
 
 A dedicated env at `~/.distsshkitqueue/env`, if present, is preferred as `--project` so a checkout can be deleted. `teardown` never runs `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/` results.
+
+Ctrl-C on `serve` or `watch` only stops that process — the waiter (or the live view), never a running Kit job.
 
 ## Client (dev laptop)
 
 Run from the job directory with `julia --project=.`; Queue must be loadable from that env. Nothing is written on the laptop (no `~/.distsshkitqueue` there). `--qhost HOST` picks the queue host — pass it every time if you work with several clusters:
 
 ```bash
-julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts submit go SCRIPT.jl host:2
+julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts submit go host:2 SCRIPT.jl
 julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts status
 julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts watch
 julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts cancel <id>
@@ -102,18 +107,6 @@ julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts teardown -y
 ```
 
 Remote Julia is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). `SCRIPT.jl` and `host:2` are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `--qhost` it uses `ssh -t` so the remote TTY can clear the screen.
-
-## Same machine (laptop is the queue host)
-
-Omit `--qhost`:
-
-```bash
-julia --project=. -m DistSSHKitQueue submit go SCRIPT.jl local:2
-julia --project=. -m DistSSHKitQueue status
-julia --project=. -m DistSSHKitQueue watch
-```
-
-Ctrl-C on `serve` or `watch` only stops that process — the waiter (or the live view), never a running Kit job. The waiter itself runs Kit's `execute!(…; detached=true)`.
 
 ## Job record
 

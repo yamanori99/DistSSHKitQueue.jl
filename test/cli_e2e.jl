@@ -1,6 +1,7 @@
 #!/usr/bin/env julia
 # CLI + config store, local:1. Not part of Pkg.test().
-# Covers explicit serve, auto-serve, cancel, watch, teardown, and `--qhost` ssh argv.
+# Covers explicit serve, auto-serve, cancel, watch, teardown, and `--qhost` ssh argv
+# (fake `ssh`, no remote exec). The README client path over real ssh is SSH E2E.
 #
 #   DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl
 
