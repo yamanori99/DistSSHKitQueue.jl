@@ -280,6 +280,9 @@ end
             code4, _, err4 = run_setup(["--service"])
             @test code4 == 1
             @test occursin("service install", err4)
+            code5, _, err5 = run_setup(["--write-only"])
+            @test code5 == 1
+            @test occursin("setup only writes config.toml", err5)
         end
     end
 end

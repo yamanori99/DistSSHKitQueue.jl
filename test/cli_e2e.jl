@@ -73,11 +73,7 @@ end
             "DISTSSHKIT_YES" => "1",
         )
         withenv(baseenv..., "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1") do
-            @test DistSSHKitQueue.main([
-                "setup",
-                "--config", cfg,
-                "--write-only",
-            ]) == 0
+            @test DistSSHKitQueue.main(["setup", "--config", cfg]) == 0
         end
         @test isfile(cfg)
 
@@ -159,7 +155,6 @@ end
                 @test DistSSHKitQueue.main([
                     "setup",
                     "--config", joinpath(data, "config.toml"),
-                    "--write-only",
                 ]) == 0
                 @test DistSSHKitQueue.main([
                     "teardown",
