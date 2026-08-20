@@ -1,4 +1,4 @@
-"""One table row. `kwargs` is forwarded to DistSSHKit `go!` / `drive!` (`project` is the job tree)."""
+"""One table row. `kwargs` is an opaque bag for DistSSHKit `execute!` (`project` is the job tree)."""
 mutable struct Job
     id::String
     kind::Symbol

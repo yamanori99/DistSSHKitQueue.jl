@@ -16,9 +16,10 @@ julia --project=<queue-env> -m DistSSHKitQueue status
 cd /work/Thesis.jl
 julia --project=<queue-env> -m DistSSHKitQueue submit go SCRIPT.jl worker:4
 julia --project=<queue-env> -m DistSSHKitQueue submit drive local:2 SCRIPT.jl
+julia --project=<queue-env> -m DistSSHKitQueue cancel <id>
 ```
 
-`submit` writes the store and exits. `--project=<queue-env>` loads Queue; the job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Bare `go` / `drive` alias `submit`.
+`submit` / `cancel` write the store and exit. `--project=<queue-env>` loads Queue; the job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Bare `go` / `drive` alias `submit`. The waiter calls DistSSHKit `execute!(…; detached=true)`.
 
 ## Installation
 
@@ -28,7 +29,7 @@ From a checkout:
 pkg> dev /path/to/DistSSHKitQueue.jl
 ```
 
-Needs DistSSHKit **0.3.1+**, Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
+Needs DistSSHKit **0.3.2+**, Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
 
 ## Contributing
 

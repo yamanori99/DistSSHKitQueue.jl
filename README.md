@@ -29,8 +29,9 @@ julia --project=. -m DistSSHKitQueue status
 # job tree = wherever you cd
 cd /path/to/YourJob.jl
 julia --project=/path/to/DistSSHKitQueue.jl -m DistSSHKitQueue submit go SCRIPT.jl local:1
+julia --project=/path/to/DistSSHKitQueue.jl -m DistSSHKitQueue cancel <id>
 ```
 
 `<queue-env>` (`--project=` on `-m DistSSHKitQueue`) loads Queue. The job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`.
 
-Ctrl-C stops the waiter only. Julia **1.12+**, DistSSHKit **0.3.1+**.
+Ctrl-C stops the waiter only. Julia **1.12+**, DistSSHKit **0.3.2+**. The waiter runs Kit `execute!(…; detached=true)`.

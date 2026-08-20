@@ -5,8 +5,11 @@ function show_usage(; io::IO=stdout)
     println(io, "  julia --project=<queue-env> -m DistSSHKitQueue status")
     println(io, "  julia --project=<queue-env> -m DistSSHKitQueue submit go [DistSSHKit go argv]")
     println(io, "  julia --project=<queue-env> -m DistSSHKitQueue submit drive [DistSSHKit drive argv]")
+    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue cancel <id>")
+    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue service install")
+    println(io, "  julia --project=<queue-env> -m DistSSHKitQueue service uninstall")
     println(io)
-    println(io, "`serve` waits. `submit` writes the table and exits (does not run Kit).")
+    println(io, "`serve` waits. `submit` / `cancel` write the table and exit (do not run Kit).")
     println(io, "`--project=<queue-env>` loads Queue. The job tree is cwd / DISTRIBUTED_PROJECT_ROOT.")
     println(io, "Bare `go` / `drive` alias `submit go` / `submit drive`.")
     println(io, "Ctrl-C leaves the waiter; running Kit is not killed.")
@@ -122,7 +125,21 @@ function submit_main(args::Vector{String})::Cint
     throw(ArgumentError("submit: unknown kit command $(repr(kit)) (want go or drive)"))
 end
 
-"""CLI entry. Prefer `julia -m DistSSHKitQueue serve` / `submit`."""
+function cancel_cli(args::Vector{String})::Cint
+    isempty(args) && throw(ArgumentError("cancel: need a job id"))
+    args[1] in ("-h", "--help") && (show_usage(); return 0)
+    length(args) == 1 || throw(ArgumentError("cancel: extra arguments"))
+    id = String(args[1])
+    q = Queue(; store=store_path())
+    if cancel!(q, id)
+        println(id)
+        return 0
+    end
+    println(stderr, "cancel: job $(repr(id)) is not queued")
+    return 1
+end
+
+"""CLI entry. Prefer `julia -m DistSSHKitQueue serve` / `submit` / `cancel`."""
 function main(args::Vector{String}=copy(ARGS))::Cint
     if isempty(args) || args[1] in ("-h", "--help", "help")
         show_usage()
@@ -154,6 +171,10 @@ function main(args::Vector{String}=copy(ARGS))::Cint
         return submit_go(rest)
     elseif sub == "drive"
         return submit_drive(rest)
+    elseif sub == "cancel"
+        return cancel_cli(rest)
+    elseif sub == "service"
+        return service_main(rest)
     else
         println(stderr, "unknown subcommand: $sub")
         show_usage(io=stderr)

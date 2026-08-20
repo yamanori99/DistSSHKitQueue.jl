@@ -8,7 +8,7 @@ Queue code `using DistSSHKit` (hard dependency). Submitters `using DistSSHKitQue
 
 Name: DataFramesMeta pattern (parent + layer). `*HPC` is a bad AutoMerge fit. A Queue submodule would share SemVer with DistSSHKit.
 
-Queue verbs: `serve`, `status`, `submit`. After `submit`, Kit’s `go` / `drive` argv.
+Queue verbs: `serve`, `status`, `submit`, `cancel`. After `submit`, Kit’s `go` / `drive` argv.
 Julia: `Queue`, `submit!(q, script, hosts...; kind=:go|:drive)`, `job` / `jobs`, `cancel!`, `serve!`.
 
 ## Containment
@@ -19,8 +19,9 @@ The long-lived process on the controller is Queue. One table job runs at a time 
 orderer A (laptop)  ──┐
 orderer B (another) ──┼── enqueue / list / cancel ──►  controller (always-on)
 orderer = controller ─┘                                  Queue waiter (one table)
-                                                           └── current job: Kit master
-                                                                 └── workers (this host + others)
+                                                           └── execute!(kind; detached=true)
+                                                                 └── Kit child master
+                                                                       └── workers (this host + others)
 ```
 
 - **Controller** — always-on host where the Kit master must run (macOS or Linux, a VM is fine). Not a sleeping laptop. **One** waiter, **one** job table.
@@ -35,11 +36,9 @@ Kit has no “master lives on that host” today: `go!` / `drive!` make the call
 
 ## How the master sits under Queue
 
-**First slice (now):** the waiter process calls `go!` / `drive!`. Orderers enqueue by writing the store (`submit go` / `submit drive`). Same host: the REPL can `@async serve!(q)` and `submit!`.
+The waiter calls DistSSHKit `execute!(kind, script, hosts; detached=true)` and `wait`s. The child (`julia -m DistSSHKit go|drive`) is the Kit master. Queue does not call `go!` / `drive!` in the waiter process. Orderers enqueue by writing the store (`submit go` / `submit drive`). Same host: the REPL can `@async serve!(q)` and `submit!`.
 
-**Later:** Queue only waits. Each table job is a child (`julia -m DistSSHKit go|drive …`). That child is the Kit master. Queue watches the PID, exit status, and Kit output paths. Use this when waiter and run must not share a fate.
-
-Stopping the waiter does not cancel a running Kit/SSH tree. If the waiter process dies, persistence rules apply.
+Stopping the waiter does not cancel a running Kit/SSH tree. If the waiter dies, persistence rules apply (stale `:running` → `:failed`; no PID reattach).
 
 ## Shape
 
@@ -48,7 +47,7 @@ Stopping the waiter does not cancel a running Kit/SSH tree. If the waiter proces
 - SSH to workers: new `ssh` per job, as in `go`. Keepalives only during a long run.
 - Workers: `Distributed.jl` processes, not threads. Same Pkg/Manifest story as DistSSHKit.
 - Control plane: Julia only. No HyperQueue / Slurm CLI, no HTTP, no third-party supervisor as the user API.
-- Compat: Julia **1.12+**, DistSSHKit **0.3.1+**. Queue work uses `dev` / git until a kit hook needs a DistSSHKit General patch (see [CONTRIBUTING.md](CONTRIBUTING.md#distsshkit-cuts)).
+- Compat: Julia **1.12+**, DistSSHKit **0.3.2+**. Queue sits on Kit `execute!` / `KitRunResult` (see [CONTRIBUTING.md](CONTRIBUTING.md#distsshkit-cuts)).
 - House files follow DistSSHKit, slimmed. CI is `Pkg.test`, JETLS, PR SSH E2E on 1.12, Gitleaks, and schedule-only E2E daily (no Julia slots).
 
 ## Operations
@@ -62,35 +61,34 @@ User-facing actions are Julia (`using DistSSHKitQueue`) or `julia -m DistSSHKitQ
 julia --project=<queue-env> -m DistSSHKitQueue serve
 julia --project=<queue-env> -m DistSSHKitQueue status
 
-# submit: cd to that job on the controller (does not run go! / drive!)
+# submit / cancel: write the table (does not run Kit)
 ssh controller 'cd /work/Thesis.jl && julia --project=<queue-env> -m DistSSHKitQueue submit go SCRIPT.jl worker:4'
 ssh controller 'cd /work/Other.jl && julia --project=<queue-env> -m DistSSHKitQueue submit drive local:2 SCRIPT.jl'
+ssh controller 'julia --project=<queue-env> -m DistSSHKitQueue cancel <id>'
 ```
 
 `<queue-env>` loads Queue. The **job** tree is Kit’s (`job_project()`: `pwd` / `DISTRIBUTED_PROJECT_ROOT`), stored on the row. Students keep separate projects; Queue is not a dependency of each job.
 
 Store: `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE`). Whole-file rewrite under a directory lock. No listen socket, no HTTP, no `stop` subcommand (Ctrl-C / OS unit). Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. Ctrl-C leaves the waiter; running Kit is not killed.
 
-`serve` / `status` / `submit` are Queue. After `submit`, `go` / `drive` are Kit's CLI, stored as a table row. Bare `go` / `drive` remain aliases of `submit`.
-
-Order from anywhere **feel later (optional Kit change):** type DistSSHKit on the orderer (`go!(…; master="controller")`). DistSSHKit [issue #50](https://github.com/yamanori99/DistSSHKit.jl/issues/50) / [#129](https://github.com/yamanori99/DistSSHKit.jl/issues/129) is that hand-off, not a scheduler inside DistSSHKit.
+`serve` / `status` / `submit` / `cancel` are Queue. After `submit`, `go` / `drive` are Kit's CLI, stored as a table row. Bare `go` / `drive` remain aliases of `submit`. DistSSHKit **0.3.2** `execute!` is the waiter’s Kit seam ([issue #129](https://github.com/yamanori99/DistSSHKit.jl/issues/129)). Orderer `go!(…; master="controller")` is still a later Kit hook, not a scheduler inside DistSSHKit.
 
 - `serve` / `serve!` — load store, one FIFO job at a time until interrupt (`serve --interval`)
 - `status` — print the table
 - CLI `submit go` / `submit drive` — enqueue (Kit parsers). Bare `go` / `drive` are aliases.
 - `submit!(q, …; kind=:drive)` — Julia enqueue
-- `cancel!` — `:queued` only
+- `cancel` / `cancel!` — `:queued` only (reloads the store; not `load!`)
 
 Boot auto-restart is optional. Julia helpers may write and control a unit; users should not hand-edit those files as the primary path. `launchctl` / `systemctl` stay inside the helpers.
 
-| OS | Auto-start (optional) |
+| OS | Auto-start (optional helper) |
 | --- | --- |
-| macOS | launchd LaunchAgent |
-| Linux | systemd user unit |
+| macOS | `service install` → `~/Library/LaunchAgents/org.distsshkitqueue.serve.plist` |
+| Linux | `service install` → `~/.config/systemd/user/distsshkitqueue.serve.service` |
 
 ## In process
 
-`Queue`, `Job`, `submit!`, `serve!` / `serve`, `status` CLI, TOML `store`. Change this file if the default changes.
+`Queue`, `Job`, `submit!`, `serve!` / `serve`, `status` / `cancel` CLI, TOML `store`. The waiter’s Kit call is `execute!(…; detached=true)`. Change this file if the default changes.
 
 `-m` and OS-service helpers are the same surface, not a second protocol. The in-memory table does not depend on them.
 
@@ -109,7 +107,7 @@ First-slice tests and the controller REPL still pass an explicit `Queue` handle.
 | `error` | Short string if `:failed`. |
 | `result_path` | Where Kit already wrote (go batch root / drive `output_dir`). Queue records the path; it does not invent a second collect tree. |
 
-Kit kwargs (`args`, `project`, `output_dir`, …) travel as an opaque bag and are forwarded. DistSSHKit **0.3.1+**: `go!` and `drive!` both take `output_dir`. Do not reimplement kit flags. `drive::Bool` is Queue-only and is not forwarded.
+Kit kwargs (`args`, `project`, `output_dir`, …) travel as an opaque bag. The waiter forwards the DistSSHKit `execute!(...; detached=true)` allow-list (`yes=true`). Do not reimplement kit flags. Names Kit rejects (`path_anchor`, …) are dropped.
 
 ### FIFO
 
@@ -123,13 +121,13 @@ On waiter death: reload `:queued`; mark `:running` as `:failed` (do not guess ab
 
 ### Failure
 
-A DistSSHKit throw, `GoResult`/`DriveResult` with `ok=false`, or (later) a non-zero child exit marks `:failed`. The dispatcher takes the next fitting job. Do not stall the table on one failure.
+A DistSSHKit throw or `KitRunResult` with `ok=false` (including a non-zero child exit) marks `:failed`. The dispatcher takes the next queued job. Do not stall the table on one failure.
 
 ### Public names
 
 Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
-- CLI: `serve` / `status` / `submit go` / `submit drive`
+- CLI: `serve` / `status` / `submit go` / `submit drive` / `cancel` / `service install` / `service uninstall`
 - Julia: `Queue`, `Job`, `submit!`, `job` / `jobs`, `cancel!`, `step!`, `load!`, `serve!` / `serve`
 
 ### Tests

@@ -29,6 +29,26 @@ end
 
 resolve_script(path::AbstractString) = DistSSHKit.canonical_local_path(path)
 
+# DistSSHKit `execute!(...; detached=true)` allow-list (not stdout/stderr).
+const _EXECUTE_SHARED = (
+    :output_dir,
+    :args,
+    :project,
+    :sync,
+    :julia,
+    :quiet,
+    :verbosity,
+    :remote,
+    :hosts_file,
+)
+const _EXECUTE_DRIVE_ONLY = (
+    :log_dir,
+    :enable_log,
+    :package,
+    :require_all_hosts,
+    :skip_hash_check,
+)
+
 function kit_kwargs(d::Dict{String,Any})
     isempty(d) && return NamedTuple()
     acc = Pair{Symbol,Any}[]
@@ -47,13 +67,11 @@ function kit_kwargs(d::Dict{String,Any})
 end
 
 function kit_result_path(result)::Union{Nothing,String}
-    if hasproperty(result, :output_dir)
-        p = getproperty(result, :output_dir)
-        p === nothing && return nothing
-        s = strip(String(p))
-        return isempty(s) ? nothing : s
-    end
-    return nothing
+    hasproperty(result, :output_dir) || return nothing
+    p = getproperty(result, :output_dir)
+    p === nothing && return nothing
+    s = strip(String(p))
+    return isempty(s) ? nothing : s
 end
 
 function kit_result_path(j::Job, result)::Union{Nothing,String}
@@ -65,31 +83,37 @@ function kit_result_path(j::Job, result)::Union{Nothing,String}
     return isempty(s) ? nothing : s
 end
 
-function require_kit_ok(kind::Symbol, result)
+function require_kit_ok(result)
     hasproperty(result, :ok) || return nothing
     getproperty(result, :ok) && return nothing
+    kind = hasproperty(result, :kind) ? getproperty(result, :kind) : :run
     throw(ErrorException("DistSSHKit $kind failed (ok=false)"))
 end
 
-function kit_call_kwargs(j::Job)
-    kw = kit_kwargs(j.kwargs)
-    j.kind !== :drive && return kw
+"""Keywords DistSSHKit `execute!(...; detached=true)` accepts, from the job bag.
+
+`yes` is always `true` (unattended child). `path_anchor` and other names are dropped.
+"""
+function execute_kwargs(j::Job)
+    raw = kit_kwargs(j.kwargs)
     acc = Pair{Symbol,Any}[]
-    for (k, v) in pairs(kw)
-        k === :path_anchor && continue
+    for (k, v) in pairs(raw)
+        k === :yes && continue
+        v === nothing && continue
+        if k in _EXECUTE_DRIVE_ONLY
+            j.kind === :drive || continue
+        elseif !(k in _EXECUTE_SHARED)
+            continue
+        end
         push!(acc, k => v)
     end
-    return isempty(acc) ? NamedTuple() : (; acc...)
+    push!(acc, :yes => true)
+    return (; acc...)
 end
 
 function run_kit(j::Job)
-    kw = kit_call_kwargs(j)
-    result = if j.kind === :go
-        DistSSHKit.go!(j.script, j.hosts; kw...)
-    else
-        DistSSHKit.drive!(j.script, j.hosts; kw...)
-    end
-    require_kit_ok(j.kind, result)
+    result = wait(DistSSHKit.execute!(j.kind, j.script, j.hosts; detached=true, execute_kwargs(j)...))
+    require_kit_ok(result)
     return kit_result_path(j, result)
 end
 
@@ -176,9 +200,6 @@ function _submit!(q::Queue, kind::Symbol, script::AbstractString, hosts; kwargs.
     toks = String[String(x) for x in hosts]
     kw = Dict{String,Any}(String(k) => v for (k, v) in pairs(kwargs))
     haskey(kw, "project") || (kw["project"] = job_project())
-    if kind === :go && !haskey(kw, "path_anchor")
-        kw["path_anchor"] = kw["project"]
-    end
     j = Job(; kind=kind, script=resolve_script(script), hosts=toks, kwargs=kw)
     _with_store(q) do
         lock(q.lock) do
@@ -190,7 +211,7 @@ function _submit!(q::Queue, kind::Symbol, script::AbstractString, hosts; kwargs.
     return j.id
 end
 
-"""Enqueue. `kind=:drive` → DistSSHKit `drive!`, else `go!`.
+"""Enqueue. `kind=:go` or `:drive` (DistSSHKit `execute!`).
 
 Missing `project` uses `job_project()` (cwd / `DISTRIBUTED_PROJECT_ROOT`), not the
 waiter `--project`. Same verb as CLI `submit`.
@@ -203,10 +224,11 @@ function submit!(q::Queue, script::AbstractString, hosts::AbstractVector{<:Abstr
     return _submit!(q, kind, script, hosts; kwargs...)
 end
 
-"""Cancel if `:queued`. Returns `false` if the row is already running or finished."""
+"""Cancel if `:queued`. Reloads the store first (orderer CLI). Returns `false` if not queued."""
 function cancel!(q::Queue, id::AbstractString)::Bool
     return _with_store(q) do
         lock(q.lock) do
+            reload_keep_live!(q)
             i = findfirst(j -> j.id == id, q.jobs)
             i === nothing && throw(ArgumentError("unknown job $(repr(id))"))
             j = q.jobs[i]
@@ -222,6 +244,7 @@ end
 function _finish!(q::Queue, id::AbstractString, state::Symbol, err; result_path=nothing)
     _with_store(q) do
         lock(q.lock) do
+            reload_keep_live!(q)
             i = findfirst(j -> j.id == id, q.jobs)
             i === nothing && return nothing
             j = q.jobs[i]

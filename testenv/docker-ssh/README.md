@@ -9,8 +9,8 @@ independent in this repo. `Pkg.test()` does **not** start Docker or run this.
 
 ## What the E2E proves
 
-The host is both **controller** and **orderer** (first slice: the waiter calls
-`go!` / `drive!` in-process). The flow in [`test/e2e.jl`](../../test/e2e.jl):
+The host is both **controller** and **orderer**. The waiter calls DistSSHKit
+`execute!(…; detached=true)` (Kit child master). The flow in [`test/e2e.jl`](../../test/e2e.jl):
 
 1. Copy DistSSHKit `demos/` file/echo scripts into `example-job` (not `pipeline_*`;
    those call `go!` / `pipeline!` themselves).
