@@ -1,15 +1,15 @@
 # Docker SSH workers (Queue happy-path E2E)
 
 Real OpenSSH + rsync Linux workers for a DistSSHKitQueue end-to-end run. These
-containers are **DistSSHKit `go` / `drive` targets** (`host:N`), not the Queue
-controller. The controller and the waiter run on the host during `--e2e`.
+containers are **DistSSHKit `go` / `drive` targets** (`host:N`), not the queue
+host. The queue host and the waiter run on the host during `--e2e`.
 
 Adapted from DistSSHKit's `testenv/docker-ssh` (same worker image shape), kept
 independent in this repo. `Pkg.test()` does **not** start Docker or run this.
 
 ## What the E2E proves
 
-The host is both **controller** and **orderer**. The waiter calls DistSSHKit
+The host is both **queue host** and **client**. The waiter calls DistSSHKit
 `execute!(…; detached=true)` (Kit child master). The flow in [`test/e2e.jl`](../../test/e2e.jl):
 
 1. Copy DistSSHKit `demos/` file/echo scripts into `example-job` (not `pipeline_*`;
@@ -19,7 +19,7 @@ The host is both **controller** and **orderer**. The waiter calls DistSSHKit
    drive the waiter to `:done`.
 4. FIFO: two queued Kit jobs, one running at a time.
 5. Cancel the middle queued row; waiter skips it and runs the next.
-6. `result_path` is Kit’s collected tree; peek it on the controller (no second collect).
+6. `result_path` is Kit’s collected tree; peek it on the queue host (no second collect).
 
 ## Layout
 
@@ -40,7 +40,7 @@ SSH Host aliases (written to `.generated/ssh_config`):
 - `dskq-w2` → `127.0.0.1:2223` user `dev`
 
 On macOS, ports publish on `127.0.0.1` (Docker Desktop / Colima defaults) so
-macOS Local Network Privacy does not block SSH from the controller.
+macOS Local Network Privacy does not block SSH from the queue host.
 
 ## Local use (macOS, Linux, or WSL2)
 
@@ -52,7 +52,7 @@ Requires Docker Compose. From this directory:
 ./scripts/down.sh
 ```
 
-Manual smoke (no suite): after workers are up, on the controller:
+Manual smoke (no suite): after workers are up, on the queue host:
 
 ```bash
 julia --project=../.. -m DistSSHKitQueue setup --write-only   # once; from repo root use --project=.

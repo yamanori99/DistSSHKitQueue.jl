@@ -2,7 +2,7 @@ FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.source="https://github.com/yamanori99/DistSSHKitQueue.jl"
 LABEL org.opencontainers.image.documentation="https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/testenv/docker-ssh/README.md"
-LABEL org.opencontainers.image.description="Linux SSH worker for DistSSHKitQueue E2E (sshd, rsync, git, Julia 1.12). A DistSSHKit go/drive target, not the Queue controller."
+LABEL org.opencontainers.image.description="Linux SSH worker for DistSSHKitQueue E2E (sshd, rsync, git, Julia 1.12). A DistSSHKit go/drive target, not the queue host."
 LABEL org.opencontainers.image.licenses="MIT"
 
 ENV DEBIAN_FRONTEND=noninteractive

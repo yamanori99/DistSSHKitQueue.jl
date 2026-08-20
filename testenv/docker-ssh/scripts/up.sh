@@ -2,7 +2,7 @@
 # Build once, then start docker-ssh workers (ports 2222 / 2223).
 # Optional: ./scripts/up.sh --e2e  → also run the Queue SSH E2E from queue root.
 #
-# These containers are DistSSHKit go/drive targets. The Queue controller and the
+# These containers are DistSSHKit go/drive targets. The queue host and the
 # waiter run on this host during --e2e, not in a container.
 set -euo pipefail
 

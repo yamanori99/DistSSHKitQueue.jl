@@ -8,10 +8,6 @@ function wrapper_path(; bindir::AbstractString=default_bindir())::String
     return joinpath(bindir, "dskq")
 end
 
-function sh_single_quote(s::AbstractString)::String
-    return string('\'', replace(String(s), "'" => "'\\''"), '\'')
-end
-
 function wrapper_body(julia::AbstractString, project::AbstractString)::String
     j = sh_single_quote(julia)
     p = sh_single_quote(project)
@@ -56,9 +52,9 @@ function setup(;
 )
     wrap = install_wrapper(; julia=julia, project=project, bindir=bindir)
     wrote = write_config_template(config)
-    println(wrap)
-    wrote && println(config)
-    path_has_dir(bindir) || println(stderr, "setup: $(bindir) is not on PATH; use the absolute path or add it")
+    print_wrote(wrap)
+    wrote && print_wrote(config)
+    path_has_dir(bindir) || print_path_hint(bindir)
     if service
         return service_install(; julia=julia, project=project, apply=apply)
     end

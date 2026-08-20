@@ -13,33 +13,6 @@ function xml_escape(s::AbstractString)::String
     return replace(t, '"' => "&quot;")
 end
 
-function default_julia_bin()::String
-    exe = Base.julia_cmd().exec[1]
-    isfile(exe) && return DistSSHKit.canonical_local_path(exe)
-    w = Sys.which("julia")
-    w !== nothing && isfile(w) && return DistSSHKit.canonical_local_path(w)
-    return joinpath(Sys.BINDIR, Sys.iswindows() ? "julia.exe" : "julia")
-end
-
-"""`~/.distsshkitqueue/env`, a Queue environment independent of any dev checkout.
-
-Not created automatically (that would mean running `Pkg` network operations as a
-side effect of `setup`); see README for the one-time `Pkg.develop` / `Pkg.add`.
-"""
-function default_queue_env_dir(; home::AbstractString=homedir())::String
-    return joinpath(home, ".distsshkitqueue", "env")
-end
-
-"""The `--project` `setup`/`service` bake in by default: the dedicated env dir if
-it has been set up, else the currently active project (e.g. a dev checkout).
-"""
-function default_queue_env(; dedicated::AbstractString=default_queue_env_dir())::String
-    isfile(joinpath(dedicated, "Project.toml")) && return dedicated
-    proj = Base.active_project()
-    proj === nothing && throw(ArgumentError("service: no active project; pass --project"))
-    return DistSSHKit.canonical_local_path(dirname(proj))
-end
-
 function launch_agent_path(; home::AbstractString=homedir())::String
     return joinpath(home, "Library", "LaunchAgents", string(SERVICE_LABEL, ".plist"))
 end
@@ -109,27 +82,28 @@ function service_install(; julia::AbstractString=default_julia_bin(), project::A
         path = launch_agent_path()
         write_serve_unit(path, launch_agent_plist(jl, proj))
         apply && _launchctl_load(path)
-        println(path)
+        print_wrote(path)
         return 0
     elseif Sys.islinux()
         path = systemd_user_path()
         write_serve_unit(path, systemd_user_unit(jl, proj))
         apply && _systemd_enable()
-        println(path)
+        print_wrote(path)
         return 0
     end
     throw(ArgumentError("service install: macOS or Linux only"))
 end
 
-function service_uninstall(; apply::Bool=true)
+function service_uninstall(; apply::Bool=true, home::AbstractString=homedir())
+    live = DistSSHKit.canonical_local_path(home) == DistSSHKit.canonical_local_path(homedir())
     if Sys.isapple()
-        path = launch_agent_path()
-        apply && isfile(path) && _launchctl_unload()
+        path = launch_agent_path(; home=home)
+        apply && live && isfile(path) && _launchctl_unload()
         isfile(path) && rm(path)
         return 0
     elseif Sys.islinux()
-        apply && _systemd_disable()
-        path = systemd_user_path()
+        apply && live && _systemd_disable()
+        path = systemd_user_path(; home=home)
         isfile(path) && rm(path)
         return 0
     end

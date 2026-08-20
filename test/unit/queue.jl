@@ -116,7 +116,7 @@ end
     @test job(q2, id2).result_path == "/tmp/bag"
 end
 
-@testset "orderer cancel reloads store" begin
+@testset "client cancel reloads store" begin
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         q = Queue(; store=p, runner=_ -> sleep(0.05))
@@ -132,7 +132,7 @@ end
     end
 end
 
-@testset "orderer enqueue keeps running row" begin
+@testset "client enqueue keeps running row" begin
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         ev = Base.Event()
@@ -166,8 +166,14 @@ end
         ) do
             cd(jobdir) do
                 proj = DistSSHKit.canonical_local_path(pwd())
+                help = sprint(DistSSHKitQueue.print_queue_usage)
+                @test occursin("Usage", help)
+                @test occursin("--qhost HOST", help)
                 @test DistSSHKitQueue.main(["-h"]) == 0
                 @test DistSSHKitQueue.main(["status"]) == 0
+                empty = sprint(io -> DistSSHKitQueue.show_status(p; io=io))
+                @test occursin("Store", empty)
+                @test occursin("(empty)", empty)
                 @test DistSSHKitQueue.main(["submit", "go", "worker:4", "job.jl"]) == 0
                 rows = DistSSHKitQueue.read_jobs(p)
                 @test length(rows) == 1
@@ -176,6 +182,10 @@ end
                 @test rows[1].hosts == ["worker:4"]
                 @test rows[1].state === :queued
                 @test rows[1].kwargs["project"] == proj
+                listed = sprint(io -> DistSSHKitQueue.show_status(p; io=io))
+                @test occursin(rows[1].id, listed)
+                @test occursin("queued", listed)
+                @test occursin("STATE", listed)
                 @test DistSSHKitQueue.main(["go", "local:1", "alias.jl"]) == 0
                 @test DistSSHKitQueue.main(["submit", "drive", "local:2", "drv.jl"]) == 0
                 rows = DistSSHKitQueue.read_jobs(p)

@@ -10,16 +10,23 @@ This package is not on General yet. Read [Design](@ref Design).
 
 ## CLI
 
+**Client** (dev laptop):
+
 ```bash
-julia --project=<queue-env> -m DistSSHKitQueue setup --service
-dskq status
-cd /work/Thesis.jl
-dskq submit go SCRIPT.jl worker:4
-dskq submit drive local:2 SCRIPT.jl
-dskq cancel <id>
+julia --project=. -m DistSSHKitQueue --qhost HOST status
+julia --project=. -m DistSSHKitQueue --qhost HOST submit go SCRIPT.jl worker:4
+julia --project=. -m DistSSHKitQueue --qhost HOST cancel <id>
 ```
 
-`setup` writes `~/.local/bin/dskq` and `~/.distsshkitqueue/config.toml` if missing. `submit` / `cancel` write the store and exit. The job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Bare `go` / `drive` alias `submit`. The waiter calls DistSSHKit `execute!(…; detached=true)`. Non-interactive ssh: `~/.local/bin/dskq`.
+**Queue host** (always-on):
+
+```bash
+julia -m DistSSHKitQueue setup [--service]
+julia -m DistSSHKitQueue serve
+julia -m DistSSHKitQueue teardown -y
+```
+
+`--qhost` is client-only. `setup` / `serve` / `service` refuse it. Same machine: omit `--qhost`. `submit` auto-starts the waiter. The waiter calls DistSSHKit `execute!(…; detached=true)`.
 
 ## Installation
 

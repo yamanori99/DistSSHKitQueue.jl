@@ -14,50 +14,45 @@
 
 Small-lab job queue on top of [DistSSHKit.jl](https://github.com/yamanori99/DistSSHKit.jl).
 
-**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a long-lived waiter on an always-on controller (FIFO, one table job).
+**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a FIFO waiter. The **queue host** holds the table and the waiter. The **client** (dev laptop) only enqueues, lists, and cancels.
 
-Not on General yet. Design: [DESIGN.md](DESIGN.md).
+Not on General yet. Design: [DESIGN.md](DESIGN.md). Julia **1.12+**, DistSSHKit **0.3.2+**.
 
-Install where the queue runs (once): `pkg> add DistSSHKitQueue` (pre-General: `pkg> dev /path/to/DistSSHKitQueue.jl`).
+## Queue host (always-on)
 
-**Dev machine — order to a controller, no files, no shim.** The dev machine only needs Queue in the env it runs `-m` from; nothing is written to it. `--on HOST` runs `julia -m DistSSHKitQueue` on that ssh controller (which has Queue in its default env):
+Queue lives here: store `~/.distsshkitqueue/jobs.toml`, waiter, optional OS unit. Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). Then:
 
 ```bash
-julia --project=. -m DistSSHKitQueue --on m4-mini-ts submit go SCRIPT.jl host:2
-julia --project=. -m DistSSHKitQueue --on m4-mini-ts status
-julia --project=. -m DistSSHKitQueue --on m4-mini-ts cancel <id>
+# on the queue host
+julia -m DistSSHKitQueue setup [--service]   # optional dskq shim / LaunchAgent / systemd
+julia -m DistSSHKitQueue serve               # optional; submit also auto-starts a waiter
+julia -m DistSSHKitQueue teardown -y         # waiter, dskq, unit, ~/.distsshkitqueue
 ```
 
-`SCRIPT.jl` / `host:2` are interpreted on the controller (cwd there is the job tree, like Kit). The controller's waiter is auto-started by `submit`; the store lives on the controller.
+`--qhost` is not valid here. `setup` / `serve` / `service` run only on this machine.
 
-**Local (single machine).** Just `-m`, no `--on`, no setup:
+`setup` writes `~/.local/bin/dskq` and `config.toml` if missing. Dedicated env `~/.distsshkitqueue/env` (if present) is preferred as `--project` so a checkout can be deleted. `teardown` does not `Pkg.rm` or delete a git clone or Kit `.distsshkit/` results.
+
+## Client (dev laptop)
+
+Job dir, `julia --project=.`. Queue must be loadable from that env. Nothing is written to the laptop (`no ~/.distsshkitqueue` on this machine). `--qhost HOST` picks the queue host (several clusters: pass it every time):
+
+```bash
+julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts submit go SCRIPT.jl host:2
+julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts status
+julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts cancel <id>
+julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts teardown -y
+```
+
+Remote Julia is Kit auto-detect (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` override). `SCRIPT.jl` / `host:2` are interpreted **on the queue host**. `submit` auto-starts the waiter there.
+
+## Same machine (laptop is the queue host)
+
+Omit `--qhost`:
 
 ```bash
 julia --project=. -m DistSSHKitQueue submit go SCRIPT.jl local:2
 julia --project=. -m DistSSHKitQueue status
 ```
 
-**Long-lived controller (optional shim / OS service).** `setup` bakes a `dskq` shim so a non-interactive ssh does not need julia on PATH:
-
-```bash
-# on the controller, once (from a Queue env)
-julia --project=. -m DistSSHKitQueue setup --service
-ssh controller ~/.local/bin/dskq status
-```
-
-`setup` writes `~/.local/bin/dskq` (julia + `--project` baked in) and `~/.distsshkitqueue/config.toml` if missing. `[env]` is applied at start (existing ENV wins). Store: config `store=` or `DISTSSHKITQUEUE_STORE` (default `~/.distsshkitqueue/jobs.toml`).
-
-Like Kit: `submit` starts a waiter itself if none is watching the store (opt out: `DISTSSHKITQUEUE_NO_AUTOSERVE=1`). `serve` / `service install` are for a long-lived controller.
-
-`<queue-env>` loads Queue. The job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Julia 1.12 Pkg Apps: `[apps] dskq` (`pkg> app add .` → `~/.julia/bin/dskq`).
-
-`setup` bakes `--project` from the environment active when it runs (a dev checkout, by default) — remove that checkout and `dskq` breaks. To decouple, set up `~/.distsshkitqueue/env` once and re-run `setup` (from anywhere); it is preferred automatically whenever present:
-
-```bash
-julia --project=~/.distsshkitqueue/env -e 'using Pkg; Pkg.develop(path="/path/to/DistSSHKitQueue.jl"); Pkg.instantiate()'
-julia --project=~/.distsshkitqueue/env -m DistSSHKitQueue setup --service
-```
-
-Once DistSSHKitQueue is on General, `Pkg.develop` above becomes `Pkg.add("DistSSHKitQueue")` and no local checkout is needed at all.
-
-Ctrl-C stops the waiter only. Julia **1.12+**, DistSSHKit **0.3.2+**. The waiter runs Kit `execute!(…; detached=true)`.
+Ctrl-C stops the waiter only. The waiter runs Kit `execute!(…; detached=true)`.

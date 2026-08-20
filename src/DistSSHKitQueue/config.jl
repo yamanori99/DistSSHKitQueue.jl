@@ -8,6 +8,8 @@ function default_config_path(; home::AbstractString=homedir())::String
     return joinpath(home, ".distsshkitqueue", "config.toml")
 end
 
+queue_data_dir(; home::AbstractString=homedir())::String = joinpath(home, ".distsshkitqueue")
+
 function config_path(; home::AbstractString=homedir())::String
     env = strip(get(ENV, "DISTSSHKITQUEUE_CONFIG", ""))
     return isempty(env) ? default_config_path(; home=home) : env
@@ -55,4 +57,12 @@ function write_config_template(path::AbstractString; store::AbstractString=defau
     mkpath(dirname(path))
     write(path, default_config_body(; store=store))
     return true
+end
+
+function store_path()::String
+    env = strip(get(ENV, "DISTSSHKITQUEUE_STORE", ""))
+    isempty(env) || return env
+    st = config_store_path(load_config())
+    st === nothing || return st
+    return default_store_path()
 end
