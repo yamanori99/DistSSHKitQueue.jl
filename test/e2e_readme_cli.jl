@@ -8,6 +8,8 @@ using Test
 using Sockets
 using DistSSHKitQueue
 
+const README_CLI_JULIA = DistSSHKitQueue.default_julia_bin()
+
 function julia_depot_path_env()::String
     return join((p for p in DEPOT_PATH if !isempty(p)), Sys.iswindows() ? ";" : ":")
 end
