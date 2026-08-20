@@ -15,7 +15,7 @@ if get(ENV, "DSKQ_CLI_E2E", "") != "1"
     exit(0)
 end
 
-qcli(args::Vector{String}) = `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHKitQueue $args`
+qcli(args) = `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHKitQueue $(String[string(a) for a in args])`
 
 function wait_done(env; tries=600, sleep_s=0.2)
     for _ = 1:tries
