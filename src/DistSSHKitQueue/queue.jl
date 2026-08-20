@@ -301,17 +301,52 @@ function step!(q::Queue)::Int
     end
 end
 
-"""Load `store` (stale `:running` → `:failed`), then `step!` until interrupt. Ctrl-C stops the waiter, not Kit."""
+function _running_copy(q::Queue)::Union{Nothing,Job}
+    lock(q.lock) do
+        i = findfirst(j -> j.state === :running, q.jobs)
+        i === nothing && return nothing
+        return copy(q.jobs[i])
+    end
+end
+
+"""Load `store` (stale `:running` → `:failed`), then `step!` until interrupt. Ctrl-C stops the waiter, not Kit.
+
+A second `serve` on the same store prints `Already running` and returns.
+"""
 function serve!(q::Queue; interval::Real=0.2)
-    load!(q)
     store = q.store
+    if store isa String
+        existing = waiter_pid(store)
+        if existing !== nothing && existing != getpid()
+            print_serve_already(existing, store)
+            return nothing
+        end
+    end
+    load!(q)
     label = store isa String ? store : "(memory)"
     if store isa String
         clear_stopped!(store)
         write_pid_file(store)
     end
+    io = stdout
     print_serve_banner(getpid(), label)
-    flush(stdout)
+    print_serve_idle_note(; io=io)
+    draw = _serve_can_draw(io)
+    flush(io)
+    done = Ref(false)
+    spin = if draw
+        @async begin
+            i = 1
+            frames = DistSSHKit.SPINNER_FRAMES
+            while !done[]
+                print_serve_live_line(frames[i], _running_copy(q); io=io)
+                i = i == length(frames) ? 1 : i + 1
+                sleep(0.08)
+            end
+        end
+    else
+        nothing
+    end
     try
         while true
             step!(q)
@@ -321,6 +356,12 @@ function serve!(q::Queue; interval::Real=0.2)
         e isa InterruptException || rethrow()
         return nothing
     finally
+        done[] = true
+        spin isa Task && wait(spin)
+        if draw
+            print(io, "\r\e[K")
+            flush(io)
+        end
         store isa String && remove_pid_file(store)
     end
 end

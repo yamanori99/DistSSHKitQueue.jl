@@ -325,6 +325,25 @@ end
     end
 end
 
+@testset "serve live line" begin
+    @test DistSSHKitQueue._serve_live_text('⠋', nothing) == "  ⠋  idle"
+    j = DistSSHKitQueue.Job(; kind=:go, script="/tmp/job.jl", hosts=["local:1"], state=:running)
+    t = DistSSHKitQueue._serve_live_text('⠙', j)
+    @test startswith(t, "  ⠙  running  $(j.id)  go")
+    @test occursin("job.jl", t)
+    buf = IOBuffer()
+    DistSSHKitQueue.print_serve_banner(1, "/tmp/jobs.toml"; io=buf)
+    s = String(take!(buf))
+    @test occursin("pid 1", s)
+    @test occursin("store", s)
+    @test !occursin("Process", s)
+    buf2 = IOBuffer()
+    DistSSHKitQueue.print_serve_idle_note(; io=buf2)
+    note = String(take!(buf2))
+    @test occursin("Ctrl-C stops the waiter", note)
+    @test occursin("DistSSHKit job already running is not killed", note)
+end
+
 @testset "service unit text is serve" begin
     plist = DistSSHKitQueue.launch_agent_plist("/opt/bin/julia", "/opt/Queue.jl")
     @test occursin("org.distsshkitqueue.serve", plist)

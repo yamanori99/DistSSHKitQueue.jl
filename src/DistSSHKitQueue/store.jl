@@ -99,14 +99,18 @@ function process_alive(pid::Integer)::Bool
     end
 end
 
-"""Is a `serve` for `store` already running (pidfile + live process)?"""
-function waiter_alive(store::AbstractString)::Bool
+"""Live waiter pid from the store pidfile, or `nothing`."""
+function waiter_pid(store::AbstractString)::Union{Nothing,Int}
     p = store_pid_path(store)
-    isfile(p) || return false
+    isfile(p) || return nothing
     pid = tryparse(Int, strip(read(p, String)))
-    pid === nothing && return false
-    return process_alive(pid)
+    pid === nothing && return nothing
+    process_alive(pid) || return nothing
+    return pid
 end
+
+"""Is a `serve` for `store` already running (pidfile + live process)?"""
+waiter_alive(store::AbstractString)::Bool = waiter_pid(store) !== nothing
 
 function write_pid_file(store::AbstractString)
     mkpath(dirname(store))

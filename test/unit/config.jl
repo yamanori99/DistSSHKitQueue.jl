@@ -92,6 +92,27 @@ end
     end
 end
 
+@testset "serve! refuses a second waiter" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        write(store, "jobs = []\n")
+        holder = run(pipeline(`sleep 30`; stdout=devnull, stderr=devnull); wait=false)
+        try
+            write(DistSSHKitQueue.store_pid_path(store), string(getpid(holder)))
+            q = DistSSHKitQueue.Queue(; store=store, runner=_ -> nothing)
+            _, out, _ = capture_stdio() do
+                DistSSHKitQueue.serve!(q; interval=0.02)
+            end
+            @test occursin("Already running", out)
+            @test occursin("status or watch", out)
+            @test DistSSHKitQueue.waiter_pid(store) == getpid(holder)
+        finally
+            kill(holder)
+            wait(holder)
+        end
+    end
+end
+
 @testset "serve! clears the stop latch on start" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
