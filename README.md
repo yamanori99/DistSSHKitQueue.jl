@@ -63,7 +63,7 @@ julia -m DistSSHKitQueue teardown -y           # waiter, unit, ~/.distsshkitqueu
 
 `stop` halts the waiter but leaves config, store, and any OS unit in place. It latches the waiter off, so `submit` will not auto-start it again; only an explicit `serve` resumes it. Clients can also run `--qhost HOST stop`.
 
-`setup` writes `config.toml` if it is missing. A dedicated env at `~/.distsshkitqueue/env`, if present, is preferred as `--project` so the checkout can be deleted later. `teardown` never runs `Pkg.rm`, and never deletes a git clone or Kit's `.distsshkit/` results.
+`setup` writes `config.toml` if it is missing; re-running it leaves an existing file untouched (`--force` rewrites it). A dedicated env at `~/.distsshkitqueue/env`, if present, is preferred as `--project` so the checkout can be deleted later. `teardown` never runs `Pkg.rm`, and never deletes a git clone or Kit's `.distsshkit/` results.
 
 ## Client (dev laptop)
 
