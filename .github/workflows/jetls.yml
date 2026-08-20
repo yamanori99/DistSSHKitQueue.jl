@@ -13,6 +13,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write # julia-actions/cache delete-old-caches
 
 jobs:
   # Queue CI is Julia 1.12 only (Project.toml). Kit also runs JETLS on
@@ -23,12 +24,16 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      - id: files
-        run: echo "list=$(./.github/jetls-check.sh --print-files)" >> "$GITHUB_OUTPUT"
-      # Official check action: https://aviatesk.github.io/JETLS.jl/dev/cli-check/#cli-check/github-actions
-      - uses: aviatesk/JETLS.jl/.github/actions/check@release
+      - uses: julia-actions/setup-julia@v3
         with:
-          files: ${{ steps.files.outputs.list }}
-          julia-version: "1.12"
-          exit-severity: hint
-          progress: none
+          version: "1.12"
+      - uses: julia-actions/cache@v3
+      # JETLS's check@release still pins setup-julia@v2 (Node 20). Install locally.
+      - name: Install jetls
+        run: |
+          julia --startup-file=no -e '
+            using Pkg
+            Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="release")'
+          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
+      - name: JETLS
+        run: ./.github/jetls-check.sh --progress=none
