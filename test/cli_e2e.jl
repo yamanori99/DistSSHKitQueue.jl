@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 # CLI + config store, local:1. Not part of Pkg.test().
-# Covers explicit serve, auto-serve, cancel, teardown, and `--qhost` ssh argv.
+# Covers explicit serve, auto-serve, cancel, watch, teardown, and `--qhost` ssh argv.
 #
 #   DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl
 
@@ -92,6 +92,11 @@ end
                     out = wait_done(env)
                     @test occursin(id, out)
                     @test occursin("  done  ", out)
+                    wout = read(addenv(qcli(["watch", "--ticks", "1", "--interval", "0.05"]), env...), String)
+                    @test occursin("DistSSHKitQueue watch", wout)
+                    @test occursin(id, wout)
+                    @test occursin("done", wout)
+                    @test occursin("Ctrl-C stops watch", wout)
                 end
             finally
                 kill(proc)
@@ -128,11 +133,18 @@ end
                     "--remote-julia", JULIA,
                     "status",
                 ]) == 0
+                @test DistSSHKitQueue.main([
+                    "--qhost", "cluster-a",
+                    "--remote-julia", JULIA,
+                    "watch",
+                    "--ticks", "1",
+                ]) == 0
             end
             dumped = read(log, String)
             @test occursin("cluster-a", dumped)
             @test occursin("DistSSHKitQueue", dumped)
             @test occursin("status", dumped)
+            @test occursin("watch", dumped)
         end
     end
 

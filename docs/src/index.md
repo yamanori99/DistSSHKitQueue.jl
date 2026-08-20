@@ -14,6 +14,7 @@ This package is not on General yet. Read [Design](@ref Design).
 
 ```bash
 julia --project=. -m DistSSHKitQueue --qhost HOST status
+julia --project=. -m DistSSHKitQueue --qhost HOST watch
 julia --project=. -m DistSSHKitQueue --qhost HOST submit go SCRIPT.jl worker:4
 julia --project=. -m DistSSHKitQueue --qhost HOST cancel <id>
 ```

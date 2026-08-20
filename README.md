@@ -43,11 +43,12 @@ Job dir, `julia --project=.`. Queue must be loadable from that env. Nothing is w
 ```bash
 julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts submit go SCRIPT.jl host:2
 julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts status
+julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts watch
 julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts cancel <id>
 julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts teardown -y
 ```
 
-Remote Julia is Kit auto-detect (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` override). `SCRIPT.jl` / `host:2` are interpreted **on the queue host**. `submit` auto-starts the waiter there.
+Remote Julia is Kit auto-detect (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` override). `SCRIPT.jl` / `host:2` are interpreted **on the queue host**. `submit` auto-starts the waiter there. `watch` redraws `status` until Ctrl-C; it does not stop the waiter. With `--qhost`, ssh uses `-t` so the remote TTY can clear the screen.
 
 ## Same machine (laptop is the queue host)
 
@@ -56,6 +57,7 @@ Omit `--qhost`:
 ```bash
 julia --project=. -m DistSSHKitQueue submit go SCRIPT.jl local:2
 julia --project=. -m DistSSHKitQueue status
+julia --project=. -m DistSSHKitQueue watch
 ```
 
 Ctrl-C stops the waiter only. The waiter runs Kit `execute!(…; detached=true)`.

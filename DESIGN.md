@@ -8,7 +8,7 @@ Queue code `using DistSSHKit` (hard dependency). Clients `using DistSSHKitQueue`
 
 Name: DataFramesMeta pattern (parent + layer). `*HPC` is a bad AutoMerge fit. A Queue submodule would share SemVer with DistSSHKit.
 
-Queue verbs: `serve`, `status`, `submit`, `cancel`, `setup`, `teardown`, `service`. After `submit`, Kit’s `go` / `drive` argv.
+Queue verbs: `serve`, `status`, `watch`, `submit`, `cancel`, `setup`, `teardown`, `service`. After `submit`, Kit’s `go` / `drive` argv.
 Julia: `Queue`, `submit!(q, script, hosts...; kind=:go|:drive)`, `job` / `jobs`, `cancel!`, `serve!`.
 
 ## Containment
@@ -17,7 +17,7 @@ The long-lived process on the queue host is Queue. One table job runs at a time 
 
 ```text
 client A (laptop)  ──┐
-client B (another) ──┼── --qhost HOST  submit / status / cancel / teardown ──►  queue host
+client B (another) ──┼── --qhost HOST  submit / status / watch / cancel / teardown ──►  queue host
 client = queue host ─┘     (omit --qhost)                                        Queue waiter
                                                                                store ~/.distsshkitqueue
                                                                                setup / serve / service
@@ -55,7 +55,7 @@ Day-to-day: Kit-shaped arguments (`script`, `host:N…`, kit kwargs). Queue adds
 
 User-facing actions are Julia (`using DistSSHKitQueue`) or `julia -m DistSSHKitQueue`.
 
-**Client** (dev): `--qhost HOST` then `submit` / `status` / `cancel` / `teardown -y`. No laptop config. Several clusters = pass `--qhost` every time.
+**Client** (dev): `--qhost HOST` then `submit` / `status` / `watch` / `cancel` / `teardown -y`. No laptop config. Several clusters = pass `--qhost` every time.
 
 **Queue host**: `setup` / `serve` / `service` / local `teardown -y`. `--qhost` is rejected on `setup` / `serve` / `service`.
 
@@ -77,13 +77,14 @@ Config: `~/.distsshkitqueue/config.toml` (`DISTSSHKITQUEUE_CONFIG`). `store` and
 
 `setup` writes `config.toml` if missing. `--service` also installs the OS unit.
 
-`serve` / `status` / `submit` / `cancel` are Queue. After `submit`, `go` / `drive` are Kit's CLI, stored as a table row. Bare `go` / `drive` remain aliases of `submit`. DistSSHKit **0.3.2** `execute!` is the waiter’s Kit seam ([issue #129](https://github.com/yamanori99/DistSSHKit.jl/issues/129)). Client `go!(…; master=…)` is still a later Kit hook, not a scheduler inside DistSSHKit.
+`serve` / `status` / `watch` / `submit` / `cancel` are Queue. After `submit`, `go` / `drive` are Kit's CLI, stored as a table row. Bare `go` / `drive` remain aliases of `submit`. DistSSHKit **0.3.2** `execute!` is the waiter’s Kit seam ([issue #129](https://github.com/yamanori99/DistSSHKit.jl/issues/129)). Client `go!(…; master=…)` is still a later Kit hook, not a scheduler inside DistSSHKit.
 
 - `setup` — write config.toml if missing (`--service` also installs the OS unit)
 - `teardown -y` — stop the waiter; remove the OS unit and `~/.distsshkitqueue` (not `Pkg.rm` / git clone / Kit `.distsshkit/`). Also removes a leftover `dskq` shim if present.
 - `serve` / `serve!` — load store, one FIFO job at a time until interrupt (`serve --interval`); clears the stop latch
 - `stop` — SIGTERM the waiter and latch it off; keep config / store / OS unit
 - `status` — print the table
+- `watch` — reprint the table until Ctrl-C (`--interval`; TTY clears the screen). Does not stop the waiter. `--qhost` uses `ssh -t`.
 - CLI `submit go` / `submit drive` — enqueue (Kit parsers). Bare `go` / `drive` are aliases.
 - `submit!(q, …; kind=:drive)` — Julia enqueue
 - `cancel` / `cancel!` — `:queued` only (reloads the store; not `load!`)
@@ -136,7 +137,7 @@ A DistSSHKit throw or `KitRunResult` with `ok=false` (including a non-zero child
 
 Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
-- CLI: `setup` / `teardown -y` / `serve` / `stop` / `status` / `submit go` / `submit drive` / `cancel` / `service install` / `service uninstall`
+- CLI: `setup` / `teardown -y` / `serve` / `stop` / `status` / `watch` / `submit go` / `submit drive` / `cancel` / `service install` / `service uninstall`
 - Julia: `Queue`, `Job`, `submit!`, `job` / `jobs`, `cancel!`, `step!`, `load!`, `serve!` / `serve`
 
 ### Tests

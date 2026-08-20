@@ -68,6 +68,11 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             r === nothing || return r
             show_status(store_path())
             return 0
+        elseif sub == "watch"
+            r = maybe_remote(qhost, gjulia, "watch", rest; tty=stdout isa Base.TTY)
+            r === nothing || return r
+            _, _, payload = extract_remote_opts(rest)
+            return watch_cli(payload)
         elseif sub == "submit"
             r = maybe_remote(qhost, gjulia, "submit", rest)
             r === nothing || return r

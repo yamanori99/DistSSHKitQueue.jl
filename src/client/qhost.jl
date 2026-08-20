@@ -61,9 +61,19 @@ function remote_inner(rjulia::AbstractString, sub::AbstractString, payload::Vect
     return join((sh_single_quote(p) for p in parts), " ")
 end
 
-function remote_command(host::AbstractString, rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::Cmd
+function remote_command(
+    host::AbstractString,
+    rjulia::AbstractString,
+    sub::AbstractString,
+    payload::Vector{String};
+    tty::Bool=false,
+)::Cmd
     inner = remote_inner(rjulia, sub, payload)
-    return Cmd(vcat(["ssh"], collect(DistSSHKit.ssh_opts()), [String(host), inner]))
+    ssh = String["ssh"]
+    tty && push!(ssh, "-t")
+    append!(ssh, DistSSHKit.ssh_opts())
+    push!(ssh, String(host), inner)
+    return Cmd(ssh)
 end
 
 function resolve_on_julia(host::AbstractString, spec::AbstractString)::String
@@ -75,9 +85,15 @@ function resolve_on_julia(host::AbstractString, spec::AbstractString)::String
     return found
 end
 
-function remote_dispatch(host::AbstractString, rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::Cint
+function remote_dispatch(
+    host::AbstractString,
+    rjulia::AbstractString,
+    sub::AbstractString,
+    payload::Vector{String};
+    tty::Bool=false,
+)::Cint
     jl = resolve_on_julia(host, rjulia)
-    proc = run(ignorestatus(remote_command(host, jl, sub, payload)))
+    proc = run(ignorestatus(remote_command(host, jl, sub, payload; tty=tty)))
     return Cint(proc.exitcode)
 end
 
@@ -86,10 +102,11 @@ function maybe_remote(
     qhost::Union{Nothing,AbstractString},
     gjulia::Union{Nothing,AbstractString},
     sub::AbstractString,
-    rest::Vector{String},
+    rest::Vector{String};
+    tty::Bool=false,
 )::Union{Nothing,Cint}
     host, rjulia, payload = extract_remote_opts(rest)
     dest, spec = coalesce_remote(qhost, gjulia, host, rjulia)
     dest === nothing && return nothing
-    return remote_dispatch(dest, spec, sub, payload)
+    return remote_dispatch(dest, spec, sub, payload; tty=tty)
 end

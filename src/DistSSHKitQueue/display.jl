@@ -52,6 +52,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_lines(io,
         "  (--project=. is the job tree; no files written on the laptop.)",
         "  status                         List jobs on the queue host",
+        "  watch [--interval S]           Live status; Ctrl-C leaves the waiter",
         "  submit go [Kit go argv]        Enqueue DistSSHKit go",
         "  submit drive [Kit drive argv]  Enqueue DistSSHKit drive",
         "  cancel <id>                    Drop a :queued row",
@@ -76,7 +77,8 @@ function print_queue_usage(io::IO=stdout)
         "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
         "  stop latches it off; only an explicit serve resumes (submit will not).",
         "  Bare go / drive alias submit go / submit drive.",
-        "  Ctrl-C leaves the waiter; a running Kit job is not killed.",
+        "  Ctrl-C on serve leaves the waiter; a running Kit job is not killed.",
+        "  Ctrl-C on watch stops the live view only.",
         "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
         "  Store:  $(_q_short(default_store_path()))   DISTSSHKITQUEUE_STORE / config store=",
     )
@@ -127,10 +129,13 @@ function print_waiter_stopped(store::AbstractString, was_running::Bool; io::IO=s
     return nothing
 end
 
-function print_status_table(store::AbstractString, rows::Vector{Job}; io::IO=stdout)
-    DistSSHKit.print_help_section("Store"; io=io)
-    DistSSHKit.print_help_lines(io, "  $(_q_short(store))")
-    DistSSHKit.print_help_blank(io)
+function _waiter_disp(store::AbstractString)::String
+    waiter_alive(store) && return "running"
+    waiter_stopped(store) && return "stopped"
+    return "none"
+end
+
+function print_jobs_table(rows::Vector{Job}; io::IO=stdout)
     DistSSHKit.print_help_section("Jobs"; io=io)
     if isempty(rows)
         DistSSHKit._print_colored(io, "  (empty)", :light_black, false)
@@ -184,5 +189,26 @@ function print_status_table(store::AbstractString, rows::Vector{Job}; io::IO=std
         end
         println(io)
     end
+    return nothing
+end
+
+function print_status_table(store::AbstractString, rows::Vector{Job}; io::IO=stdout)
+    DistSSHKit.print_help_section("Store"; io=io)
+    DistSSHKit.print_help_lines(io, "  $(_q_short(store))")
+    DistSSHKit.print_help_blank(io)
+    return print_jobs_table(rows; io=io)
+end
+
+function print_watch_frame(store::AbstractString, rows::Vector{Job}; io::IO=stdout)
+    DistSSHKit.print_help_chrome("DistSSHKitQueue watch"; io=io)
+    DistSSHKit.print_help_section("Process"; io=io)
+    DistSSHKit.print_help_lines(io,
+        "  store   $(_q_short(store))",
+        "  waiter  $(_waiter_disp(store))",
+    )
+    DistSSHKit.print_help_blank(io)
+    print_jobs_table(rows; io=io)
+    DistSSHKit.print_help_blank(io)
+    DistSSHKit.print_help_lines(io, "Ctrl-C stops watch; the waiter stays.")
     return nothing
 end
