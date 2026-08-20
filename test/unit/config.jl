@@ -62,6 +62,52 @@ end
     end
 end
 
+@testset "stop latch holds off auto-serve until serve clears it" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        @test !DistSSHKitQueue.waiter_stopped(store)
+        DistSSHKitQueue.set_stopped!(store)
+        @test DistSSHKitQueue.waiter_stopped(store)
+        @test isfile(DistSSHKitQueue.store_stop_path(store))
+        withenv("DISTSSHKITQUEUE_NO_AUTOSERVE" => nothing) do
+            @test !DistSSHKitQueue.ensure_waiter!(store) # latched off, no spawn
+        end
+        DistSSHKitQueue.clear_stopped!(store)
+        @test !DistSSHKitQueue.waiter_stopped(store)
+    end
+end
+
+@testset "stop_cli sets the latch and reports" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        write(store, "jobs = []\n")
+        withenv("DISTSSHKITQUEUE_STORE" => store, "DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml")) do
+            @test DistSSHKitQueue.stop_cli(String[]) == 0
+        end
+        @test DistSSHKitQueue.waiter_stopped(store)
+    end
+end
+
+@testset "serve! clears the stop latch on start" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        write(store, "jobs = []\n")
+        DistSSHKitQueue.set_stopped!(store)
+        q = DistSSHKitQueue.Queue(; store=store, runner=_ -> nothing)
+        t = @async DistSSHKitQueue.serve!(q; interval=0.02)
+        for _ in 1:100
+            DistSSHKitQueue.waiter_stopped(store) || break
+            sleep(0.02)
+        end
+        @test !DistSSHKitQueue.waiter_stopped(store)
+        schedule(t, InterruptException(); error=true)
+        try
+            wait(t)
+        catch
+        end
+    end
+end
+
 @testset "default_queue_env prefers the dedicated env dir" begin
     mktempdir() do d
         dedicated = joinpath(d, "env")

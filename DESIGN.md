@@ -73,7 +73,7 @@ One module (`DistSSHKitQueue`). Roles sit next to the FIFO, not under DistSSHKit
 
 `<queue-env>` loads Queue. The **job** tree is Kit’s (`job_project()`: `pwd` / `DISTRIBUTED_PROJECT_ROOT`), stored on the row. Students keep separate projects; Queue is not a dependency of each job.
 
-Config: `~/.distsshkitqueue/config.toml` (`DISTSSHKITQUEUE_CONFIG`). `store` and `[env]` (applied with `get!` so ENV wins). Store default `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE` > config `store=`). Whole-file rewrite under a directory lock. No listen socket, no HTTP, no `stop` subcommand (Ctrl-C / OS unit). Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. Ctrl-C leaves the waiter; running Kit is not killed.
+Config: `~/.distsshkitqueue/config.toml` (`DISTSSHKITQUEUE_CONFIG`). `store` and `[env]` (applied with `get!` so ENV wins). Store default `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE` > config `store=`). Whole-file rewrite under a directory lock. No listen socket, no HTTP. Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. `stop` halts the waiter without touching config or store; it latches (`jobs.toml.stopped`) so `submit` will not auto-serve until an explicit `serve` clears the latch. Ctrl-C leaves the waiter; running Kit is not killed.
 
 `setup` writes `~/.local/bin/dskq` (julia absolute path + `--project=<queue-env>` + `--startup-file=no`). Julia 1.12 Pkg Apps (`[apps] dskq`) is an optional second path (`pkg> app add .` → `~/.julia/bin/dskq`). Neither PATH is guaranteed in non-interactive ssh.
 
@@ -81,7 +81,8 @@ Config: `~/.distsshkitqueue/config.toml` (`DISTSSHKITQUEUE_CONFIG`). `store` and
 
 - `setup` — write `dskq` + config.toml if missing (`--service` also installs the OS unit)
 - `teardown -y` — stop the waiter; remove `dskq`, the OS unit, and `~/.distsshkitqueue` (not `Pkg.rm` / git clone / Kit `.distsshkit/`)
-- `serve` / `serve!` — load store, one FIFO job at a time until interrupt (`serve --interval`)
+- `serve` / `serve!` — load store, one FIFO job at a time until interrupt (`serve --interval`); clears the stop latch
+- `stop` — SIGTERM the waiter and latch it off; keep config / store / `dskq` / OS unit
 - `status` — print the table
 - CLI `submit go` / `submit drive` — enqueue (Kit parsers). Bare `go` / `drive` are aliases.
 - `submit!(q, …; kind=:drive)` — Julia enqueue
@@ -135,7 +136,7 @@ A DistSSHKit throw or `KitRunResult` with `ok=false` (including a non-zero child
 
 Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
-- CLI: `setup` / `teardown -y` / `serve` / `status` / `submit go` / `submit drive` / `cancel` / `service install` / `service uninstall`
+- CLI: `setup` / `teardown -y` / `serve` / `stop` / `status` / `submit go` / `submit drive` / `cancel` / `service install` / `service uninstall`
 - Julia: `Queue`, `Job`, `submit!`, `job` / `jobs`, `cancel!`, `step!`, `load!`, `serve!` / `serve`
 
 ### Tests

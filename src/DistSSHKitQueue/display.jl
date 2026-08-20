@@ -52,6 +52,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_lines(io,
         "  setup [--service]              Write dskq + config.toml",
         "  serve                          Run the FIFO waiter",
+        "  stop                           Stop the waiter, keep config / store",
         "  service install|uninstall      LaunchAgent / systemd user unit",
         "  teardown -y                    Same as client teardown, locally",
     )
@@ -63,6 +64,7 @@ function print_queue_usage(io::IO=stdout)
         "  Remote Julia: Kit auto-detect; --remote-julia / JULIA_DISTRIBUTED_EXE override.",
         "  teardown -y: waiter, dskq, OS unit, ~/.distsshkitqueue (not a git clone).",
         "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
+        "  stop latches it off; only an explicit serve resumes (submit will not).",
         "  Bare go / drive alias submit go / submit drive.",
         "  Ctrl-C leaves the waiter; a running Kit job is not killed.",
         "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
@@ -107,6 +109,17 @@ function print_waiter_started(log::AbstractString; io::IO=stderr)
     DistSSHKit._print_colored(io, "Started waiter", :cyan, false)
     println(io)
     DistSSHKit.print_help_lines(io, "  log  $(_q_short(log))")
+    return nothing
+end
+
+function print_waiter_stopped(store::AbstractString, was_running::Bool; io::IO=stdout)
+    DistSSHKit._print_colored(io, "Stopped waiter", :yellow, false)
+    println(io)
+    DistSSHKit.print_help_lines(io,
+        "  store  $(_q_short(store))",
+        was_running ? "  waiter was running; sent SIGTERM" : "  no waiter was running",
+        "  submit will not auto-start; run serve to resume.",
+    )
     return nothing
 end
 

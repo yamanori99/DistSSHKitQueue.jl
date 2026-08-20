@@ -26,10 +26,13 @@ Queue lives here: store `~/.distsshkitqueue/jobs.toml`, waiter, optional OS unit
 # on the queue host
 julia -m DistSSHKitQueue setup [--service]   # optional dskq shim / LaunchAgent / systemd
 julia -m DistSSHKitQueue serve               # optional; submit also auto-starts a waiter
+julia -m DistSSHKitQueue stop                # stop the waiter, keep config / store
 julia -m DistSSHKitQueue teardown -y         # waiter, dskq, unit, ~/.distsshkitqueue
 ```
 
 `--qhost` is not valid here. `setup` / `serve` / `service` run only on this machine.
+
+`stop` halts the waiter but leaves config, store, `dskq`, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `--qhost HOST stop`.
 
 `setup` writes `~/.local/bin/dskq` and `config.toml` if missing. Dedicated env `~/.distsshkitqueue/env` (if present) is preferred as `--project` so a checkout can be deleted. `teardown` does not `Pkg.rm` or delete a git clone or Kit `.distsshkit/` results.
 

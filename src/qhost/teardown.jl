@@ -24,7 +24,7 @@ function teardown_targets(;
     st = teardown_store(; home=home, config=config)
     data = queue_data_dir(; home=home)
     wrap = wrapper_path(; bindir=bindir)
-    out = String[wrap, st, store_pid_path(st), string(st, ".log"), config, data]
+    out = String[wrap, st, store_pid_path(st), store_stop_path(st), string(st, ".log"), config, data]
     if Sys.isapple()
         push!(out, launch_agent_path(; home=home))
     elseif Sys.islinux()
@@ -66,7 +66,7 @@ function teardown(;
     end
     wrap = wrapper_path(; bindir=bindir)
     ispath(wrap) && rm(wrap; force=true)
-    for extra in (st, store_pid_path(st), string(st, ".log"), string(st, ".lock"))
+    for extra in (st, store_pid_path(st), store_stop_path(st), string(st, ".log"), string(st, ".lock"))
         ispath(extra) && rm(extra; force=true, recursive=true)
     end
     ispath(config) && rm(config; force=true)
