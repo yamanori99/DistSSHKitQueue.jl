@@ -1,4 +1,5 @@
 using Test
+using DistSSHKit
 using DistSSHKitQueue
 
 @testset "config path and store resolution" begin
@@ -58,6 +59,17 @@ end
             @test !DistSSHKitQueue.ensure_waiter!(store) # already alive (this test's own pid)
         end
         DistSSHKitQueue.remove_pid_file(store)
+    end
+end
+
+@testset "default_queue_env prefers the dedicated env dir" begin
+    mktempdir() do d
+        dedicated = joinpath(d, "env")
+        fallback = DistSSHKit.canonical_local_path(dirname(Base.active_project()))
+        @test DistSSHKitQueue.default_queue_env(; dedicated=dedicated) == fallback
+        mkpath(dedicated)
+        write(joinpath(dedicated, "Project.toml"), "name = \"x\"\n")
+        @test DistSSHKitQueue.default_queue_env(; dedicated=dedicated) == dedicated
     end
 end
 
