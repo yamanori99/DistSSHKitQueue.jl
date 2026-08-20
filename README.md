@@ -38,7 +38,7 @@ client B (another) ──┼── --qhost HOST  submit / status / watch / cance
 client = queue host ─┘     (omit --qhost)                                        Queue waiter
                                                                                store ~/.distsshkitqueue
                                                                                serve  (now)
-                                                                               service install  (after reboot)
+                                                                               enable (after reboot)
 ```
 
 - **Queue host** — always-on machine where the Kit master must run for queued jobs (macOS or Linux, a VM is fine). Not a sleeping laptop. **One** waiter, **one** job table.
@@ -49,19 +49,19 @@ Jobs from every client share one FIFO; there are no per-user or per-machine queu
 
 ## What to run
 
-Day to day you only **submit**. If no waiter is up, `submit` starts one. You do not need `setup`, `serve`, or `service install` for a job to run.
+Day to day you only **submit**. If no waiter is up, `submit` starts one. You do not need `setup`, `serve`, or `enable` for a job to run.
 
 | Command | What it does | When you need it |
 | --- | --- | --- |
 | `submit` | Enqueue a Kit `go` / `drive`. Starts a waiter if none is running. | Always (this is the product) |
 | `serve` | Run the waiter **in this terminal, now**. Ctrl-C stops this waiter. | Watching the queue live, or running without autoserve |
-| `service install` | Tell the OS: after reboot / login, start `serve` again (LaunchAgent / systemd). | A dedicated queue host that should come back by itself |
+| `enable` | Tell the OS: after reboot / login, start `serve` again (LaunchAgent / systemd). | A dedicated queue host that should come back by itself |
 | `setup` | Write `~/.distsshkitqueue/config.toml` if missing (`--force` rewrites). | Optional. Defaults work without it. Use it for `store=` or `[env]`. |
 | `stop` | Stop the waiter, keep files. `submit` will not auto-start until you `serve`. | Pause the queue |
-| `service uninstall` | Remove the OS unit. Does not delete the job table. | This machine should no longer auto-serve at boot |
+| `disable` | Remove the OS unit. Does not delete the job table. | This machine should no longer auto-serve at boot |
 | `teardown -y` | Stop waiter, remove unit and `~/.distsshkitqueue`. | Wipe Queue state on this host |
 
-`serve` is “run the process”. `service install` is “register that process with the OS”. They are not two ways to start the same thing. A sleeping laptop should not be the queue host, with or without a unit.
+`serve` is “run the process”. `enable` is “register that process with the OS” (systemd’s word). They are not two ways to start the same thing. A sleeping laptop should not be the queue host, with or without a unit.
 
 ## Queue host (always-on)
 
@@ -72,7 +72,7 @@ A dedicated always-on box (Mac mini, Linux VM):
 ```bash
 # on the queue host
 julia -m DistSSHKitQueue setup                 # optional config.toml
-julia -m DistSSHKitQueue service install       # survive reboot
+julia -m DistSSHKitQueue enable                # survive reboot
 ```
 
 After that, clients only `submit`. You do not leave a `serve` terminal open; the OS unit runs it.
@@ -83,9 +83,9 @@ Foreground, this session only (no reboot registration):
 julia -m DistSSHKitQueue serve
 ```
 
-`--qhost` is not valid here — `setup` / `serve` / `service` run only on this machine.
+`--qhost` is not valid here — `setup` / `serve` / `enable` / `disable` run only on this machine.
 
-`stop` halts the waiter but leaves config, store, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `--qhost HOST stop`. `service uninstall` is the opposite of `service install`, not of `serve`.
+`stop` halts the waiter but leaves config, store, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `--qhost HOST stop`. `disable` is the opposite of `enable`, not of `serve`.
 
 A dedicated env at `~/.distsshkitqueue/env`, if present, is preferred as `--project` so a checkout can be deleted. `teardown` never runs `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/` results.
 

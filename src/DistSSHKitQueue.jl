@@ -96,6 +96,10 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             r === nothing || return r
             _, _, payload = extract_remote_opts(rest)
             return teardown_main(payload)
+        elseif sub == "enable"
+            return enable_main(rest)
+        elseif sub == "disable"
+            return disable_main(rest)
         elseif sub == "service"
             return service_main(rest)
         elseif sub == "setup"
