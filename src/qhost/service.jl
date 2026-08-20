@@ -91,7 +91,7 @@ function service_install(; julia::AbstractString=default_julia_bin(), project::A
         print_wrote(path)
         return 0
     end
-    throw(ArgumentError("service install: macOS or Linux only"))
+    throw(ArgumentError("enable: macOS or Linux only"))
 end
 
 function service_uninstall(; apply::Bool=true, home::AbstractString=homedir())
@@ -107,7 +107,7 @@ function service_uninstall(; apply::Bool=true, home::AbstractString=homedir())
         isfile(path) && rm(path)
         return 0
     end
-    throw(ArgumentError("service uninstall: macOS or Linux only"))
+    throw(ArgumentError("disable: macOS or Linux only"))
 end
 
 function _launchctl_load(path::AbstractString)
@@ -144,38 +144,48 @@ function _systemd_disable()
     return nothing
 end
 
-function service_main(args::Vector{String})::Cint
-    isempty(args) && throw(ArgumentError("service: need install or uninstall"))
-    cmd = String(args[1])
-    cmd in ("-h", "--help") && (show_usage(); return 0)
-    rest = String[String(a) for a in args[2:end]]
-    if cmd == "install"
-        julia = default_julia_bin()
-        project = default_queue_env()
-        apply = true
-        i = 1
-        while i <= length(rest)
-            if rest[i] == "--julia" && i < length(rest)
-                julia = rest[i+1]
-                i += 2
-            elseif rest[i] == "--project" && i < length(rest)
-                project = rest[i+1]
-                i += 2
-            elseif rest[i] == "--write-only"
-                apply = false
-                i += 1
-            elseif rest[i] in ("-h", "--help")
-                show_usage()
-                return 0
-            else
-                throw(ArgumentError("unknown service install option: $(rest[i])"))
-            end
+function enable_main(args::Vector{String})::Cint
+    julia = default_julia_bin()
+    project = default_queue_env()
+    apply = true
+    i = 1
+    while i <= length(args)
+        if args[i] == "--julia" && i < length(args)
+            julia = args[i+1]
+            i += 2
+        elseif args[i] == "--project" && i < length(args)
+            project = args[i+1]
+            i += 2
+        elseif args[i] == "--write-only"
+            apply = false
+            i += 1
+        elseif args[i] in ("-h", "--help")
+            show_usage()
+            return 0
+        else
+            throw(ArgumentError("unknown enable option: $(args[i])"))
         end
-        return service_install(; julia=julia, project=project, apply=apply)
-    elseif cmd == "uninstall"
-        apply = !("--write-only" in rest)
-        (isempty(rest) || rest == ["--write-only"]) || throw(ArgumentError("service uninstall: extra arguments"))
-        return service_uninstall(; apply=apply)
     end
-    throw(ArgumentError("service: unknown command $(repr(cmd)) (want install or uninstall)"))
+    return service_install(; julia=julia, project=project, apply=apply)
+end
+
+function disable_main(args::Vector{String})::Cint
+    apply = true
+    i = 1
+    while i <= length(args)
+        if args[i] == "--write-only"
+            apply = false
+            i += 1
+        elseif args[i] in ("-h", "--help")
+            show_usage()
+            return 0
+        else
+            throw(ArgumentError("unknown disable option: $(args[i])"))
+        end
+    end
+    return service_uninstall(; apply=apply)
+end
+
+function service_main(::Vector{String})::Cint
+    throw(ArgumentError("service is gone; use enable (reboot serve) or disable (drop the OS unit)"))
 end

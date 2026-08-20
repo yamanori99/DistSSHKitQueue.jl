@@ -62,16 +62,17 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_section("Queue host"; io=io)
     DistSSHKit.print_help_lines(io,
         "  setup [--force]                Write config.toml (--force rewrites)",
-        "  serve                          Run the FIFO waiter",
-        "  stop                           Stop the waiter, keep config / store",
-        "  service install|uninstall      LaunchAgent / systemd user unit",
+        "  serve                          Run the waiter in this terminal",
+        "  stop                           Stop that waiter, keep config / store",
+        "  enable                         After reboot, start serve (LaunchAgent / systemd)",
+        "  disable                        Remove that OS registration",
         "  teardown -y                    Same as client teardown, locally",
     )
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Notes"; io=io)
     DistSSHKit.print_help_lines(io,
         "  Same machine: omit --qhost. Several clusters: pass --qhost every time.",
-        "  Do not pass --qhost to setup / serve / service.",
+        "  Do not pass --qhost to setup / serve / enable / disable.",
         "  Remote Julia: Kit auto-detect; --remote-julia / JULIA_DISTRIBUTED_EXE override.",
         "  teardown -y: waiter, OS unit, ~/.distsshkitqueue (not a git clone).",
         "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",

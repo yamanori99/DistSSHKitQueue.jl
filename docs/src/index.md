@@ -24,11 +24,11 @@ julia --project=. -m DistSSHKitQueue --qhost HOST cancel <id>
 ```bash
 julia -m DistSSHKitQueue setup
 julia -m DistSSHKitQueue serve
-julia -m DistSSHKitQueue service install
+julia -m DistSSHKitQueue enable
 julia -m DistSSHKitQueue teardown -y
 ```
 
-`--qhost` is client-only. `setup` / `serve` / `service` refuse it. Same machine: omit `--qhost`. `submit` auto-starts the waiter. The waiter calls DistSSHKit `execute!(…; detached=true)`.
+`--qhost` is client-only. `setup` / `serve` / `enable` / `disable` refuse it. Same machine: omit `--qhost`. `submit` auto-starts the waiter. The waiter calls DistSSHKit `execute!(…; detached=true)`.
 
 ## Installation
 

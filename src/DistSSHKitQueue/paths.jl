@@ -1,4 +1,4 @@
-"""Local paths shared by the waiter, `setup`, and `service`.
+"""Local paths shared by the waiter, `setup`, and `enable`.
 
 Not CLI parsing. `queue_data_dir` lives in `config.jl`.
 """
@@ -24,7 +24,7 @@ function default_queue_env_dir(; home::AbstractString=homedir())::String
     return joinpath(home, ".distsshkitqueue", "env")
 end
 
-"""The `--project` `setup`/`service` bake in by default: the dedicated env dir if
+"""The `--project` `enable` bakes in by default: the dedicated env dir if
 it has been set up, else the currently active project (e.g. a dev checkout).
 """
 function default_queue_env(; dedicated::AbstractString=default_queue_env_dir())::String

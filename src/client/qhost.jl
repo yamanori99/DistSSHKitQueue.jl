@@ -1,6 +1,6 @@
 """Client `--qhost` / `--remote-julia`: peel flags and ssh to the queue host.
 
-`setup` / `serve` / `service` are not forwarded. Not Kit `host:N`.
+`setup` / `serve` / `enable` / `disable` are not forwarded. Not Kit `host:N`.
 """
 
 function default_remote_julia()::String
@@ -43,7 +43,7 @@ function coalesce_remote(
     return host, spec
 end
 
-const QHOST_LOCAL_VERBS = ("setup", "serve", "service")
+const QHOST_LOCAL_VERBS = ("setup", "serve", "enable", "disable", "service")
 
 function reject_qhost_on_local(sub::AbstractString, host::Union{Nothing,AbstractString})
     host === nothing && return nothing

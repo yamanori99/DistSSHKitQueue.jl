@@ -1,4 +1,4 @@
-"""Write `config.toml` if missing. Re-run is a no-op unless `--force`. OS unit: `service install`."""
+"""Write `config.toml` if missing. Re-run is a no-op unless `--force`. OS unit: `enable`."""
 
 function default_bindir(; home::AbstractString=homedir())::String
     return joinpath(home, ".local", "bin")
@@ -37,7 +37,7 @@ function setup_main(args::Vector{String})::Cint
             force = true
             i += 1
         elseif a == "--service"
-            throw(ArgumentError("setup --service is gone; run: julia -m DistSSHKitQueue service install"))
+            throw(ArgumentError("setup --service is gone; run: julia -m DistSSHKitQueue enable"))
         elseif a == "--write-only"
             throw(ArgumentError("setup --write-only is gone; setup only writes config.toml"))
         else
