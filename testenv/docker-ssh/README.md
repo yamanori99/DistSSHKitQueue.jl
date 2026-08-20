@@ -57,8 +57,8 @@ Manual smoke (no suite): after workers are up, on the queue host:
 ```bash
 julia --project=../.. -m DistSSHKitQueue setup --write-only   # once; from repo root use --project=.
 # put SSH opts in ~/.distsshkitqueue/config.toml [env], then:
-~/.local/bin/dskq submit go SCRIPT.jl dskq-w1:1
-~/.local/bin/dskq status
+julia --project=../.. -m DistSSHKitQueue submit go SCRIPT.jl dskq-w1:1
+julia --project=../.. -m DistSSHKitQueue status
 ```
 
 Or probe a worker without Queue:

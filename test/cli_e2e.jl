@@ -1,5 +1,5 @@
 #!/usr/bin/env julia
-# CLI + dskq wrapper + config store, local:1. Not part of Pkg.test().
+# CLI + config store, local:1. Not part of Pkg.test().
 # Covers explicit serve, auto-serve, cancel, teardown, and `--qhost` ssh argv.
 #
 #   DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl
@@ -8,20 +8,23 @@ using Test
 using DistSSHKitQueue
 
 const QUEUE_ROOT = abspath(joinpath(@__DIR__, ".."))
+const JULIA = DistSSHKitQueue.default_julia_bin()
 
 if get(ENV, "DSKQ_CLI_E2E", "") != "1"
     @info "Skipping CLI E2E (set DSKQ_CLI_E2E=1 to enable)"
     exit(0)
 end
 
-function wait_done(dskq, env; tries=600, sleep_s=0.2)
+qcli(args::Vector{String}) = `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHKitQueue $args`
+
+function wait_done(env; tries=600, sleep_s=0.2)
     for _ = 1:tries
-        out = read(addenv(`$dskq status`, env...), String)
+        out = read(addenv(qcli(["status"]), env...), String)
         occursin("  done  ", out) && return out
         occursin("  failed  ", out) && return out
         sleep(sleep_s)
     end
-    return read(addenv(`$dskq status`, env...), String)
+    return read(addenv(qcli(["status"]), env...), String)
 end
 
 function stop_store_waiter(store::AbstractString)
@@ -56,7 +59,6 @@ end
 
 @testset "CLI E2E" begin
     mktempdir() do d
-        bindir = joinpath(d, "bin")
         cfg = joinpath(d, "config.toml")
         store = joinpath(d, "jobs.toml")
         jobdir = joinpath(d, "job")
@@ -65,7 +67,6 @@ end
         write(joinpath(jobdir, "hello.jl"), "println(\"cli-e2e\")\n")
         write(joinpath(jobdir, "slow.jl"), "sleep(4)\n")
         write(cfg, "store = $(repr(store))\n\n[env]\nDISTSSHKIT_YES = \"1\"\n")
-        julia = DistSSHKitQueue.default_julia_bin()
         baseenv = Dict(
             "DISTSSHKITQUEUE_CONFIG" => cfg,
             "DISTSSHKITQUEUE_STORE" => store,
@@ -74,25 +75,21 @@ end
         withenv(baseenv..., "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1") do
             @test DistSSHKitQueue.main([
                 "setup",
-                "--julia", julia,
-                "--project", QUEUE_ROOT,
-                "--bindir", bindir,
                 "--config", cfg,
                 "--write-only",
             ]) == 0
         end
-        dskq = joinpath(bindir, "dskq")
-        @test isfile(dskq)
+        @test isfile(cfg)
 
         @testset "setup submit status local:1 (explicit serve)" begin
             env = merge(baseenv, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
-            serve_cmd = addenv(`$dskq serve --interval 0.1`, env...)
+            serve_cmd = addenv(qcli(["serve", "--interval", "0.1"]), env...)
             proc = run(serve_cmd; wait=false)
             try
                 cd(jobdir) do
-                    id = strip(read(addenv(`$dskq submit go local:1 hello.jl`, env...), String))
+                    id = strip(read(addenv(qcli(["submit", "go", "local:1", "hello.jl"]), env...), String))
                     @test !isempty(id)
-                    out = wait_done(dskq, env)
+                    out = wait_done(env)
                     @test occursin(id, out)
                     @test occursin("  done  ", out)
                 end
@@ -105,15 +102,15 @@ end
         @testset "auto-serve submit and cancel queued" begin
             env = copy(baseenv)
             cd(jobdir) do
-                id1 = strip(read(addenv(`$dskq submit go local:1 slow.jl`, env...), String))
-                id2 = strip(read(addenv(`$dskq submit go local:1 hello.jl`, env...), String))
+                id1 = strip(read(addenv(qcli(["submit", "go", "local:1", "slow.jl"]), env...), String))
+                id2 = strip(read(addenv(qcli(["submit", "go", "local:1", "hello.jl"]), env...), String))
                 @test !isempty(id1)
-                c = strip(read(addenv(`$dskq cancel $id2`, env...), String))
+                c = strip(read(addenv(qcli(["cancel", id2]), env...), String))
                 @test c == id2
-                out = wait_done(dskq, env)
+                out = wait_done(env)
                 @test occursin(id1, out)
                 @test occursin("  done  ", out)
-                st2 = read(addenv(`$dskq status`, env...), String)
+                st2 = read(addenv(qcli(["status"]), env...), String)
                 @test occursin(id2, st2)
                 @test occursin("cancelled", st2)
             end
@@ -128,7 +125,7 @@ end
             withenv(baseenv..., "PATH" => path) do
                 @test DistSSHKitQueue.main([
                     "--qhost", "cluster-a",
-                    "--remote-julia", julia,
+                    "--remote-julia", JULIA,
                     "status",
                 ]) == 0
             end
@@ -143,17 +140,15 @@ end
         mktempdir() do home
             data = joinpath(home, ".distsshkitqueue")
             bindir = joinpath(home, ".local", "bin")
-            julia = DistSSHKitQueue.default_julia_bin()
+            mkpath(bindir)
+            leftover = joinpath(bindir, "dskq")
+            write(leftover, "#!/bin/sh\n")
             withenv("DISTSSHKITQUEUE_CONFIG" => nothing, "DISTSSHKITQUEUE_STORE" => nothing) do
                 @test DistSSHKitQueue.main([
                     "setup",
-                    "--julia", julia,
-                    "--project", QUEUE_ROOT,
-                    "--bindir", bindir,
                     "--config", joinpath(data, "config.toml"),
                     "--write-only",
                 ]) == 0
-                @test isfile(joinpath(bindir, "dskq"))
                 @test DistSSHKitQueue.main([
                     "teardown",
                     "--home", home,
@@ -161,7 +156,7 @@ end
                     "--write-only",
                 ]) == 0
             end
-            @test !isfile(joinpath(bindir, "dskq"))
+            @test !isfile(leftover)
             @test !isdir(data)
         end
     end

@@ -164,12 +164,7 @@ end
     @test occursin("DistSSHKitQueue", s)
 end
 
-@testset "wrapper_body and setup --write-only" begin
-    body = DistSSHKitQueue.wrapper_body("/opt/bin/julia", "/opt/Queue.jl")
-    @test startswith(body, "#!/bin/sh\n")
-    @test occursin("'/opt/bin/julia'", body)
-    @test occursin("--project='/opt/Queue.jl'", body)
-    @test occursin("-m DistSSHKitQueue", body)
+@testset "setup writes config, not a dskq shim" begin
     mktempdir() do d
         bindir = joinpath(d, "bin")
         cfg = joinpath(d, "config.toml")
@@ -182,16 +177,11 @@ end
                 "setup",
                 "--julia", julia,
                 "--project", project,
-                "--bindir", bindir,
                 "--config", cfg,
                 "--write-only",
             ]) == 0
         end
-        wrap = joinpath(bindir, "dskq")
-        @test isfile(wrap)
-        text = read(wrap, String)
-        @test occursin("-m DistSSHKitQueue", text)
-        @test occursin("--project=", text)
+        @test !isfile(joinpath(bindir, "dskq"))
         @test isfile(cfg)
         @test occursin("[env]", read(cfg, String))
         @test DistSSHKitQueue.write_config_template(other) === false

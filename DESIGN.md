@@ -53,7 +53,7 @@ Stopping the waiter does not cancel a running Kit/SSH tree. If the waiter dies, 
 
 Day-to-day: Kit-shaped arguments (`script`, `host:N…`, kit kwargs). Queue adds wait, order, list, cancel-queued, and pointers to Kit output. Job files stay unchanged.
 
-User-facing actions are Julia (`using DistSSHKitQueue`) or `julia -m DistSSHKitQueue` (`dskq` after queue-host `setup`).
+User-facing actions are Julia (`using DistSSHKitQueue`) or `julia -m DistSSHKitQueue`.
 
 **Client** (dev): `--qhost HOST` then `submit` / `status` / `cancel` / `teardown -y`. No laptop config. Several clusters = pass `--qhost` every time.
 
@@ -75,14 +75,14 @@ One module (`DistSSHKitQueue`). Roles sit next to the FIFO, not under DistSSHKit
 
 Config: `~/.distsshkitqueue/config.toml` (`DISTSSHKITQUEUE_CONFIG`). `store` and `[env]` (applied with `get!` so ENV wins). Store default `~/.distsshkitqueue/jobs.toml` (`DISTSSHKITQUEUE_STORE` > config `store=`). Whole-file rewrite under a directory lock. No listen socket, no HTTP. Empty `-m DistSSHKitQueue` prints help; `serve` starts the waiter. `stop` halts the waiter without touching config or store; it latches (`jobs.toml.stopped`) so `submit` will not auto-serve until an explicit `serve` clears the latch. Ctrl-C leaves the waiter; running Kit is not killed.
 
-`setup` writes `~/.local/bin/dskq` (julia absolute path + `--project=<queue-env>` + `--startup-file=no`). Julia 1.12 Pkg Apps (`[apps] dskq`) is an optional second path (`pkg> app add .` → `~/.julia/bin/dskq`). Neither PATH is guaranteed in non-interactive ssh.
+`setup` writes `config.toml` if missing. `--service` also installs the OS unit.
 
 `serve` / `status` / `submit` / `cancel` are Queue. After `submit`, `go` / `drive` are Kit's CLI, stored as a table row. Bare `go` / `drive` remain aliases of `submit`. DistSSHKit **0.3.2** `execute!` is the waiter’s Kit seam ([issue #129](https://github.com/yamanori99/DistSSHKit.jl/issues/129)). Client `go!(…; master=…)` is still a later Kit hook, not a scheduler inside DistSSHKit.
 
-- `setup` — write `dskq` + config.toml if missing (`--service` also installs the OS unit)
-- `teardown -y` — stop the waiter; remove `dskq`, the OS unit, and `~/.distsshkitqueue` (not `Pkg.rm` / git clone / Kit `.distsshkit/`)
+- `setup` — write config.toml if missing (`--service` also installs the OS unit)
+- `teardown -y` — stop the waiter; remove the OS unit and `~/.distsshkitqueue` (not `Pkg.rm` / git clone / Kit `.distsshkit/`). Also removes a leftover `dskq` shim if present.
 - `serve` / `serve!` — load store, one FIFO job at a time until interrupt (`serve --interval`); clears the stop latch
-- `stop` — SIGTERM the waiter and latch it off; keep config / store / `dskq` / OS unit
+- `stop` — SIGTERM the waiter and latch it off; keep config / store / OS unit
 - `status` — print the table
 - CLI `submit go` / `submit drive` — enqueue (Kit parsers). Bare `go` / `drive` are aliases.
 - `submit!(q, …; kind=:drive)` — Julia enqueue
@@ -141,7 +141,7 @@ Job files must not `using DistSSHKit` or `using DistSSHKitQueue`.
 
 ### Tests
 
-`Pkg.test` needs no SSH (`test/unit/`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`). CLI E2E (`DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl`) is `dskq` + `local:1` (auto-serve, cancel, `--qhost` ssh argv, teardown; PR CI job). PR CI uploads Codecov flags `pkgtest` and `e2e` (OIDC, carryforward). Daily E2E (Linux / macOS / WSL) does not upload coverage. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
+`Pkg.test` needs no SSH (`test/unit/`). SSH E2E is this repo’s `testenv/docker-ssh` (`up.sh --e2e` / `test/e2e.jl`). CLI E2E (`DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl`) is `-m DistSSHKitQueue` + `local:1` (auto-serve, cancel, `--qhost` ssh argv, teardown; PR CI job). PR CI uploads Codecov flags `pkgtest` and `e2e` (OIDC, carryforward). Daily E2E (Linux / macOS / WSL) does not upload coverage. JETLS is `.github/jetls-check.sh`. Aqua is local `.github/aqua-check.sh` until CI.
 
 ## Out of scope
 

@@ -60,7 +60,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Queue host"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  setup [--service]              Write dskq + config.toml",
+        "  setup [--service]              Write config.toml; optional OS unit",
         "  serve                          Run the FIFO waiter",
         "  stop                           Stop the waiter, keep config / store",
         "  service install|uninstall      LaunchAgent / systemd user unit",
@@ -72,7 +72,7 @@ function print_queue_usage(io::IO=stdout)
         "  Same machine: omit --qhost. Several clusters: pass --qhost every time.",
         "  Do not pass --qhost to setup / serve / service.",
         "  Remote Julia: Kit auto-detect; --remote-julia / JULIA_DISTRIBUTED_EXE override.",
-        "  teardown -y: waiter, dskq, OS unit, ~/.distsshkitqueue (not a git clone).",
+        "  teardown -y: waiter, OS unit, ~/.distsshkitqueue (not a git clone).",
         "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
         "  stop latches it off; only an explicit serve resumes (submit will not).",
         "  Bare go / drive alias submit go / submit drive.",
@@ -92,12 +92,6 @@ end
 function print_removed(path::AbstractString; io::IO=stdout)
     DistSSHKit._print_colored(io, "Removed  ", :green, false)
     println(io, _q_short(path))
-    return nothing
-end
-
-function print_path_hint(bindir::AbstractString; io::IO=stderr)
-    DistSSHKit._print_colored(io, "Hint: ", :yellow, true)
-    println(io, _q_short(bindir), " is not on PATH; use the absolute path or add it")
     return nothing
 end
 

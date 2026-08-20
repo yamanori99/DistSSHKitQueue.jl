@@ -5,7 +5,7 @@ Package entry: exports, `include`s, `main` (`@main` on Julia 1.12+).
 FIFO: `src/DistSSHKitQueue/`. Client CLI: `src/client/`. Queue host CLI: `src/qhost/`.
 Waiter runs DistSSHKit `execute!(...; detached=true)`.
 `--project=<queue-env>` loads this package; the job tree is `job_project()`.
-`dskq` is a shim from `setup` (or Pkg Apps). Config: `~/.distsshkitqueue/config.toml`.
+Config: `~/.distsshkitqueue/config.toml`.
 
 Design: [`DESIGN.md`](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/DESIGN.md).
 """

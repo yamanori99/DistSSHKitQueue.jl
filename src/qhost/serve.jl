@@ -36,7 +36,7 @@ function serve_cli(args::Vector{String})::Cint
     return 0
 end
 
-"""Stop the waiter and latch it off. Keeps config / store / dskq / OS unit.
+"""Stop the waiter and latch it off. Keeps config / store / OS unit.
 `submit` will not auto-serve until an explicit `serve` clears the latch."""
 function stop_cli(args::Vector{String})::Cint
     for a in args
