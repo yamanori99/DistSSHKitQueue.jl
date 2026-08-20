@@ -35,6 +35,23 @@ using DistSSHKitQueue
     end
 end
 
+@testset "with_store_lock retries EEXIST races" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        n = Threads.Atomic{Int}(0)
+        tasks = [@async begin
+            for _ in 1:40
+                DistSSHKitQueue.with_store_lock(store) do
+                    Threads.atomic_add!(n, 1)
+                    sleep(0.001)
+                end
+            end
+        end for _ in 1:4]
+        foreach(wait, tasks)
+        @test n[] == 160
+    end
+end
+
 @testset "waiter pidfile" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
@@ -89,6 +106,51 @@ end
             @test occursin("Stopped waiter", out)
         end
         @test DistSSHKitQueue.waiter_stopped(store)
+    end
+end
+
+@testset "serve! refuses a second waiter" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        write(store, "jobs = []\n")
+        holder = run(pipeline(`sleep 30`; stdout=devnull, stderr=devnull); wait=false)
+        try
+            write(DistSSHKitQueue.store_pid_path(store), string(getpid(holder)))
+            q = DistSSHKitQueue.Queue(; store=store, runner=_ -> nothing)
+            _, out, _ = capture_stdio() do
+                DistSSHKitQueue.serve!(q; interval=0.02)
+            end
+            @test occursin("Already running", out)
+            @test occursin("status or watch", out)
+            @test DistSSHKitQueue.waiter_pid(store) == getpid(holder)
+        finally
+            kill(holder)
+            wait(holder)
+        end
+    end
+end
+
+@testset "serve! stops when its pidfile is removed" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        write(store, "jobs = []\n")
+        q = DistSSHKitQueue.Queue(; store=store, runner=_ -> nothing)
+        _, out, _ = capture_stdio() do
+            t = @async DistSSHKitQueue.serve!(q; interval=0.02)
+            for _ in 1:200
+                DistSSHKitQueue.waiter_pid(store) == getpid() && break
+                sleep(0.02)
+            end
+            rm(d; force=true, recursive=true)
+            for _ in 1:200
+                istaskdone(t) && break
+                sleep(0.02)
+            end
+            @test istaskdone(t)
+            wait(t)
+        end
+        @test occursin("Waiter stopping", out)
+        @test !isfile(store)
     end
 end
 

@@ -77,7 +77,7 @@ function print_queue_usage(io::IO=stdout)
         "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
         "  stop latches it off; only an explicit serve resumes (submit will not).",
         "  Bare go / drive alias submit go / submit drive.",
-        "  Ctrl-C on serve leaves the waiter; a running Kit job is not killed.",
+        "  Ctrl-C on serve stops the waiter. A DistSSHKit job already running is not killed.",
         "  Ctrl-C on watch stops the live view only.",
         "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
         "  Store:  $(_q_short(default_store_path()))   DISTSSHKITQUEUE_STORE / config store=",
@@ -99,14 +99,57 @@ end
 
 function print_serve_banner(pid::Integer, store::AbstractString; io::IO=stdout)
     DistSSHKit.print_help_chrome("DistSSHKitQueue serve"; io=io)
-    DistSSHKit.print_help_section("Process"; io=io)
+    DistSSHKit.print_help_lines(io, "  pid $pid  store $(_q_short(store))")
+    return nothing
+end
+
+_serve_can_draw(io::IO)::Bool = io isa Base.TTY && !haskey(ENV, "NO_COLOR")
+
+const _SERVE_CTRLC = "Ctrl-C stops the waiter. A DistSSHKit job already running is not killed."
+
+function _serve_live_text(frame::Char, j::Union{Nothing,Job})::String
+    j === nothing && return "  $frame  idle"
+    return "  $frame  running  $(j.id)  $(j.kind)  $(_q_short(j.script))"
+end
+
+function print_serve_live_line(frame::Char, j::Union{Nothing,Job}; io::IO=stdout)
+    print(io, '\r', "  ")
+    DistSSHKit._print_colored(io, string(frame), :light_black, false)
+    print(io, "  ")
+    if j === nothing
+        DistSSHKit._print_colored(io, "idle", :light_black, false)
+    else
+        DistSSHKit._print_colored(io, "running", :cyan, false)
+        print(io, "  ", j.id, "  ", j.kind, "  ", _q_short(j.script))
+    end
+    print(io, "\e[K")
+    flush(io)
+    return nothing
+end
+
+function print_serve_idle_note(; io::IO=stdout)
+    DistSSHKit.print_help_lines(io, _SERVE_CTRLC)
+    return nothing
+end
+
+function print_waiter_gone(store::AbstractString; io::IO=stdout)
+    DistSSHKit._print_colored(io, "Waiter stopping", :yellow, false)
+    println(io)
+    DistSSHKit.print_help_lines(io,
+        "  store  $(_q_short(store)) (pidfile gone; removed or taken over)",
+        "  A DistSSHKit job already running is not killed.",
+    )
+    return nothing
+end
+
+function print_serve_already(pid::Integer, store::AbstractString; io::IO=stdout)
+    DistSSHKit.print_help_chrome("DistSSHKitQueue serve"; io=io)
+    DistSSHKit._print_colored(io, "Already running", :cyan, false)
+    println(io)
     DistSSHKit.print_help_lines(io,
         "  pid    $pid",
         "  store  $(_q_short(store))",
-    )
-    DistSSHKit.print_help_blank(io)
-    DistSSHKit.print_help_lines(io,
-        "Ctrl-C leaves the waiter; a running Kit job is not killed.",
+        "  Use status or watch. stop, then serve, to restart.",
     )
     return nothing
 end
