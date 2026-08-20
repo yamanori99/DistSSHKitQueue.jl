@@ -7,7 +7,7 @@ Waiter runs DistSSHKit `execute!(...; detached=true)`.
 `--project=<queue-env>` loads this package; the job tree is `job_project()`.
 Config: `~/.distsshkitqueue/config.toml`.
 
-Design: [`DESIGN.md`](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/DESIGN.md).
+Concept and design notes: [README](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/README.md#concept).
 """
 module DistSSHKitQueue
 

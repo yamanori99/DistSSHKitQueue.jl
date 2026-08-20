@@ -15,7 +15,6 @@ makedocs(;
     ),
     pages=[
         "Introduction" => "index.md",
-        "Design" => "design.md",
         "API" => "api.md",
     ],
     checkdocs=:none,
@@ -26,5 +25,5 @@ deploydocs(;
     repo="github.com/yamanori99/DistSSHKitQueue.jl.git",
     devbranch="main",
     push_preview=true,
-    versions=["stable" => "v^", "v#.#", "dev" => "dev"],
+    versions=["dev" => "dev"],
 )

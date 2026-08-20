@@ -1,6 +1,6 @@
 # Contributing
 
-Internals of this repo. Users: [README.md](README.md), [DESIGN.md](DESIGN.md), [NEWS.md](NEWS.md).
+Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md).
 
 This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (Codecov), JETLS, path-gated PR SSH E2E on Julia 1.12, CLI E2E (`-m DistSSHKitQueue` + `local:1`), Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
 
@@ -70,7 +70,7 @@ Required to merge (ruleset `main` uses these names). A skipped E2E still leaves 
 
 - Branch from `main`. Squash-merge only. Merged heads are deleted.
 - One reviewable change per PR. Split unless `main` would be broken in between.
-- Large plans: [DESIGN.md](DESIGN.md) first, then small PRs.
+- Large plans: discuss in an issue first, then small PRs.
 
 ## Release
 

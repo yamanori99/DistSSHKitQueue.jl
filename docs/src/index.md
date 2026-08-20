@@ -6,7 +6,7 @@ Small-lab job queue on [DistSSHKit.jl](https://github.com/yamanori99/DistSSHKit.
 
 **DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a long-lived waiter (FIFO, one table job).
 
-This package is not on General yet. Read [Design](@ref Design).
+This package is not on General yet. See the [README](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/README.md#concept) for the concept diagram.
 
 ## CLI
 
