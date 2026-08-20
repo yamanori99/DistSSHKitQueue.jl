@@ -18,17 +18,32 @@ Small-lab job queue on top of [DistSSHKit.jl](https://github.com/yamanori99/Dist
 
 Not on General yet. Design: [DESIGN.md](DESIGN.md).
 
-```julia
-pkg> dev /path/to/DistSSHKitQueue.jl
-```
+Install where the queue runs (once): `pkg> add DistSSHKitQueue` (pre-General: `pkg> dev /path/to/DistSSHKitQueue.jl`).
+
+**Dev machine — order to a controller, no files, no shim.** The dev machine only needs Queue in the env it runs `-m` from; nothing is written to it. `--on HOST` runs `julia -m DistSSHKitQueue` on that ssh controller (which has Queue in its default env):
 
 ```bash
-# controller, once (from the Queue checkout)
+julia --project=. -m DistSSHKitQueue submit --on m4-mini-ts go SCRIPT.jl host:2
+julia --project=. -m DistSSHKitQueue status --on m4-mini-ts
+julia --project=. -m DistSSHKitQueue cancel --on m4-mini-ts <id>
+# julia off the controller's non-interactive PATH? add: --remote-julia /opt/homebrew/bin/julia
+```
+
+`SCRIPT.jl` / `host:2` are interpreted on the controller (cwd there is the job tree, like Kit). The controller's waiter is auto-started by `submit`; the store lives on the controller.
+
+**Local (single machine).** Just `-m`, no `--on`, no setup:
+
+```bash
+julia --project=. -m DistSSHKitQueue submit go SCRIPT.jl local:2
+julia --project=. -m DistSSHKitQueue status
+```
+
+**Long-lived controller (optional shim / OS service).** `setup` bakes a `dskq` shim so a non-interactive ssh does not need julia on PATH:
+
+```bash
+# on the controller, once (from a Queue env)
 julia --project=. -m DistSSHKitQueue setup --service
-# orderer (non-interactive ssh: use the absolute shim)
-ssh controller ~/.local/bin/dskq submit go SCRIPT.jl local:1
 ssh controller ~/.local/bin/dskq status
-ssh controller ~/.local/bin/dskq cancel <id>
 ```
 
 `setup` writes `~/.local/bin/dskq` (julia + `--project` baked in) and `~/.distsshkitqueue/config.toml` if missing. `[env]` is applied at start (existing ENV wins). Store: config `store=` or `DISTSSHKITQUEUE_STORE` (default `~/.distsshkitqueue/jobs.toml`).
