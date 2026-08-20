@@ -33,6 +33,8 @@ ssh controller ~/.local/bin/dskq cancel <id>
 
 `setup` writes `~/.local/bin/dskq` (julia + `--project` baked in) and `~/.distsshkitqueue/config.toml` if missing. `[env]` is applied at start (existing ENV wins). Store: config `store=` or `DISTSSHKITQUEUE_STORE` (default `~/.distsshkitqueue/jobs.toml`).
 
+Like Kit: `submit` starts a waiter itself if none is watching the store (opt out: `DISTSSHKITQUEUE_NO_AUTOSERVE=1`). `serve` / `service install` are for a long-lived controller.
+
 `<queue-env>` loads Queue. The job tree is cwd / `DISTRIBUTED_PROJECT_ROOT`. Julia 1.12 Pkg Apps: `[apps] dskq` (`pkg> app add .` → `~/.julia/bin/dskq`).
 
 Ctrl-C stops the waiter only. Julia **1.12+**, DistSSHKit **0.3.2+**. The waiter runs Kit `execute!(…; detached=true)`.

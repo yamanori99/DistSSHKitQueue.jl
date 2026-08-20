@@ -88,6 +88,34 @@ function read_jobs(path::AbstractString)::Vector{Job}
     return Job[job_from_toml(r) for r in rows]
 end
 
+store_pid_path(store::AbstractString)::String = string(store, ".pid")
+
+function process_alive(pid::Integer)::Bool
+    pid > 0 || return false
+    try
+        return success(run(pipeline(`kill -0 $pid`; stdout=devnull, stderr=devnull)))
+    catch
+        return false
+    end
+end
+
+"""Is a `serve` for `store` already running (pidfile + live process)?"""
+function waiter_alive(store::AbstractString)::Bool
+    p = store_pid_path(store)
+    isfile(p) || return false
+    pid = tryparse(Int, strip(read(p, String)))
+    pid === nothing && return false
+    return process_alive(pid)
+end
+
+function write_pid_file(store::AbstractString)
+    mkpath(dirname(store))
+    write(store_pid_path(store), string(getpid()))
+    return nothing
+end
+
+remove_pid_file(store::AbstractString) = rm(store_pid_path(store); force=true)
+
 function fail_stale_running!(jobs::Vector{Job})
     for j in jobs
         if j.state === :running

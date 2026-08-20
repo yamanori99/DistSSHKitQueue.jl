@@ -305,6 +305,7 @@ end
 function serve!(q::Queue; interval::Real=0.2)
     load!(q)
     st = q.store === nothing ? "(memory)" : q.store
+    st isa String && write_pid_file(st)
     println("DistSSHKitQueue serve  pid=$(getpid())  store=$st")
     println("Ctrl-C leaves the waiter; a running Kit job is not killed.")
     flush(stdout)
@@ -316,6 +317,8 @@ function serve!(q::Queue; interval::Real=0.2)
     catch e
         e isa InterruptException || rethrow()
         return nothing
+    finally
+        st isa String && remove_pid_file(st)
     end
 end
 
