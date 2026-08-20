@@ -3,14 +3,16 @@ function show_usage(; io::IO=stdout)
     println(io)
     println(io, "  dskq setup [--service] [--bindir DIR]")
     println(io, "  dskq serve")
-    println(io, "  dskq status")
-    println(io, "  dskq submit go [DistSSHKit go argv]")
-    println(io, "  dskq submit drive [DistSSHKit drive argv]")
-    println(io, "  dskq cancel <id>")
+    println(io, "  dskq [--on HOST] status")
+    println(io, "  dskq [--on HOST] submit go [DistSSHKit go argv]")
+    println(io, "  dskq [--on HOST] submit drive [DistSSHKit drive argv]")
+    println(io, "  dskq [--on HOST] cancel <id>")
     println(io, "  dskq service install")
     println(io, "  dskq service uninstall")
     println(io)
     println(io, "Same verbs as `julia --project=<queue-env> -m DistSSHKitQueue …`.")
+    println(io, "`--on HOST` orders on that ssh controller (runs `julia -m DistSSHKitQueue`")
+    println(io, "there; add `--remote-julia PATH` if julia is off the non-interactive PATH).")
     println(io, "`setup` writes ~/.local/bin/dskq and a config.toml if missing.")
     println(io, "Orderer: ssh controller ~/.local/bin/dskq submit go SCRIPT.jl local:1")
     println(io, "Like Kit: `submit` starts a waiter itself if none is running (opt out:")
@@ -90,6 +92,46 @@ function ensure_waiter!(store::AbstractString)::Bool
     run(pipeline(detach(cmd); stdout=io, stderr=io); wait=false)
     println(stderr, "submit: no waiter running; started one (log: $log)")
     return true
+end
+
+"""Peel leading `--on HOST` / `--remote-julia PATH` off a subcommand's argv.
+
+`--on` orders on a remote controller instead of the local store; the dev machine
+stays stateless (no config, no shim). Everything after the first non-option token
+is forwarded verbatim, so Kit's own `go` / `drive` flags are untouched.
+"""
+function extract_remote_opts(args::Vector{String})
+    host = nothing
+    rjulia = "julia"
+    i = 1
+    while i <= length(args)
+        a = args[i]
+        if a == "--on" && i < length(args)
+            host = args[i+1]
+            i += 2
+        elseif a == "--remote-julia" && i < length(args)
+            rjulia = args[i+1]
+            i += 2
+        else
+            break
+        end
+    end
+    return host, rjulia, args[i:end]
+end
+
+"""`julia -m DistSSHKitQueue <sub> <payload…>`, each token shell-quoted for ssh."""
+function remote_inner(rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::String
+    parts = String[String(rjulia), "-m", "DistSSHKitQueue", String(sub)]
+    append!(parts, payload)
+    return join((sh_single_quote(p) for p in parts), " ")
+end
+
+remote_command(host::AbstractString, rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::Cmd =
+    `ssh $host $(remote_inner(rjulia, sub, payload))`
+
+function remote_dispatch(host::AbstractString, rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::Cint
+    proc = run(ignorestatus(remote_command(host, rjulia, sub, payload)))
+    return Cint(proc.exitcode)
 end
 
 function submit_cli(store::AbstractString, kind::Symbol, script::AbstractString, hosts, kw::Dict{String,Any})
@@ -193,16 +235,22 @@ function main(args::Vector{String}=copy(ARGS))::Cint
         serve(; store=store_path(), interval=interval)
         return 0
     elseif sub == "status"
+        host, rjulia, payload = extract_remote_opts(rest)
+        host === nothing || return remote_dispatch(host, rjulia, "status", payload)
         show_status(store_path())
         return 0
     elseif sub == "submit"
-        return submit_main(rest)
+        host, rjulia, payload = extract_remote_opts(rest)
+        host === nothing || return remote_dispatch(host, rjulia, "submit", payload)
+        return submit_main(payload)
     elseif sub == "go"
         return submit_go(rest)
     elseif sub == "drive"
         return submit_drive(rest)
     elseif sub == "cancel"
-        return cancel_cli(rest)
+        host, rjulia, payload = extract_remote_opts(rest)
+        host === nothing || return remote_dispatch(host, rjulia, "cancel", payload)
+        return cancel_cli(payload)
     elseif sub == "service"
         return service_main(rest)
     elseif sub == "setup"

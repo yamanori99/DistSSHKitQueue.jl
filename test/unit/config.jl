@@ -73,6 +73,34 @@ end
     end
 end
 
+@testset "extract_remote_opts and remote_inner" begin
+    host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "go", "S.jl", "h:2"])
+    @test host == "m4"
+    @test rjulia == "julia"
+    @test payload == ["go", "S.jl", "h:2"]
+
+    host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts(["--on", "m4", "--remote-julia", "/opt/julia", "go", "S.jl"])
+    @test host2 == "m4"
+    @test rjulia2 == "/opt/julia"
+    @test payload2 == ["go", "S.jl"]
+
+    host3, _, payload3 = DistSSHKitQueue.extract_remote_opts(["go", "S.jl"])
+    @test host3 === nothing
+    @test payload3 == ["go", "S.jl"]
+
+    host4, _, payload4 = DistSSHKitQueue.extract_remote_opts(String[])
+    @test host4 === nothing
+    @test payload4 == String[]
+
+    @test DistSSHKitQueue.remote_inner("julia", "submit", ["go", "S.jl", "h:2"]) ==
+          "'julia' '-m' 'DistSSHKitQueue' 'submit' 'go' 'S.jl' 'h:2'"
+    cmd = DistSSHKitQueue.remote_command("m4-mini-ts", "julia", "status", String[])
+    s = string(cmd)
+    @test occursin("ssh", s)
+    @test occursin("m4-mini-ts", s)
+    @test occursin("DistSSHKitQueue", s)
+end
+
 @testset "wrapper_body and setup --write-only" begin
     body = DistSSHKitQueue.wrapper_body("/opt/bin/julia", "/opt/Queue.jl")
     @test startswith(body, "#!/bin/sh\n")
