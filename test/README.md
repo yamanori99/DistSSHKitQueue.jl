@@ -10,4 +10,37 @@ From the Queue checkout root:
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-That is `test/runtests.jl`. CI runs the same on Julia 1.12 with Codecov (`pkgtest`). SSH E2E is `testenv/docker-ssh/scripts/up.sh --e2e` (PR / main, path-gated; Codecov `e2e` when `DSKQ_CODE_COVERAGE=1`): DistSSHKit docker-ssh workers plus README CLI (`--qhost` over loopback OpenSSH). On Apple silicon, the same suite is `testenv/apple-container-ssh/scripts/up.sh --e2e` (not CI). `enable` / `disable` / `teardown` in that suite use `--write-only` (no runner systemd / LaunchAgent). CLI E2E (`-m DistSSHKitQueue` + `local:1`, auto-serve / cancel / watch / fake-`ssh` argv / teardown; not Docker, not the recommended topology): `DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl` (also a PR CI job). JETLS is `./.github/jetls-check.sh`. Aqua is `./.github/aqua-check.sh` (not `Pkg.test()`, not CI yet). Documenter is local `docs/make.jl`.
+That is `test/runtests.jl` (unit + integration). Real SSH:
+
+```bash
+testenv/docker-ssh/scripts/up.sh --e2e
+```
+
+Apple silicon without Compose: [`testenv/apple-container-ssh`](../testenv/apple-container-ssh) (`./scripts/up.sh --e2e`, not CI). JETLS is `./.github/jetls-check.sh`. Aqua is `./.github/aqua-check.sh` (not `Pkg.test()`, not CI yet). Documenter is local `docs/make.jl`.
+
+## Layout
+
+```text
+test/
+  runtests.jl           # Pkg.test() — unit + integration
+  e2e.jl                # real OpenSSH; not Pkg.test()
+  support.jl
+  unit/
+  integration/          # child julia and/or local DistSSHKit workers
+  Project.toml
+```
+
+## Layers
+
+Green on one layer does not imply the others. `Pkg.test()` does not run `e2e.jl`.
+
+| Layer | Proves | Not |
+| --- | --- | --- |
+| JETLS | types / hints on entry files | runtime |
+| Aqua | ambiguities, exports, compat | CLI / workers |
+| unit | in-process queue / config | child julia, SSH |
+| integration | child CLI (`-m DistSSHKitQueue`) and **local** `local:1` | real SSH / rsync |
+| e2e | docker-ssh workers, waiter API, and `-m DistSSHKitQueue` (`--qhost` over loopback OpenSSH) | local-only CLI wiring |
+| e2e daily | same `e2e.jl` from Linux, macOS Intel, or WSL2 (not a PR check) | macOS workers |
+
+`enable` / `disable` / `teardown` in SSH E2E use `--write-only` (no runner systemd / LaunchAgent). Coverage: `Pkg.test` flag `pkgtest`; `DSKQ_CODE_COVERAGE=1` on `up.sh --e2e` flag `e2e`.
