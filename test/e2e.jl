@@ -6,18 +6,26 @@
 # (same as CLI `submit go` / `submit drive`). The waiter runs
 # DistSSHKit `execute!(…; detached=true)`.
 #
+# README CLI (`julia -m DistSSHKitQueue`) is test/e2e_readme_cli.jl: queue-host
+# verbs locally, client `--qhost` over a loopback OpenSSH, Kit slots on
+# docker-ssh (`dskq-w1:1`). Not a laptop + `local:N` topology.
+#
 # Table jobs are the four *file*/*echo* demos. `pipeline_pi.jl` /
 # `pipeline_square.jl` call `go!` / `pipeline!` themselves — not Queue rows.
 #
 # Also: FIFO one-at-a-time, cancel-queued (skip that row, run the next).
 #
 #   testenv/docker-ssh/scripts/up.sh --e2e
+#   testenv/apple-container-ssh/scripts/up.sh --e2e   # macOS Apple silicon, not CI
 #   DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl
 
 using Test
 using Dates
+using Sockets
 using DistSSHKit
 using DistSSHKitQueue
+
+include(joinpath(@__DIR__, "e2e_readme_cli.jl"))
 
 const QUEUE_ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCKER_SSH = joinpath(QUEUE_ROOT, "testenv", "docker-ssh")
@@ -259,5 +267,14 @@ end
                 @test step!(h) == 0
             end
         end
+
+        readme_cli_e2e(;
+            queue_root = QUEUE_ROOT,
+            docker_ssh = DOCKER_SSH,
+            job_project = JOB_PROJECT,
+            remote_root = REMOTE_ROOT,
+            ssh_config = SSH_CONFIG,
+            hosts = HOSTS,
+        )
     end
 end

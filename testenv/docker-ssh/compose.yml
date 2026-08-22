@@ -1,6 +1,10 @@
 # Linux SSH workers for DistSSHKitQueue local Docker E2E.
 # These are DistSSHKit go/drive targets (host:N). The queue host and the
 # waiter run on the host, not here.
+#
+# Project name is not the directory (`docker-ssh`): DistSSHKit uses the same
+# folder name, and sharing the Compose project recreates Kit's workers too.
+name: distsshkitqueue-docker-ssh
 services:
   worker-1:
     build:

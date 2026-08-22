@@ -15,3 +15,8 @@ else
 fi
 
 "${COMPOSE[@]}" -f compose.yml down --remove-orphans
+# Named containers may belong to a previous Compose project (`docker-ssh`
+# before `name: distsshkitqueue-docker-ssh`). `down` above would miss them.
+for name in distsshkitqueue-worker-1 distsshkitqueue-worker-2; do
+  docker rm -f "${name}" >/dev/null 2>&1 || true
+done

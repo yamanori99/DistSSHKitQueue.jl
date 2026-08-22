@@ -216,6 +216,7 @@ end
 
     @test_throws ArgumentError DistSSHKitQueue.coalesce_remote("a", nothing, "b", nothing)
     @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("setup", "m4")
+    @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("enable", "m4")
     DistSSHKitQueue.reject_qhost_on_local("status", "m4")
     DistSSHKitQueue.reject_qhost_on_local("setup", nothing)
 
@@ -279,10 +280,12 @@ end
             @test occursin("[env]", read(cfg, String))
             code4, _, err4 = run_setup(["--service"])
             @test code4 == 1
-            @test occursin("service install", err4)
-            code5, _, err5 = run_setup(["--write-only"])
+            @test occursin("enable", err4)
+            code5, _, err5 = capture_stdio() do
+                DistSSHKitQueue.main(["service", "install"])
+            end
             @test code5 == 1
-            @test occursin("setup only writes config.toml", err5)
+            @test occursin("enable", err5)
         end
     end
 end

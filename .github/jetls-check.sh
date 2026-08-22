@@ -14,6 +14,7 @@ files=(
     src/DistSSHKitQueue.jl
     test/runtests.jl
     test/e2e.jl
+    test/e2e_readme_cli.jl
     test/cli_e2e.jl
 )
 
