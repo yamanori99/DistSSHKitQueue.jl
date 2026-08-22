@@ -1,20 +1,11 @@
-#!/usr/bin/env julia
-# CLI + config store, local:1. Not part of Pkg.test().
-# Covers explicit serve, auto-serve, cancel, watch, teardown, and `--qhost` ssh argv
-# (fake `ssh`, no remote exec). The README client path over real ssh is SSH E2E.
-#
-#   DSKQ_CLI_E2E=1 julia --project=. test/cli_e2e.jl
+# Child CLI (`julia -m DistSSHKitQueue`) + local:1. Not SSH.
+# Fake `ssh` only checks `--qhost` argv. Real OpenSSH client path is test/e2e.jl.
 
 using Test
 using DistSSHKitQueue
 
-const QUEUE_ROOT = abspath(joinpath(@__DIR__, ".."))
+const QUEUE_ROOT = abspath(joinpath(@__DIR__, "..", ".."))
 const JULIA = DistSSHKitQueue.default_julia_bin()
-
-if get(ENV, "DSKQ_CLI_E2E", "") != "1"
-    @info "Skipping CLI E2E (set DSKQ_CLI_E2E=1 to enable)"
-    exit(0)
-end
 
 qcli(args) = `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHKitQueue $(String[string(a) for a in args])`
 
@@ -58,14 +49,14 @@ exit 0
     return path
 end
 
-@testset "CLI E2E" begin
+@testset "CLI (local:1)" begin
     mktempdir() do d
         cfg = joinpath(d, "config.toml")
         store = joinpath(d, "jobs.toml")
         jobdir = joinpath(d, "job")
         mkpath(jobdir)
         write(joinpath(jobdir, "Project.toml"), "[deps]\n")
-        write(joinpath(jobdir, "hello.jl"), "println(\"cli-e2e\")\n")
+        write(joinpath(jobdir, "hello.jl"), "println(\"cli-local\")\n")
         write(joinpath(jobdir, "slow.jl"), "sleep(4)\n")
         write(cfg, "store = $(repr(store))\n\n[env]\nDISTSSHKIT_YES = \"1\"\n")
         baseenv = Dict(
