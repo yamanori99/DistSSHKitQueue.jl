@@ -5,7 +5,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
-- Autoserve: detached `serve` closes stdin so client `--qhost submit` does not hang on ssh after `Started waiter`.
+- Autoserve: spawn `serve` via `sh -c … &` so `submit` can exit. Client `--qhost submit` was hanging after `Started waiter` because `run(...; wait=false)` kept a libuv handle on the waiter.
 - README / `--help`: the product path is a dedicated queue host plus client `--qhost`. Omit `--qhost` only when you are already on that box. Kit `submit go` argv is `host:N SCRIPT.jl` (DistSSHKit order).
 - SSH E2E covers those README CLI verbs over real OpenSSH (`--qhost` to a loopback queue host) and DistSSHKit docker-ssh workers. `enable` / `disable` / `teardown` use `--write-only` so CI does not touch the runner’s user systemd / LaunchAgent.
 - `watch` reprints the job table until Ctrl-C (`--interval`, default 0.5s). Same verb on the queue host and via `--qhost` (`ssh -t` when the local stdout is a TTY). Does not stop the waiter.

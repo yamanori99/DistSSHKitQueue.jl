@@ -36,6 +36,7 @@ for host in "${HOSTS[@]}"; do
   done
   if [[ "${ok}" -ne 1 ]]; then
     echo "SSH not ready: ${host}" >&2
+    ssh -F "${SSH_CONFIG}" -o ConnectTimeout=5 "${host}" 'echo ok' >&2 || true
     exit 1
   fi
   if ! julia_ok "${host}"; then

@@ -24,11 +24,22 @@ end
 function wait_status(pred, cmd::Cmd; tries=600, sleep_s=0.2)
     out = ""
     for _ = 1:tries
-        out = read(cmd, String)
+        out = read(pipeline(cmd; stderr=devnull), String)
         pred(out) && return out
         sleep(sleep_s)
     end
     return out
+end
+
+"""CLI for assertions. Product chrome (`Wrote`, `Started waiter`, expected
+`Error:`) stays off the test log; stdout is still returned when captured.
+"""
+function run_cli(cmd::Cmd)
+    return run(pipeline(ignorestatus(cmd); stdout=devnull, stderr=devnull))
+end
+
+function read_cli(cmd::Cmd)::String
+    return strip(read(pipeline(cmd; stderr=devnull), String))
 end
 
 function ssh_login_user()
@@ -189,14 +200,18 @@ function readme_cli_e2e(;
                 "DISTSSHKIT_YES" => "1",
                 "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
                 "DISTRIBUTED_SSH_OPTS" => "-F $(ssh_config)",
+                # Job tree is the example job, not the CLI's cwd. Over `--qhost`
+                # the ssh command lands in the login HOME, so `job_project()`
+                # cannot infer it; pin it like the API tests pass `project=`.
+                "DISTRIBUTED_PROJECT_ROOT" => job_project,
                 "DISTRIBUTED_REMOTE_PROJECT_ROOT" => remote_root,
             )
 
             @testset "queue-host verbs (logged in; omit --qhost)" begin
                 env = merge(host_env, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
-                @test run(ignorestatus(addenv(qcmd(["setup"]), env...))).exitcode == 0
+                @test run_cli(addenv(qcmd(["setup"]), env...)).exitcode == 0
                 @test isfile(cfg)
-                @test run(ignorestatus(addenv(qcmd(["enable", "--write-only", "--project", test_project, "--julia", README_CLI_JULIA]), env...))).exitcode == 0
+                @test run_cli(addenv(qcmd(["enable", "--write-only", "--project", test_project, "--julia", README_CLI_JULIA]), env...)).exitcode == 0
                 unit = if Sys.isapple()
                     DistSSHKitQueue.launch_agent_path(; home=e2e_home)
                 else
@@ -204,21 +219,21 @@ function readme_cli_e2e(;
                 end
                 @test isfile(unit)
                 @test occursin("DistSSHKitQueue", read(unit, String))
-                @test run(ignorestatus(addenv(qcmd(["disable", "--write-only"]), env...))).exitcode == 0
+                @test run_cli(addenv(qcmd(["disable", "--write-only"]), env...)).exitcode == 0
                 @test !isfile(unit)
 
-                serve_proc = run(addenv(qcmd(["serve", "--interval", "0.2"]), env...); wait=false)
+                serve_proc = run(pipeline(addenv(qcmd(["serve", "--interval", "0.2"]), env...); stdout=devnull, stderr=devnull); wait=false)
                 try
                     outdir = joinpath(job_project, "go_out", "readme_on_host")
                     isdir(outdir) && rm(outdir; recursive=true)
-                    id = strip(read(addenv(qcmd(["submit", "go", token, "--output-dir", outdir, script, "64"]), env...), String))
+                    id = read_cli(addenv(qcmd(["submit", "go", token, "--output-dir", outdir, script, "64"]), env...))
                     @test !isempty(id)
                     listed = wait_status(addenv(qcmd(["status"]), env...)) do out
                         occursin(id, out) && occursin("  done  ", out) && !occursin("  running  ", out)
                     end
                     @test occursin(id, listed)
                     @test occursin("  done  ", listed)
-                    wout = read(addenv(qcmd(["watch", "--ticks", "1", "--interval", "0.05"]), env...), String)
+                    wout = read_cli(addenv(qcmd(["watch", "--ticks", "1", "--interval", "0.05"]), env...))
                     @test occursin("DistSSHKitQueue watch", wout)
                     @test occursin(id, wout)
                 finally
@@ -229,7 +244,7 @@ function readme_cli_e2e(;
                     catch
                     end
                 end
-                @test run(ignorestatus(addenv(qcmd(["stop"]), env...))).exitcode == 0
+                @test run_cli(addenv(qcmd(["stop"]), env...)).exitcode == 0
             end
 
             @testset "client --qhost (real ssh to loopback queue host)" begin
@@ -243,7 +258,7 @@ function readme_cli_e2e(;
                         joinpath(d, "ssh_config"), port, ssh_login_user(),
                         ssh_config, controller_key,
                     )
-                    probe = run(ignorestatus(`ssh -F $ssh_cfg -o ConnectTimeout=5 dskq-qh true`))
+                    probe = run(pipeline(ignorestatus(`ssh -F $ssh_cfg -o ConnectTimeout=5 -o LogLevel=ERROR dskq-qh true`); stdout=devnull, stderr=devnull))
                     probe.exitcode == 0 || error("loopback ssh to dskq-qh failed: $(read(joinpath(sshd_dir, "sshd.log"), String))")
                     remote_env = Dict{String,String}(
                         "HOME" => e2e_home,
@@ -254,6 +269,9 @@ function readme_cli_e2e(;
                         "DISTSSHKIT_YES" => "1",
                         "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
                         "DISTRIBUTED_SSH_OPTS" => "-F $(ssh_config)",
+                        # `--qhost` submit runs in the login HOME; pin the job
+                        # tree so `job_project()` does not fall back to it.
+                        "DISTRIBUTED_PROJECT_ROOT" => job_project,
                         "DISTRIBUTED_REMOTE_PROJECT_ROOT" => remote_root,
                     )
                     wrapper = write_remote_julia(joinpath(d, "remote-julia"), remote_env)
@@ -263,35 +281,42 @@ function readme_cli_e2e(;
                     )
                     qh(rest) = qcmd(["--qhost", "dskq-qh", "--remote-julia", wrapper, rest...])
 
-                    rejected = run(ignorestatus(addenv(qh(["setup"]), client_env...)))
+                    reject_err = IOBuffer()
+                    rejected = run(pipeline(ignorestatus(addenv(qh(["setup"]), client_env...)); stdout=devnull, stderr=reject_err))
                     @test rejected.exitcode != 0
+                    @test occursin("client flag", String(take!(reject_err)))
 
                     outdir = joinpath(job_project, "go_out", "readme_qhost")
                     isdir(outdir) && rm(outdir; recursive=true)
-                    id1 = strip(read(addenv(qh(["submit", "go", token, "--output-dir", outdir, script, "64"]), client_env...), String))
+                    id1 = read_cli(addenv(qh(["submit", "go", token, "--output-dir", outdir, script, "64"]), client_env...))
                     @test !isempty(id1)
                     listed = wait_status(addenv(qh(["status"]), client_env...)) do out
                         occursin(id1, out) && occursin("  done  ", out) && !occursin("  running  ", out)
                     end
                     @test occursin(id1, listed)
                     @test occursin("  done  ", listed)
-                    wout = read(addenv(qh(["watch", "--ticks", "1", "--interval", "0.05"]), client_env...), String)
+                    wout = read_cli(addenv(qh(["watch", "--ticks", "1", "--interval", "0.05"]), client_env...))
                     @test occursin(id1, wout)
 
+                    # Occupy the waiter on this box (`local:1`); a worker
+                    # `pi_echo` finishes before cancel. Submit the queued row
+                    # immediately (same pattern as test/cli_e2e.jl).
+                    hold = joinpath(d, "hold.jl")
+                    write(hold, "sleep(30)\n")
                     cancel_out = joinpath(job_project, "go_out", "readme_cancel")
                     isdir(cancel_out) && rm(cancel_out; recursive=true)
-                    id2 = strip(read(addenv(qh(["submit", "go", token, "--output-dir", cancel_out, script, "64"]), client_env...), String))
-                    id3 = strip(read(addenv(qh(["submit", "go", token, script, "64"]), client_env...), String))
-                    cancelled = strip(read(addenv(qh(["cancel", id3]), client_env...), String))
+                    id2 = read_cli(addenv(qh(["submit", "go", "local:1", "--output-dir", cancel_out, hold]), client_env...))
+                    id3 = read_cli(addenv(qh(["submit", "go", token, script, "64"]), client_env...))
+                    cancelled = read_cli(addenv(qh(["cancel", id3]), client_env...))
                     @test cancelled == id3
                     after = wait_status(addenv(qh(["status"]), client_env...)) do out
-                        occursin(id2, out) && occursin("cancelled", out) && !occursin("  running  ", out)
+                        occursin(id3, out) && occursin("cancelled", out)
                     end
                     @test occursin(id2, after)
                     @test occursin("cancelled", after)
 
-                    @test run(ignorestatus(addenv(qh(["stop"]), client_env...))).exitcode == 0
-                    @test run(ignorestatus(addenv(qh(["teardown", "-y", "--write-only"]), client_env...))).exitcode == 0
+                    @test run_cli(addenv(qh(["stop"]), client_env...)).exitcode == 0
+                    @test run_cli(addenv(qh(["teardown", "-y", "--write-only"]), client_env...)).exitcode == 0
                 finally
                     DistSSHKitQueue.stop_waiter!(qh_store)
                     DistSSHKitQueue.stop_waiter!(store)

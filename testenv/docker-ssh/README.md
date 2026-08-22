@@ -7,6 +7,11 @@ host. The queue host and the waiter run on the host during `--e2e`.
 Adapted from DistSSHKit's `testenv/docker-ssh` (same worker image shape), kept
 independent in this repo. `Pkg.test()` does **not** start Docker or run this.
 
+Optional Mac-only path (same image and `test/e2e.jl`):
+[`../apple-container-ssh`](../apple-container-ssh) — `./scripts/up.sh --e2e`
+(Apple `container`; **not CI**). Do not run both stacks at once (shared
+`ssh_config`).
+
 ## What the E2E proves
 
 The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `host:N` workers only.
@@ -40,7 +45,7 @@ The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSH
 | [`Dockerfile`](Dockerfile) / [`start.sh`](start.sh) | Worker image (sshd, rsync, git, Julia 1.12 via juliaup) |
 | [`compose.yml`](compose.yml) | Two workers (`worker-1` / `worker-2`) |
 | [`scripts/gen-keys.sh`](scripts/gen-keys.sh) | Controller + inter-worker keys, SSH config |
-| [`scripts/up.sh`](scripts/up.sh) | Keys → build → up → wait (`--e2e` also runs the suite) |
+| [`scripts/up.sh`](scripts/up.sh) | Keys → down → up → wait (`--e2e` also runs the suite) |
 | [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh) | macOS Intel GitHub runner: Lima + Colima |
 | [`scripts/wait-ready.sh`](scripts/wait-ready.sh) | BatchMode SSH + Julia probe |
 | [`scripts/down.sh`](scripts/down.sh) | Compose down |
@@ -53,6 +58,13 @@ SSH Host aliases (written to `.generated/ssh_config`):
 
 On macOS, ports publish on `127.0.0.1` (Docker Desktop / Colima defaults) so
 macOS Local Network Privacy does not block SSH from the queue host.
+
+Do not run DistSSHKit `testenv/docker-ssh` at the same time: both bind
+`2222` / `2223`. Compose project name is `distsshkitqueue-docker-ssh` so a
+Kit stack in a folder also named `docker-ssh` is not treated as the same
+project. `up.sh` runs `down.sh` first (same as Kit) and drops a stale
+`.generated/known_hosts` (container sshd host keys change on recreate;
+`BatchMode` cannot replace them).
 
 ## Local use (macOS, Linux, or WSL2)
 

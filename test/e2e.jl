@@ -16,6 +16,7 @@
 # Also: FIFO one-at-a-time, cancel-queued (skip that row, run the next).
 #
 #   testenv/docker-ssh/scripts/up.sh --e2e
+#   testenv/apple-container-ssh/scripts/up.sh --e2e   # macOS Apple silicon, not CI
 #   DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl
 
 using Test

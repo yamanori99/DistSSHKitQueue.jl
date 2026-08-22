@@ -72,6 +72,9 @@ else
   fi
 fi
 
+./scripts/down.sh
+# Recreated sshd host keys must not fight BatchMode + a stale known_hosts.
+rm -f "${ROOT}/.generated/known_hosts"
 "${COMPOSE[@]}" -f compose.yml up -d --no-build
 ./scripts/wait-ready.sh
 echo "Workers ready: dskq-w1 (2222), dskq-w2 (2223)"
@@ -86,5 +89,12 @@ if [[ "$RUN_E2E" -eq 1 ]]; then
   if [[ "${DSKQ_CODE_COVERAGE:-}" == "1" ]]; then
     julia_e2e+=(--code-coverage=user)
   fi
-  exec "${julia_e2e[@]}" test/e2e.jl
+  e2e_status=0
+  "${julia_e2e[@]}" test/e2e.jl || e2e_status=$?
+  if [[ "$e2e_status" -eq 0 ]]; then
+    "${ROOT}/scripts/down.sh"
+  else
+    echo "e2e failed (exit ${e2e_status}) — leaving workers up for debugging; ${ROOT}/scripts/down.sh to tear down" >&2
+  fi
+  exit "$e2e_status"
 fi

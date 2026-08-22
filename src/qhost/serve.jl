@@ -11,13 +11,32 @@ function ensure_waiter!(store::AbstractString)::Bool
     project = default_queue_env()
     log = string(store, ".log")
     mkpath(dirname(log))
-    io = open(log, "a")
-    cmd = `$julia --startup-file=no --project=$project -m DistSSHKitQueue serve`
-    # stdin must not inherit the client `--qhost` ssh pipe, or `ssh` never
-    # exits and `submit` hangs after "Started waiter".
-    run(pipeline(detach(cmd); stdin=devnull, stdout=io, stderr=io); wait=false)
+    spawn_detached_serve!(julia, project, log)
     print_waiter_started(log)
     return true
+end
+
+"""Start `serve` so this Julia process can still exit.
+
+`run(...; wait=false)` keeps a libuv handle. `submit` then never exits, so
+client `--qhost` ssh hangs after `Started waiter`. A short-lived `sh -c ... &`
+lets the waiter outlive `submit` without that handle. Windows has no waiter
+unit; keep the Julia spawn there.
+"""
+function spawn_detached_serve!(julia::AbstractString, project::AbstractString, log::AbstractString)
+    if Sys.iswindows()
+        io = open(log, "a")
+        cmd = `$julia --startup-file=no --project=$project -m DistSSHKitQueue serve`
+        run(pipeline(detach(cmd); stdin=devnull, stdout=io, stderr=io); wait=false)
+        close(io)
+        return nothing
+    end
+    jl = sh_single_quote(julia)
+    proj = sh_single_quote(project)
+    lg = sh_single_quote(log)
+    script = "nohup $jl --startup-file=no --project=$proj -m DistSSHKitQueue serve </dev/null >>$lg 2>&1 &"
+    run(`/bin/sh -c $script`)
+    return nothing
 end
 
 function serve_cli(args::Vector{String})::Cint
