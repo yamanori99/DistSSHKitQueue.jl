@@ -13,7 +13,9 @@ function ensure_waiter!(store::AbstractString)::Bool
     mkpath(dirname(log))
     io = open(log, "a")
     cmd = `$julia --startup-file=no --project=$project -m DistSSHKitQueue serve`
-    run(pipeline(detach(cmd); stdout=io, stderr=io); wait=false)
+    # stdin must not inherit the client `--qhost` ssh pipe, or `ssh` never
+    # exits and `submit` hangs after "Started waiter".
+    run(pipeline(detach(cmd); stdin=devnull, stdout=io, stderr=io); wait=false)
     print_waiter_started(log)
     return true
 end
