@@ -30,6 +30,7 @@ end
 resolve_script(path::AbstractString) = DistSSHKit.canonical_local_path(path)
 
 # DistSSHKit `execute!(...; detached=true)` allow-list (not stdout/stderr).
+# `job_id` is always `Job.id` (progress `job=` / `DISTSSHKIT_JOB_ID`), not the bag.
 const _EXECUTE_SHARED = (
     :output_dir,
     :args,
@@ -83,22 +84,31 @@ function kit_result_path(j::Job, result)::Union{Nothing,String}
     return isempty(s) ? nothing : s
 end
 
+"""Throw with the richest detail the result carries (`KitRunResult`: `failed_step`
+/ `exit_code`), so `Job.error` and the status `ERROR` column are actionable."""
 function require_kit_ok(result)
     hasproperty(result, :ok) || return nothing
     getproperty(result, :ok) && return nothing
     kind = hasproperty(result, :kind) ? getproperty(result, :kind) : :run
-    throw(ErrorException("DistSSHKit $kind failed (ok=false)"))
+    step = hasproperty(result, :failed_step) ? getproperty(result, :failed_step) : nothing
+    code = hasproperty(result, :exit_code) ? getproperty(result, :exit_code) : nothing
+    msg = "DistSSHKit $kind failed"
+    step === nothing || (msg *= " at $(step)")
+    (code === nothing || code == 0) || (msg *= " (exit $(code))")
+    throw(ErrorException(msg))
 end
 
 """Keywords DistSSHKit `execute!(...; detached=true)` accepts, from the job bag.
 
 `yes` is always `true` (unattended child). `path_anchor` and other names are dropped.
+`job_id` is not taken from the bag; `run_kit` passes `Job.id`.
 """
 function execute_kwargs(j::Job)
     raw = kit_kwargs(j.kwargs)
     acc = Pair{Symbol,Any}[]
     for (k, v) in pairs(raw)
         k === :yes && continue
+        k === :job_id && continue
         v === nothing && continue
         if k in _EXECUTE_DRIVE_ONLY
             j.kind === :drive || continue
@@ -111,12 +121,43 @@ function execute_kwargs(j::Job)
     return (; acc...)
 end
 
-function run_kit(j::Job)
-    kp = DistSSHKit.execute!(j.kind, j.script, j.hosts; detached=true, execute_kwargs(j)...)::DistSSHKit.KitProcess
+"""`output_dir` already recorded, else the job bag (Kit may still pick a default)."""
+function kit_output_dir(j::Job)::Union{Nothing,String}
+    p = j.result_path
+    p !== nothing && return p
+    od = get(j.kwargs, "output_dir", nothing)
+    od === nothing && return nothing
+    s = strip(String(od))
+    return isempty(s) ? nothing : s
+end
+
+"""Whether DistSSHKit's detached `kit.pid` still names a live OS process."""
+function kit_child_alive(j::Job)::Bool
+    dir = kit_output_dir(j)
+    dir === nothing && return false
+    p = joinpath(dir, "kit.pid")
+    isfile(p) || return false
+    pid = tryparse(Int, strip(read(p, String)))
+    pid === nothing && return false
+    return process_alive(pid)
+end
+
+function run_kit(j::Job, on_spawn)
+    kp = DistSSHKit.execute!(
+        j.kind,
+        j.script,
+        j.hosts;
+        detached=true,
+        job_id=j.id,
+        execute_kwargs(j)...,
+    )::DistSSHKit.KitProcess
+    spawned = kit_result_path(kp)
+    on_spawn(spawned)
     result = wait(kp)
     require_kit_ok(result)
     return kit_result_path(j, result)
 end
+run_kit(j::Job) = run_kit(j, Returns(nothing))
 
 function _persist!(q::Queue)
     return _persist!(q, q.store)
@@ -242,6 +283,21 @@ function cancel!(q::Queue, id::AbstractString)::Bool
     end
 end
 
+function _set_running_result_path!(q::Queue, id::AbstractString, path::AbstractString)
+    _with_store(q) do
+        lock(q.lock) do
+            reload_keep_live!(q)
+            i = findfirst(j -> j.id == id, q.jobs)
+            i === nothing && return nothing
+            j = q.jobs[i]
+            j.state === :running || return nothing
+            j.result_path = String(path)
+            _persist!(q)
+            return nothing
+        end
+    end
+end
+
 function _finish!(q::Queue, id::AbstractString, state::Symbol, err; result_path=nothing)
     _with_store(q) do
         lock(q.lock) do
@@ -271,9 +327,17 @@ function _start!(q::Queue, j::Job)
     runner = q.runner
     id = j.id
     snap = copy(j)
+    on_spawn = function (p)
+        p isa AbstractString && _set_running_result_path!(q, id, p)
+        return nothing
+    end
     Threads.@spawn begin
         try
-            out = runner(snap)
+            out = if runner === run_kit
+                run_kit(snap, on_spawn)
+            else
+                runner(snap)
+            end
             path = out isa AbstractString ? String(out) : nothing
             if path === nothing
                 od = get(snap.kwargs, "output_dir", nothing)
@@ -283,6 +347,42 @@ function _start!(q::Queue, j::Job)
         catch e
             _finish!(q, id, :failed, sprint(showerror, e))
         end
+    end
+    return nothing
+end
+
+const _ADOPT_LOST =
+    "serve restarted; kit child exited (KitProcess lost; inspect RESULT / kit.pid)"
+
+"""If load kept a `:running` row because `kit.pid` is live, poll until it dies.
+
+Does not spawn a second DistSSHKit child. Exit code is unknown without `KitProcess`.
+"""
+function adopt_running!(q::Queue)
+    snap = lock(q.lock) do
+        i = findfirst(j -> j.state === :running, q.jobs)
+        i === nothing && return nothing
+        j = q.jobs[i]
+        kit_child_alive(j) || return nothing
+        q.live_id = j.id
+        return copy(j)
+    end
+    snap === nothing && return nothing
+    id = snap.id
+    dir = kit_output_dir(snap)
+    Threads.@spawn begin
+        while true
+            live = lock(q.lock) do
+                i = findfirst(j -> j.id == id, q.jobs)
+                i === nothing && return nothing
+                copy(q.jobs[i])
+            end
+            live === nothing && return
+            live.state === :running || return
+            kit_child_alive(live) || break
+            sleep(0.2)
+        end
+        _finish!(q, id, :failed, _ADOPT_LOST; result_path=dir)
     end
     return nothing
 end
@@ -323,6 +423,7 @@ function serve!(q::Queue; interval::Real=0.2)
         end
     end
     load!(q)
+    adopt_running!(q)
     label = store isa String ? store : "(memory)"
     if store isa String
         clear_stopped!(store)
@@ -349,13 +450,25 @@ function serve!(q::Queue; interval::Real=0.2)
     end
     owns() = store isa String ? (waiter_pid(store) == getpid()) : true
     gone = false
+    # Skip the dir-lock + TOML parse of `step!` while the store is unchanged: an
+    # idle waiter otherwise churns mkdir/rmdir + parse every `interval`. Any
+    # client enqueue or our own persist bumps the mtime, so nothing is missed.
+    last_mtime = Ref(typemin(Float64))
     try
         while true
             if !owns()
                 gone = true
                 break
             end
-            step!(q)
+            if store isa String
+                m = _store_mtime(store)
+                if m != last_mtime[]
+                    step!(q)
+                    last_mtime[] = _store_mtime(store)
+                end
+            else
+                step!(q)
+            end
             sleep(interval)
         end
     catch e

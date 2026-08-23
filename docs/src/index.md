@@ -28,7 +28,7 @@ julia -m DistSSHKitQueue enable
 julia -m DistSSHKitQueue teardown -y
 ```
 
-`--qhost` is client-only. `setup` / `serve` / `enable` / `disable` refuse it. Omit `--qhost` only when you are already on the queue host (not a sleeping laptop). `submit` auto-starts the waiter. The waiter calls DistSSHKit `execute!(…; detached=true)`.
+`--qhost` is client-only. `setup` / `serve` / `enable` / `disable` refuse it. Omit `--qhost` only when you are already on the queue host (not a sleeping laptop). `status` / `watch` print that qhost (or `local` plus hostname). `submit` auto-starts the waiter. The waiter calls DistSSHKit `execute!(…; detached=true, job_id=…)`.
 
 ## Installation
 
@@ -38,7 +38,7 @@ From a checkout:
 pkg> dev /path/to/DistSSHKitQueue.jl
 ```
 
-Needs DistSSHKit **0.3.2+**, Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
+Needs DistSSHKit **0.3.3+**, Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
 
 ## Contributing
 

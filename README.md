@@ -17,7 +17,7 @@ Small-lab job queue on top of [DistSSHKit.jl](https://github.com/yamanori99/Dist
 
 **DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a FIFO waiter that sits in front of it: the **queue host** holds the job table and the waiter, and any number of **clients** enqueue, list, watch, and cancel.
 
-Not on General yet. Julia **1.12+**, DistSSHKit **0.3.2+**.
+Not on General yet. Julia **1.12+**, DistSSHKit **0.3.3+**.
 
 - [Concept](#concept)
 - [What to run](#what-to-run)
@@ -44,7 +44,7 @@ Day to day you are a **client**. The queue host is a separate always-on box. A s
 
 - **Queue host** — always-on machine where the Kit master must run for queued jobs (macOS or Linux, a VM is fine). **One** waiter, **one** job table. If you are already logged into that box, omit `--qhost`. That is not a reason to park the waiter on a laptop.
 - **Client** — any machine that talks to that table (laptop, another workstation). Several clients at once is the point. A client must not become the Kit master.
-- **Workers** — DistSSHKit `host:N` / `local:N` on the queue host and the other machines.
+- **Workers** — DistSSHKit `host:N` / `parenthost:N` on the queue host and the other machines (`local:N` still works until Kit 0.4).
 
 Jobs from every client share one FIFO; there are no per-user or per-machine queues. The waiter calls DistSSHKit `execute!(kind, script, hosts; detached=true)` and waits — the child (`julia -m DistSSHKit go|drive`) is the Kit master, not the waiter itself. Stopping the waiter does not cancel a running Kit/SSH tree.
 
@@ -86,7 +86,7 @@ julia -m DistSSHKitQueue serve
 
 `--qhost` is not valid here — `setup` / `serve` / `enable` / `disable` run only on this machine.
 
-Already on that box (ssh session, console): omit `--qhost` for `submit` / `status` / `watch` / `cancel` / `stop` / `teardown`. Kit argv is still DistSSHKit’s (`go host:N SCRIPT.jl`, not `local:N` unless the workers really are local).
+Already on that box (ssh session, console): omit `--qhost` for `submit` / `status` / `watch` / `cancel` / `stop` / `teardown`. Kit argv is still DistSSHKit’s (`go host:N SCRIPT.jl`, or `parenthost:N` when workers are on the queue host).
 
 `stop` halts the waiter but leaves config, store, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `--qhost HOST stop`. `disable` is the opposite of `enable`, not of `serve`.
 
@@ -106,18 +106,18 @@ julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts cancel <id>
 julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts teardown -y
 ```
 
-Remote Julia is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). `SCRIPT.jl` and `host:2` are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `--qhost` it uses `ssh -t` so the remote TTY can clear the screen.
+Remote Julia is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). `SCRIPT.jl` and `host:2` are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `--qhost` it uses `ssh -t` so the remote TTY can clear the screen. Both print `qhost`: the `--qhost` token plus this machine's hostname (or `local (hostname)` when you omitted `--qhost`). Job `HOSTS` stays DistSSHKit `host:N`.
 
 ## Job record
 
-Each row in the table has: `id` (UUID), `kind` (`:go` / `:drive`), `script`, `hosts`, `state` (`:queued` / `:running` / `:done` / `:failed` / `:cancelled`), `queued_at` / `started_at` / `finished_at`, `error`, and `result_path` — wherever Kit already wrote its output. Queue only records that path; it does not keep a second copy of Kit's result tree. Kit kwargs (`args`, `project`, `output_dir`, …) travel as an opaque bag, forwarded through DistSSHKit's `execute!` allow-list.
+Each row in the table has: `id` (UUID), `kind` (`:go` / `:drive`), `script`, `hosts`, `state` (`:queued` / `:running` / `:done` / `:failed` / `:cancelled`), `queued_at` / `started_at` / `finished_at`, `error`, and `result_path` — wherever Kit already wrote its output. Queue only records that path; it does not keep a second copy of Kit's result tree. Kit kwargs (`args`, `project`, `output_dir`, …) travel as an opaque bag, forwarded through DistSSHKit's `execute!` allow-list. The waiter also passes `job_id` (the row UUID) so Kit progress lines can carry `job=`.
 
-The table is TOML on the queue host (`~/.distsshkitqueue/jobs.toml`), rewritten under a directory lock so several clients can enqueue at once. If the waiter dies: `:queued` rows reload on the next `serve`, and any `:running` row is marked `:failed` — there is no PID reattach and no automatic requeue.
+The table is TOML on the queue host (`~/.distsshkitqueue/jobs.toml`), rewritten under a directory lock so several clients can enqueue at once. If the waiter dies: `:queued` rows reload on the next `serve`. A `:running` row whose DistSSHKit `kit.pid` is still alive stays `:running` (the waiter will not start the next FIFO job; it polls that pid). A `:running` row with no live `kit.pid` is marked `:failed`. There is no `KitProcess` reattach and no automatic requeue.
 
 ## Out of scope
 
-A scheduler inside DistSSHKit, weakdeps from Queue to DistSSHKit, a glue package, lab-wide slot ceilings or occupancy packing, preemption / fair-share / priorities / reservations / backfill, HTTP or a listen socket, a sleeping laptop as the waiter, auto-retry of crashed `:running` jobs, cancelling a `:running` job, a Queue-owned copy of Kit's result trees, and native Windows.
+A scheduler inside DistSSHKit, weakdeps from Queue to DistSSHKit, a glue package, lab-wide slot ceilings or occupancy packing, preemption / fair-share / priorities / reservations / backfill, HTTP or a listen socket, a sleeping laptop as the waiter, auto-retry of crashed `:running` jobs, cancelling a `:running` job, recovering a Kit exit code after the waiter lost `KitProcess`, a Queue-owned copy of Kit's result trees, and native Windows.
 
 ## Compatibility
 
-macOS and Linux (WSL2 Ubuntu); not native Windows, since the kit shells out to `ssh` / `rsync`. Julia **1.12+**, DistSSHKit **0.3.2+** — Queue sits on Kit's `execute!` / `KitRunResult`.
+macOS and Linux (WSL2 Ubuntu); not native Windows, since the kit shells out to `ssh` / `rsync`. Julia **1.12+**, DistSSHKit **0.3.3+** — Queue sits on Kit's `execute!` / `KitProcess` / `kit.pid`.

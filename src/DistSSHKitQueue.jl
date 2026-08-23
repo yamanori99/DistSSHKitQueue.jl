@@ -64,12 +64,12 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             _, _, payload = extract_remote_opts(rest)
             return stop_cli(payload)
         elseif sub == "status"
-            r = maybe_remote(qhost, gjulia, "status", rest)
+            r = maybe_remote(qhost, gjulia, "status", rest; forward_via=true)
             r === nothing || return r
-            show_status(store_path())
-            return 0
+            _, _, payload = extract_remote_opts(rest)
+            return status_cli(payload)
         elseif sub == "watch"
-            r = maybe_remote(qhost, gjulia, "watch", rest; tty=stdout isa Base.TTY)
+            r = maybe_remote(qhost, gjulia, "watch", rest; tty=stdout isa Base.TTY, forward_via=true)
             r === nothing || return r
             _, _, payload = extract_remote_opts(rest)
             return watch_cli(payload)

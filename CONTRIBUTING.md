@@ -2,7 +2,7 @@
 
 Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `local:1`; Codecov), JETLS, path-gated PR SSH E2E on Julia 1.12 (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
+This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parenthost:1` or `local:1`; Codecov), JETLS, path-gated PR SSH E2E on Julia 1.12 (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
 
 ## Requirements
 
@@ -11,7 +11,7 @@ macOS, Linux, or WSL2 Ubuntu. Not native Windows (the kit shells out to `ssh` / 
 | What | Need |
 | --- | --- |
 | Library, `Pkg.test()`, docs | Julia **1.12+** |
-| DistSSHKit | **0.3.2+** (hard dependency; `execute!`) |
+| DistSSHKit | **0.3.3+** (hard dependency; `execute!`, `job_id`, `kit.pid`) |
 
 Prefer [juliaup](https://github.com/JuliaLang/juliaup).
 

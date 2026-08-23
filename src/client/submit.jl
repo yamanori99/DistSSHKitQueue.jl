@@ -18,13 +18,13 @@ end
 function drive_hosts(parsed)::Vector{String}
     out = String[]
     if parsed.local_workers > 0
-        push!(out, "local:$(parsed.local_workers)")
+        push!(out, "parenthost:$(parsed.local_workers)")
     end
     for (host, n) in parsed.hosts
         DistSSHKit.is_local_host_name(host) && continue
         push!(out, n === nothing ? String(host) : string(host, ":", n))
     end
-    isempty(out) && push!(out, "local")
+    isempty(out) && push!(out, "parenthost")
     return out
 end
 
@@ -51,7 +51,7 @@ function submit_go(args::Vector{String})::Cint
     parsed.help && (DistSSHKit.show_go_usage(); return 0)
     parsed.show_version && (DistSSHKit.println_kit_version(); return 0)
     hosts = String[String(h) for h in parsed.hosts]
-    isempty(hosts) && (hosts = String["local"])
+    isempty(hosts) && (hosts = String["parenthost"])
     kw = drop_nothing(Dict{String,Any}(
         "args" => parsed.script_args,
         "output_dir" => parsed.output_dir,

@@ -5,6 +5,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `status` / `watch` print `qhost`: the client `--qhost` token (forwarded as `--via`) plus the queue host's hostname, or `local (hostname)` when omitted. Not the job `HOSTS` column.
+- DistSSHKit **0.3.3+**: `execute!(...; detached=true, job_id=)` (progress `job=`), empty/`--local` tokens stored as `parenthost` / `parenthost:N`, and waiter restart uses Kit's `kit.pid` so a live child is not overlapped by the next FIFO job. Adopted rows finish `:failed` when that pid exits (exit code is gone with `KitProcess`).
 - Autoserve: spawn `serve` via `sh -c … &` so `submit` can exit. Client `--qhost submit` was hanging after `Started waiter` because `run(...; wait=false)` kept a libuv handle on the waiter.
 - README / `--help`: the product path is a dedicated queue host plus client `--qhost`. Omit `--qhost` only when you are already on that box. Kit `submit go` argv is `host:N SCRIPT.jl` (DistSSHKit order).
 - SSH E2E covers those CLI verbs over real OpenSSH (`--qhost` to a loopback queue host) and DistSSHKit docker-ssh workers. `enable` / `disable` / `teardown` use `--write-only` so CI does not touch the runner’s user systemd / LaunchAgent.
@@ -18,7 +20,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 - `--qhost HOST` before the verb (`--qhost HOST status` / `submit` / `cancel`) picks the queue host. Remote Julia uses Kit auto-detect; `--remote-julia` / `JULIA_DISTRIBUTED_EXE` override. The client stays stateless.
 - `teardown -y` stops the waiter and removes the OS unit and `~/.distsshkitqueue` (not a git clone or `Pkg.rm`).
 - Client vs queue-host verbs: `--qhost` is client-only; `setup` / `serve` / `enable` / `disable` refuse it. Source: `src/client/` and `src/qhost/`.
-- Waiter runs DistSSHKit `execute!(kind; detached=true)` (`KitRunResult`). CLI `cancel <id>` (`:queued` only). Optional `enable` (LaunchAgent / systemd user). DistSSHKit **0.3.2+**.
+- Waiter runs DistSSHKit `execute!(kind; detached=true)` (`KitRunResult`). CLI `cancel <id>` (`:queued` only). Optional `enable` (LaunchAgent / systemd user). DistSSHKit **0.3.3+**.
 - CI: schedule-only **E2E daily** (Linux / macOS Intel / WSL), GHCR worker image. Not a PR check.
 - Design: waiter is `serve`; clients use Kit `go` / `drive` argv. FIFO one table job. No Queue slot ceiling.
 - Names: `Queue`, `Job`, `submit!` / CLI `submit`, `cancel` / `cancel!`, `job` / `jobs`, `serve!` (`--interval`).

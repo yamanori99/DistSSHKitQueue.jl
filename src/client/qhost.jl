@@ -97,16 +97,22 @@ function remote_dispatch(
     return Cint(proc.exitcode)
 end
 
-"""If `--qhost` is set, ssh `sub` + `rest` and return the exit code; else `nothing`."""
+"""If `--qhost` is set, ssh `sub` + `rest` and return the exit code; else `nothing`.
+
+`forward_via`: prepend `--via dest` so remote `status` / `watch` can print the
+client token (not Kit `host:N`). Other verbs must not set this.
+"""
 function maybe_remote(
     qhost::Union{Nothing,AbstractString},
     gjulia::Union{Nothing,AbstractString},
     sub::AbstractString,
     rest::Vector{String};
     tty::Bool=false,
+    forward_via::Bool=false,
 )::Union{Nothing,Cint}
     host, rjulia, payload = extract_remote_opts(rest)
     dest, spec = coalesce_remote(qhost, gjulia, host, rjulia)
     dest === nothing && return nothing
-    return remote_dispatch(dest, spec, sub, payload; tty=tty)
+    pl = forward_via ? String["--via", dest, payload...] : payload
+    return remote_dispatch(dest, spec, sub, pl; tty=tty)
 end
