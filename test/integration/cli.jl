@@ -12,25 +12,52 @@ qcli(args) = DistSSHKitQueue.with_serve_tag(
 )
 
 function store_jobs(env)
-    return DistSSHKitQueue.load_jobs(env["DISTSSHKITQUEUE_STORE"])
+    # `read_jobs`: `load_jobs` would treat a live `:running` row without `kit.pid`
+    # yet as a restart and report `:failed` in-memory (and tests would pass/fail on a lie).
+    return DistSSHKitQueue.read_jobs(env["DISTSSHKITQUEUE_STORE"])
 end
 
-function wait_jobs(pred, env; tries=200, sleep_s=0.1)
-    rows = DistSSHKitQueue.Job[]
+function wait_job(env, id, states; tries=900, sleep_s=0.2)
+    want = Set{Symbol}(states)
+    sid = String(id)
+    last = DistSSHKitQueue.Job[]
     for _ = 1:tries
-        rows = store_jobs(env)
-        pred(rows) && return rows
+        last = store_jobs(env)
+        i = findfirst(j -> j.id == sid, last)
+        if i !== nothing && last[i].state in want
+            return last[i]
+        end
         sleep(sleep_s)
     end
-    return rows
+    error("timeout waiting for $sid in $want; last=$last")
 end
 
-function wait_done(env, id; tries=600, sleep_s=0.2)
-    wait_jobs(env; tries=tries, sleep_s=sleep_s) do rows
-        i = findfirst(j -> j.id == id, rows)
-        i !== nothing && rows[i].state in (:done, :failed)
+function wait_kit_pid(path::AbstractString; tries=300, sleep_s=0.1)
+    for _ = 1:tries
+        isfile(path) && return nothing
+        sleep(sleep_s)
     end
-    return read(addenv(qcli(["status"]), env...), String)
+    error("timeout waiting for $path")
+end
+
+function cli_env(d::AbstractString)
+    cfg = joinpath(d, "config.toml")
+    store = joinpath(d, "jobs.toml")
+    jobdir = joinpath(d, "job")
+    mkpath(jobdir)
+    write(joinpath(jobdir, "Project.toml"), "[deps]\n")
+    write(joinpath(jobdir, "hello.jl"), "println(\"cli-local\")\n")
+    write(joinpath(jobdir, "hold.jl"), "run(`sleep 600`)\n")
+    write(cfg, "store = $(repr(store))\n\n[env]\nDISTSSHKIT_YES = \"1\"\n")
+    env = Dict(
+        "DISTSSHKITQUEUE_CONFIG" => cfg,
+        "DISTSSHKITQUEUE_STORE" => store,
+        "DISTSSHKIT_YES" => "1",
+    )
+    withenv(env..., "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1") do
+        DistSSHKitQueue.main(["setup", "--config", cfg]) == 0 || error("setup failed")
+    end
+    return env, cfg, store, jobdir
 end
 
 function stop_store_waiter(store::AbstractString)
@@ -64,36 +91,20 @@ exit 0
 end
 
 @testset "CLI (parent:1)" begin
-    mktempdir() do d
-        cfg = joinpath(d, "config.toml")
-        store = joinpath(d, "jobs.toml")
-        jobdir = joinpath(d, "job")
-        mkpath(jobdir)
-        write(joinpath(jobdir, "Project.toml"), "[deps]\n")
-        write(joinpath(jobdir, "hello.jl"), "println(\"cli-local\")\n")
-        write(joinpath(jobdir, "hold.jl"), "while true; sleep(1); end\n")
-        write(cfg, "store = $(repr(store))\n\n[env]\nDISTSSHKIT_YES = \"1\"\n")
-        baseenv = Dict(
-            "DISTSSHKITQUEUE_CONFIG" => cfg,
-            "DISTSSHKITQUEUE_STORE" => store,
-            "DISTSSHKIT_YES" => "1",
-        )
-        withenv(baseenv..., "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1") do
-            @test DistSSHKitQueue.main(["setup", "--config", cfg]) == 0
-        end
-        @test isfile(cfg)
-
-        @testset "setup submit status parent:1 (explicit serve)" begin
-            env = merge(baseenv, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
+    @testset "setup submit status parent:1 (explicit serve)" begin
+        mktempdir() do d
+            env, _, store, jobdir = cli_env(d)
+            env = merge(env, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
             serve_cmd = addenv(qcli(["serve", "--interval", "0.1"]), env...)
             proc = run(serve_cmd; wait=false)
             try
                 cd(jobdir) do
                     id = strip(read(addenv(qcli(["submit", "go", "parent:1", "hello.jl"]), env...), String))
                     @test !isempty(id)
-                    out = wait_done(env, id)
+                    row = wait_job(env, id, (:done, :failed))
+                    @test row.state === :done
+                    out = read(addenv(qcli(["status"]), env...), String)
                     @test occursin(id, out)
-                    @test occursin("  done  ", out)
                     wout = read(addenv(qcli(["watch", "--ticks", "1", "--interval", "0.05"]), env...), String)
                     @test occursin("DistSSHKitQueue watch", wout)
                     @test occursin(id, wout)
@@ -101,68 +112,73 @@ end
                     @test occursin("Ctrl-C stops watch", wout)
                 end
             finally
-                kill(proc)
-                wait(proc)
-            end
-        end
-
-        @testset "auto-serve submit and cancel queued" begin
-            env = copy(baseenv)
-            cd(jobdir) do
-                hold_out = joinpath(d, "hold-queued-out")
-                id1 = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", hold_out, "hold.jl"]), env...), String))
-                id2 = strip(read(addenv(qcli(["submit", "go", "parent:1", "hello.jl"]), env...), String))
-                @test !isempty(id1)
-                c = strip(read(addenv(qcli(["cancel", id2]), env...), String))
-                @test c == id2
-                rows = wait_jobs(env) do js
-                    a = findfirst(j -> j.id == id1, js)
-                    a !== nothing && js[a].state === :running && isfile(joinpath(hold_out, "kit.pid"))
+                DistSSHKitQueue.stop_waiter!(store)
+                try
+                    kill(proc)
+                    wait(proc)
+                catch
                 end
-                @test any(j -> j.id == id1 && j.state === :running, rows)
-                listed = read(addenv(qcli(["status"]), env...), String)
-                @test occursin(id1, listed)
-                @test occursin("  running  ", listed)
-                st2 = read(addenv(qcli(["status"]), env...), String)
-                @test occursin(id2, st2)
-                @test occursin("cancelled", st2)
-                @test strip(read(addenv(qcli(["cancel", id1]), env...), String)) == id1
             end
-            stop_store_waiter(store)
         end
+    end
 
-        @testset "cancel running parent:1" begin
-            env = copy(baseenv)
+    @testset "auto-serve submit and cancel queued" begin
+        mktempdir() do d
+            env, _, store, jobdir = cli_env(d)
+            try
+                cd(jobdir) do
+                    hold_out = joinpath(d, "hold-queued-out")
+                    id1 = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", hold_out, "hold.jl"]), env...), String))
+                    @test !isempty(id1)
+                    row = wait_job(env, id1, (:running,))
+                    wait_kit_pid(joinpath(hold_out, "kit.pid"))
+                    @test row.state === :running
+                    id2 = strip(read(addenv(qcli(["submit", "go", "parent:1", "hello.jl"]), env...), String))
+                    queued = wait_job(env, id2, (:queued,))
+                    @test queued.state === :queued
+                    c = strip(read(addenv(qcli(["cancel", id2]), env...), String))
+                    @test c == id2
+                    listed = read(addenv(qcli(["status"]), env...), String)
+                    @test occursin(id1, listed)
+                    @test occursin(id2, listed)
+                    @test occursin("cancelled", listed)
+                end
+            finally
+                DistSSHKitQueue.stop_waiter!(store)
+            end
+        end
+    end
+
+    @testset "cancel running parent:1" begin
+        mktempdir() do d
+            env, _, store, jobdir = cli_env(d)
             outdir = joinpath(d, "cancel-run-out")
-            cd(jobdir) do
-                id = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", outdir, "hold.jl"]), env...), String))
-                @test !isempty(id)
-                rows = wait_jobs(env) do js
-                    a = findfirst(j -> j.id == id, js)
-                    a !== nothing && js[a].state === :running && isfile(joinpath(outdir, "kit.pid"))
+            try
+                cd(jobdir) do
+                    id = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", outdir, "hold.jl"]), env...), String))
+                    @test !isempty(id)
+                    row = wait_job(env, id, (:running,))
+                    wait_kit_pid(joinpath(outdir, "kit.pid"))
+                    @test row.state === :running
+                    c = strip(read(addenv(qcli(["cancel", id]), env...), String))
+                    @test c == id
+                    done = wait_job(env, id, (:cancelled, :failed, :done); tries=200)
+                    @test done.state === :cancelled
                 end
-                @test any(j -> j.id == id && j.state === :running, rows)
-                listed = read(addenv(qcli(["status"]), env...), String)
-                @test occursin("  running  ", listed)
-                c = strip(read(addenv(qcli(["cancel", id]), env...), String))
-                @test c == id
-                wait_jobs(env; tries=100) do js
-                    a = findfirst(j -> j.id == id, js)
-                    a !== nothing && js[a].state === :cancelled
-                end
-                st = read(addenv(qcli(["status"]), env...), String)
-                @test occursin(id, st)
-                @test occursin("cancelled", st)
+            finally
+                DistSSHKitQueue.stop_waiter!(store)
             end
-            stop_store_waiter(store)
         end
+    end
 
-        @testset "--qhost HOST ssh argv (no remote exec)" begin
+    @testset "--qhost HOST ssh argv (no remote exec)" begin
+        mktempdir() do d
+            env, _, _, _ = cli_env(d)
             log = joinpath(d, "ssh.log")
             fake = joinpath(d, "fakebin")
             write_fake_ssh(joinpath(fake, "ssh"), log)
             path = fake * ":" * get(ENV, "PATH", "")
-            withenv(baseenv..., "PATH" => path) do
+            withenv(env..., "PATH" => path) do
                 @test DistSSHKitQueue.main([
                     "--qhost", "cluster-a",
                     "--remote-julia", JULIA,

@@ -453,14 +453,15 @@ function serve!(q::Queue; interval::Real=0.2)
             print_serve_already(existing, store)
             return nothing
         end
+        # Claim the pidfile before `load!`. Two autoserve processes otherwise both
+        # pass `waiter_alive` and the second `load_jobs` persists `:failed` on a
+        # `:running` row that has no `kit.pid` yet.
+        clear_stopped!(store)
+        write_pid_file(store)
     end
     load!(q)
     adopt_running!(q)
     label = store isa String ? store : "(memory)"
-    if store isa String
-        clear_stopped!(store)
-        write_pid_file(store)
-    end
     io = stdout
     print_serve_banner(getpid(), label)
     print_serve_idle_note(; io=io)
