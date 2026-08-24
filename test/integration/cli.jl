@@ -93,8 +93,8 @@ end
 @testset "CLI (parent:1)" begin
     @testset "setup submit status parent:1 (explicit serve)" begin
         mktempdir() do d
-            env, _, store, jobdir = cli_env(d)
-            env = merge(env, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
+            base, _, store, jobdir = cli_env(d)
+            env = merge(base, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
             serve_cmd = addenv(qcli(["serve", "--interval", "0.1"]), env...)
             proc = run(serve_cmd; wait=false)
             try
