@@ -57,7 +57,7 @@ end
         mkpath(jobdir)
         write(joinpath(jobdir, "Project.toml"), "[deps]\n")
         write(joinpath(jobdir, "hello.jl"), "println(\"cli-local\")\n")
-        write(joinpath(jobdir, "slow.jl"), "sleep(4)\n")
+        write(joinpath(jobdir, "hold.jl"), "while true; sleep(1); end\n")
         write(cfg, "store = $(repr(store))\n\n[env]\nDISTSSHKIT_YES = \"1\"\n")
         baseenv = Dict(
             "DISTSSHKITQUEUE_CONFIG" => cfg,
@@ -95,17 +95,24 @@ end
         @testset "auto-serve submit and cancel queued" begin
             env = copy(baseenv)
             cd(jobdir) do
-                id1 = strip(read(addenv(qcli(["submit", "go", "parent:1", "slow.jl"]), env...), String))
+                hold_out = joinpath(d, "hold-queued-out")
+                id1 = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", hold_out, "hold.jl"]), env...), String))
                 id2 = strip(read(addenv(qcli(["submit", "go", "parent:1", "hello.jl"]), env...), String))
                 @test !isempty(id1)
                 c = strip(read(addenv(qcli(["cancel", id2]), env...), String))
                 @test c == id2
-                out = wait_done(env)
-                @test occursin(id1, out)
-                @test occursin("  done  ", out)
+                listed = ""
+                for _ = 1:200
+                    listed = read(addenv(qcli(["status"]), env...), String)
+                    occursin(id1, listed) && occursin("  running  ", listed) && isfile(joinpath(hold_out, "kit.pid")) && break
+                    sleep(0.1)
+                end
+                @test occursin(id1, listed)
+                @test occursin("  running  ", listed)
                 st2 = read(addenv(qcli(["status"]), env...), String)
                 @test occursin(id2, st2)
                 @test occursin("cancelled", st2)
+                @test strip(read(addenv(qcli(["cancel", id1]), env...), String)) == id1
             end
             stop_store_waiter(store)
         end
@@ -114,12 +121,12 @@ end
             env = copy(baseenv)
             outdir = joinpath(d, "cancel-run-out")
             cd(jobdir) do
-                id = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", outdir, "slow.jl"]), env...), String))
+                id = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", outdir, "hold.jl"]), env...), String))
                 @test !isempty(id)
                 listed = ""
-                for _ = 1:100
+                for _ = 1:200
                     listed = read(addenv(qcli(["status"]), env...), String)
-                    occursin(id, listed) && occursin("  running  ", listed) && break
+                    occursin(id, listed) && occursin("  running  ", listed) && isfile(joinpath(outdir, "kit.pid")) && break
                     sleep(0.1)
                 end
                 @test occursin("  running  ", listed)
