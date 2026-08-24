@@ -362,7 +362,7 @@ end
                 for (kind, script, label, args, artifact, needle) in cases
                     @testset "$label" begin
                         case_store = joinpath(d, "store_$label.toml")
-                        out = joinpath(JOB_PROJECT, "go_out", label)
+                        out = joinpath(JOB_PROJECT, "e2e_kit_out", label)
                         isdir(out) && rm(out; recursive = true)
                         q = Queue(; store = case_store)
                         id = enqueue_kit!(q, kind, script, token; out = out, args = args)
@@ -389,8 +389,8 @@ end
                 store_fifo = joinpath(d, "fifo.toml")
                 echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
                 q = Queue(; store = store_fifo)
-                out_a = joinpath(JOB_PROJECT, "go_out", "fifo_a")
-                out_b = joinpath(JOB_PROJECT, "go_out", "fifo_b")
+                out_a = joinpath(JOB_PROJECT, "e2e_kit_out", "fifo_a")
+                out_b = joinpath(JOB_PROJECT, "e2e_kit_out", "fifo_b")
                 isdir(out_a) && rm(out_a; recursive = true)
                 isdir(out_b) && rm(out_b; recursive = true)
                 a = enqueue_kit!(q, :go, echo, token; out = out_a, args = GO_N)
@@ -411,7 +411,7 @@ end
                 store_c = joinpath(d, "cancel.toml")
                 echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
                 h = Queue(; store = store_c)
-                outs = [joinpath(JOB_PROJECT, "go_out", "skip_$i") for i = 1:3]
+                outs = [joinpath(JOB_PROJECT, "e2e_kit_out", "skip_$i") for i = 1:3]
                 for o in outs
                     isdir(o) && rm(o; recursive = true)
                 end
@@ -436,8 +436,8 @@ end
                 hold = joinpath(d, "hold_cancel.jl")
                 write(hold, "while true; sleep(1); end\n")
                 h = Queue(; store = store_r)
-                out_a = joinpath(JOB_PROJECT, "go_out", "cancel_run_a")
-                out_b = joinpath(JOB_PROJECT, "go_out", "cancel_run_b")
+                out_a = joinpath(JOB_PROJECT, "e2e_kit_out", "cancel_run_a")
+                out_b = joinpath(JOB_PROJECT, "e2e_kit_out", "cancel_run_b")
                 for o in (out_a, out_b)
                     isdir(o) && rm(o; recursive = true)
                 end
@@ -517,7 +517,7 @@ end
 
                     serve_proc = run(pipeline(addenv(qcmd(["serve", "--interval", "0.2"]), env...); stdout=devnull, stderr=devnull); wait=false)
                     try
-                        outdir = joinpath(JOB_PROJECT, "go_out", "cli_on_host")
+                        outdir = joinpath(JOB_PROJECT, "e2e_kit_out", "cli_on_host")
                         isdir(outdir) && rm(outdir; recursive=true)
                         id = read_cli(addenv(qcmd(["submit", "go", token, "--output-dir", outdir, script, GO_N...]), env...))
                         @test !isempty(id)
@@ -579,7 +579,7 @@ end
                         @test rejected.exitcode != 0
                         @test occursin("client flag", String(take!(reject_err)))
 
-                        outdir = joinpath(JOB_PROJECT, "go_out", "qhost")
+                        outdir = joinpath(JOB_PROJECT, "e2e_kit_out", "qhost")
                         isdir(outdir) && rm(outdir; recursive=true)
                         id1 = read_cli(addenv(qh(["submit", "go", token, "--output-dir", outdir, script, GO_N...]), client_env...))
                         @test !isempty(id1)
@@ -596,10 +596,17 @@ end
                         # immediately (same pattern as test/integration/cli.jl).
                         hold = joinpath(d, "hold.jl")
                         write(hold, "while true; sleep(1); end\n")
-                        cancel_out = joinpath(JOB_PROJECT, "go_out", "qhost_cancel")
+                        cancel_out = joinpath(JOB_PROJECT, "e2e_kit_out", "qhost_cancel")
                         isdir(cancel_out) && rm(cancel_out; recursive=true)
                         id2 = read_cli(addenv(qh(["submit", "go", "parent:1", "--output-dir", cancel_out, hold]), client_env...))
+                        wait_status(addenv(qh(["status"]), client_env...)) do out
+                            occursin(id2, out) && occursin("  running  ", out)
+                        end
+                        isfile(joinpath(cancel_out, "kit.pid")) || sleep(0.5)
                         id3 = read_cli(addenv(qh(["submit", "go", token, script, GO_N...]), client_env...))
+                        wait_status(addenv(qh(["status"]), client_env...)) do out
+                            occursin(id3, out) && occursin("queued", out)
+                        end
                         cancelled = read_cli(addenv(qh(["cancel", id3]), client_env...))
                         @test cancelled == id3
                         after = wait_status(addenv(qh(["status"]), client_env...)) do out

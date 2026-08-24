@@ -2,7 +2,9 @@
 
 Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **min** (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
+This is a **separate** package from DistSSHKit: a FIFO waiter in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
+
+Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **min** (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
 
 ## Requirements
 
@@ -140,6 +142,14 @@ If Queue cannot implement something without a kit hook, open a DistSSHKit Enhanc
 ## Issues
 
 **Issues** (Bug / Enhancement forms only): `bug` or `enhancement`. Usage questions can wait until Discussions are on. Security: [SECURITY.md](SECURITY.md).
+
+A Queue failure is not automatically a Queue bug. Decide the repo first:
+
+- Queue lagged Kit's contract (demo argv, translating `terminate_run!` wait into `:cancelled`, collect under a gitignored path): fix Queue. Do not open DistSSHKit.
+- Queue cannot land the feature without a Kit hook: DistSSHKit Enhancement, Kit PR, Kit cut, then pin here ([DistSSHKit cuts](#distsshkit-cuts)).
+- Reproduced Kit defect (`execute!` `ok` with empty collect, wait/cancel that contradicts Kit docs): open a [DistSSHKit issue](https://github.com/yamanori99/DistSSHKit.jl/issues) with the Kit log / `kit.result` / `failed_step`. Link it from the Queue issue or PR. A Queue-only workaround is temporary and must say so.
+
+Do not file DistSSHKit on speculation. Reproduce against Kit (or this E2E with Kit artifacts) first.
 
 Every PR needs one type label (`bug` / `enhancement` / `chore`) when labels exist.
 

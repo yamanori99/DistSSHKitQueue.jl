@@ -322,10 +322,10 @@ function _finish!(q::Queue, id::AbstractString, state::Symbol, err; result_path=
             i === nothing && return nothing
             j = q.jobs[i]
             # `:cancelled` must win a race with the spawn `_finish!(:failed)`
-            # after `terminate_run!` (E2E: state stayed `:failed` while
-            # `cancel!` still returned true).
+            # or `:done` after `terminate_run!` (wait can look successful).
             if state === :cancelled
-                (j.state === :running || j.state === :failed) || return nothing
+                (j.state === :running || j.state === :failed || j.state === :done) ||
+                    return nothing
             else
                 j.state === :running || return nothing
             end
