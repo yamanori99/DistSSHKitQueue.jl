@@ -7,12 +7,24 @@ function sh_single_quote(s::AbstractString)::String
     return string('\'', replace(String(s), "'" => "'\\''"), '\'')
 end
 
+"""The Julia the waiter unit (`enable` / autoserve `serve`) runs.
+
+Delegates to DistSSHKit `resolve_controller_julia()` — the same controller-Julia
+detection the detached child uses — so the OS unit and the Kit child agree on the
+binary. Falls back to `julia_cmd` if Kit's usability check throws (never in a
+process that is itself running Julia).
+"""
 function default_julia_bin()::String
-    exe = Base.julia_cmd().exec[1]
-    isfile(exe) && return DistSSHKit.canonical_local_path(exe)
-    w = Sys.which("julia")
-    w !== nothing && isfile(w) && return DistSSHKit.canonical_local_path(w)
-    return joinpath(Sys.BINDIR, Sys.iswindows() ? "julia.exe" : "julia")
+    try
+        return DistSSHKit.canonical_local_path(DistSSHKit.resolve_controller_julia())
+    catch e
+        e isa ArgumentError || rethrow()
+        exe = Base.julia_cmd().exec[1]
+        isfile(exe) && return DistSSHKit.canonical_local_path(exe)
+        w = Sys.which("julia")
+        w !== nothing && isfile(w) && return DistSSHKit.canonical_local_path(w)
+        return joinpath(Sys.BINDIR, Sys.iswindows() ? "julia.exe" : "julia")
+    end
 end
 
 """`~/.distsshkitqueue/env`, a Queue environment independent of any dev checkout.

@@ -53,7 +53,7 @@ function print_queue_usage(io::IO=stdout)
         "  (--project=. is the job tree; no files written on the laptop.)",
         "  status                         List jobs on the queue host",
         "  watch [--interval S]           Live status; Ctrl-C leaves the waiter",
-        "  submit go [Kit go argv]        Enqueue DistSSHKit go",
+        "  submit go [Kit go argv]        Enqueue DistSSHKit go (parenthost:N / host:N)",
         "  submit drive [Kit drive argv]  Enqueue DistSSHKit drive",
         "  cancel <id>                    Drop a :queued row",
         "  teardown -y                    Stop waiter and remove queue-host files",
@@ -72,6 +72,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_section("Notes"; io=io)
     DistSSHKit.print_help_lines(io,
         "  Day to day: --qhost HOST from a client. Logged into the queue host: omit it.",
+        "  status / watch print qhost (--qhost token, or local plus hostname).",
         "  A sleeping laptop is not a queue host.",
         "  Do not pass --qhost to setup / serve / enable / disable.",
         "  Remote Julia: Kit auto-detect; --remote-julia / JULIA_DISTRIBUTED_EXE override.",
@@ -188,6 +189,15 @@ function _waiter_disp(store::AbstractString)::String
     return "none"
 end
 
+function _qhost_disp(via::Union{Nothing,AbstractString})::String
+    hn = gethostname()
+    if via === nothing || isempty(String(via))
+        return "local ($hn)"
+    end
+    v = String(via)
+    return v == hn ? v : "$v ($hn)"
+end
+
 function print_jobs_table(rows::Vector{Job}; io::IO=stdout)
     DistSSHKit.print_help_section("Jobs"; io=io)
     if isempty(rows)
@@ -245,19 +255,33 @@ function print_jobs_table(rows::Vector{Job}; io::IO=stdout)
     return nothing
 end
 
-function print_status_table(store::AbstractString, rows::Vector{Job}; io::IO=stdout)
+function print_status_table(
+    store::AbstractString,
+    rows::Vector{Job};
+    io::IO=stdout,
+    via::Union{Nothing,AbstractString}=nothing,
+)
     DistSSHKit.print_help_section("Store"; io=io)
-    DistSSHKit.print_help_lines(io, "  $(_q_short(store))")
+    DistSSHKit.print_help_lines(io,
+        "  path   $(_q_short(store))",
+        "  qhost  $(_qhost_disp(via))",
+    )
     DistSSHKit.print_help_blank(io)
     return print_jobs_table(rows; io=io)
 end
 
-function print_watch_frame(store::AbstractString, rows::Vector{Job}; io::IO=stdout)
+function print_watch_frame(
+    store::AbstractString,
+    rows::Vector{Job};
+    io::IO=stdout,
+    via::Union{Nothing,AbstractString}=nothing,
+)
     DistSSHKit.print_help_chrome("DistSSHKitQueue watch"; io=io)
     DistSSHKit.print_help_section("Process"; io=io)
     DistSSHKit.print_help_lines(io,
         "  store   $(_q_short(store))",
         "  waiter  $(_waiter_disp(store))",
+        "  qhost   $(_qhost_disp(via))",
     )
     DistSSHKit.print_help_blank(io)
     print_jobs_table(rows; io=io)

@@ -133,6 +133,7 @@ end
             @test occursin("DistSSHKitQueue", dumped)
             @test occursin("status", dumped)
             @test occursin("watch", dumped)
+            @test occursin("--via", dumped)
         end
     end
 

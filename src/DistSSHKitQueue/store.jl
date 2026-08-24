@@ -93,8 +93,30 @@ end
 
 store_pid_path(store::AbstractString)::String = string(store, ".pid")
 
+"""Store file mtime (seconds), or `-1.0` when it does not exist yet.
+`serve!` uses this to skip re-locking / re-parsing an unchanged store."""
+_store_mtime(store::AbstractString)::Float64 = isfile(store) ? mtime(store) : -1.0
+
+"""Whether OS `pid` is live, without forking a `kill` subprocess.
+
+`serve!` polls this every `interval` (default 0.2s), so a fork/exec per tick is
+wasteful; use the same non-killing `kill(pid, 0)` syscall DistSSHKit's own
+`kit.pid` liveness check uses. `EPERM` means the pid exists but is owned by
+another user — still alive."""
 function process_alive(pid::Integer)::Bool
     pid > 0 || return false
+    Sys.isunix() || return _process_alive_fallback(pid)
+    try
+        Base.Libc.errno(0)
+        rc = ccall(:kill, Cint, (Cint, Cint), pid, 0)
+        rc == 0 && return true
+        return Base.Libc.errno() == Cint(1) # EPERM: exists, owned by someone else
+    catch
+        return _process_alive_fallback(pid)
+    end
+end
+
+function _process_alive_fallback(pid::Integer)::Bool
     try
         return success(run(pipeline(`kill -0 $pid`; stdout=devnull, stderr=devnull)))
     catch
@@ -163,11 +185,11 @@ end
 
 function fail_stale_running!(jobs::Vector{Job})
     for j in jobs
-        if j.state === :running
-            j.state = :failed
-            j.finished_at = now(UTC)
-            j.error = "serve restarted; running job marked failed"
-        end
+        j.state === :running || continue
+        kit_child_alive(j) && continue
+        j.state = :failed
+        j.finished_at = now(UTC)
+        j.error = "serve restarted; running job marked failed"
     end
     return jobs
 end
