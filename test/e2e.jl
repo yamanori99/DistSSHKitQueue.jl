@@ -306,7 +306,7 @@ end
         @testset "setup! deploys example job (Kit demos + DistSSHKit)" begin
             session = KitSession(
                 project = JOB_PROJECT,
-                workers = HOSTS,
+                workers = ["child:$(h)" for h in HOSTS],
                 remote = REMOTE_ROOT,
                 yes = true,
                 quiet = true,
@@ -431,7 +431,7 @@ end
                 store_r = joinpath(d, "cancel-running.toml")
                 echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
                 hold = joinpath(d, "hold_cancel.jl")
-                write(hold, "sleep(30)\n")
+                write(hold, "while true; sleep(1); end\n")
                 h = Queue(; store = store_r)
                 out_a = joinpath(JOB_PROJECT, "go_out", "cancel_run_a")
                 out_b = joinpath(JOB_PROJECT, "go_out", "cancel_run_b")
@@ -592,7 +592,7 @@ end
                         # `pi_echo` finishes before cancel. Submit the queued row
                         # immediately (same pattern as test/integration/cli.jl).
                         hold = joinpath(d, "hold.jl")
-                        write(hold, "sleep(30)\n")
+                        write(hold, "while true; sleep(1); end\n")
                         cancel_out = joinpath(JOB_PROJECT, "go_out", "qhost_cancel")
                         isdir(cancel_out) && rm(cancel_out; recursive=true)
                         id2 = read_cli(addenv(qh(["submit", "go", "parent:1", "--output-dir", cancel_out, hold]), client_env...))
