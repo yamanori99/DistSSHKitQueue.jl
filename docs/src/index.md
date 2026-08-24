@@ -15,7 +15,7 @@ This package is not on General yet. See the [README](https://github.com/yamanori
 ```bash
 julia --project=. -m DistSSHKitQueue --qhost HOST status
 julia --project=. -m DistSSHKitQueue --qhost HOST watch
-julia --project=. -m DistSSHKitQueue --qhost HOST submit go worker:4 SCRIPT.jl
+julia --project=. -m DistSSHKitQueue --qhost HOST submit go child:worker:4 SCRIPT.jl
 julia --project=. -m DistSSHKitQueue --qhost HOST cancel <id>
 ```
 
@@ -38,7 +38,7 @@ From a checkout:
 pkg> dev /path/to/DistSSHKitQueue.jl
 ```
 
-Needs DistSSHKit **0.3.3+**, Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
+Needs DistSSHKit **0.4.0+**, Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
 
 ## Contributing
 

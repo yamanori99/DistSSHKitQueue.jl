@@ -1,4 +1,4 @@
-# Child CLI (`julia -m DistSSHKitQueue`) + local:1. Not SSH.
+# Child CLI (`julia -m DistSSHKitQueue`) + parent:1. Not SSH.
 # Fake `ssh` only checks `--qhost` argv. Real OpenSSH client path is test/e2e.jl.
 
 using Test
@@ -49,7 +49,7 @@ exit 0
     return path
 end
 
-@testset "CLI (local:1)" begin
+@testset "CLI (parent:1)" begin
     mktempdir() do d
         cfg = joinpath(d, "config.toml")
         store = joinpath(d, "jobs.toml")
@@ -69,13 +69,13 @@ end
         end
         @test isfile(cfg)
 
-        @testset "setup submit status local:1 (explicit serve)" begin
+        @testset "setup submit status parent:1 (explicit serve)" begin
             env = merge(baseenv, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
             serve_cmd = addenv(qcli(["serve", "--interval", "0.1"]), env...)
             proc = run(serve_cmd; wait=false)
             try
                 cd(jobdir) do
-                    id = strip(read(addenv(qcli(["submit", "go", "local:1", "hello.jl"]), env...), String))
+                    id = strip(read(addenv(qcli(["submit", "go", "parent:1", "hello.jl"]), env...), String))
                     @test !isempty(id)
                     out = wait_done(env)
                     @test occursin(id, out)
@@ -95,8 +95,8 @@ end
         @testset "auto-serve submit and cancel queued" begin
             env = copy(baseenv)
             cd(jobdir) do
-                id1 = strip(read(addenv(qcli(["submit", "go", "local:1", "slow.jl"]), env...), String))
-                id2 = strip(read(addenv(qcli(["submit", "go", "local:1", "hello.jl"]), env...), String))
+                id1 = strip(read(addenv(qcli(["submit", "go", "parent:1", "slow.jl"]), env...), String))
+                id2 = strip(read(addenv(qcli(["submit", "go", "parent:1", "hello.jl"]), env...), String))
                 @test !isempty(id1)
                 c = strip(read(addenv(qcli(["cancel", id2]), env...), String))
                 @test c == id2
@@ -106,6 +106,33 @@ end
                 st2 = read(addenv(qcli(["status"]), env...), String)
                 @test occursin(id2, st2)
                 @test occursin("cancelled", st2)
+            end
+            stop_store_waiter(store)
+        end
+
+        @testset "cancel running parent:1" begin
+            env = copy(baseenv)
+            outdir = joinpath(d, "cancel-run-out")
+            cd(jobdir) do
+                id = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", outdir, "slow.jl"]), env...), String))
+                @test !isempty(id)
+                listed = ""
+                for _ = 1:100
+                    listed = read(addenv(qcli(["status"]), env...), String)
+                    occursin(id, listed) && occursin("  running  ", listed) && break
+                    sleep(0.1)
+                end
+                @test occursin("  running  ", listed)
+                c = strip(read(addenv(qcli(["cancel", id]), env...), String))
+                @test c == id
+                st = ""
+                for _ = 1:100
+                    st = read(addenv(qcli(["status"]), env...), String)
+                    occursin(id, st) && occursin("cancelled", st) && break
+                    sleep(0.1)
+                end
+                @test occursin(id, st)
+                @test occursin("cancelled", st)
             end
             stop_store_waiter(store)
         end

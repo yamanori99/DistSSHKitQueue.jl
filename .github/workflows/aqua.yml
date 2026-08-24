@@ -1,4 +1,4 @@
-name: Test
+name: Aqua
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: aqua-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 
 permissions:
@@ -16,16 +16,10 @@ permissions:
   actions: write # julia-actions/cache delete-old-caches
 
 jobs:
-  # Queue stays Julia 1.12 (Project.toml). Do not copy DistSSHKit slots.
-  # Codecov (flag pkgtest): main push only — not on pull_request.
-  test:
-    name: Pkg.test - 1.12 - ubuntu-latest
+  aqua:
+    name: Aqua - 1.12 - ubuntu-latest
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      id-token: write # Codecov OIDC on main push
-      actions: write
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/ci-heavy
@@ -36,8 +30,6 @@ jobs:
           version: "1.12"
       - uses: julia-actions/cache@v3
         if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
-      - uses: ./.github/actions/pkg-test
+      - name: Aqua.test_all (latest Aqua)
         if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
-        with:
-          coverage: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          upload: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: ./.github/aqua-check.sh

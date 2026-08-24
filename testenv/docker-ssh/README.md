@@ -1,7 +1,7 @@
 # Docker SSH workers (Queue happy-path E2E)
 
 Real OpenSSH + rsync Linux workers for a DistSSHKitQueue end-to-end run. These
-containers are **DistSSHKit `go` / `drive` targets** (`host:N`), not the queue
+containers are **DistSSHKit `go` / `drive` targets** (`child:NAME[:N]`), not the queue
 host. The queue host and the waiter run on the host during `--e2e`.
 
 Adapted from DistSSHKit's `testenv/docker-ssh` (same worker image shape), kept
@@ -14,7 +14,7 @@ Optional Mac-only path (same image and `test/e2e.jl`):
 
 ## What the E2E proves
 
-The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `host:N` workers only.
+The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `child:NAME[:N]` workers only.
 
 [`test/e2e.jl`](../../test/e2e.jl):
 
@@ -27,7 +27,7 @@ The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSH
 5. Cancel the middle queued row; waiter skips it and runs the next.
 6. `result_path` is Kit’s collected tree; peek it on the queue host (no second collect).
 7. Queue-host CLI (omit `--qhost`, fake `HOME`): `setup`, `enable --write-only`,
-   `disable --write-only`, foreground `serve`, `submit go dskq-w1:1 SCRIPT.jl`, `status`,
+   `disable --write-only`, foreground `serve`, `submit go child:dskq-w1:1 SCRIPT.jl`, `status`,
    `watch --ticks 1`, `stop`.
 8. Client `--qhost dskq-qh` over a **loopback OpenSSH** (not a fake `ssh` binary):
    `submit` / `status` / `watch` / `cancel` / `stop` / `teardown -y --write-only`.
@@ -82,7 +82,7 @@ julia --project=../.. -m DistSSHKitQueue setup
 # put SSH opts in ~/.distsshkitqueue/config.toml [env]
 
 # from a client
-julia --project=../.. -m DistSSHKitQueue --qhost HOST submit go dskq-w1:1 SCRIPT.jl
+julia --project=../.. -m DistSSHKitQueue --qhost HOST submit go child:dskq-w1:1 SCRIPT.jl
 julia --project=../.. -m DistSSHKitQueue --qhost HOST status
 ```
 
@@ -102,19 +102,20 @@ DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl
 
 `DSKQ_WORKER_IMAGE=<tag> ./scripts/up.sh` pulls a prebuilt worker image instead
 of building locally (`DSKQ_WORKER_PULL_RETRIES` for wait-on-push). After a local
-build, `DSKQ_PUSH_IMAGE=<tag>` tags and pushes that image.
+build, `DSKQ_PUSH_IMAGE=<tag>` tags and pushes that image (`scripts/push-image.sh`,
+retries). `DSKQ_SKIP_UP=1` skips compose up (image job: build+push only).
 
 ## CI
 
 [`.github/workflows/ssh-e2e.yml`](../../.github/workflows/ssh-e2e.yml) runs
 `./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
-`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. CI sets
-`DSKQ_CODE_COVERAGE=1` (`--code-coverage=user`) and uploads flag `e2e` to Codecov.
-`Pkg.test()` still does not start Docker.
+`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. Ordinary PR E2E
+does not upload Codecov. A `cut` PR sets `DSKQ_CODE_COVERAGE=1` and uploads
+flag `e2e`. `Pkg.test()` still does not start Docker.
 
 [`.github/workflows/ssh-e2e-daily.yml`](../../.github/workflows/ssh-e2e-daily.yml)
 is **not** a PR check (schedule 04:00 JST + `workflow_dispatch`). It builds
-`ghcr.io/<owner>/dskq-linux-ssh-worker:<sha>`, runs E2E on Ubuntu, `macos-15-intel`
-(Colima via [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh)), and WSL2,
-then tags `latest`. Daily does not upload Codecov. Make the GHCR package public
-after the first push so forks can pull if needed.
+`ghcr.io/<owner>/dskq-linux-ssh-worker:<sha>` (`DSKQ_SKIP_UP=1`), then E2E on
+Ubuntu, `macos-15-intel` (Colima via [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh)),
+and WSL2, then tags `latest`. Linux daily uploads Codecov flag `e2e`. Make the
+GHCR package public after the first push so forks can pull if needed.

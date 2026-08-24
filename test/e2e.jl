@@ -7,14 +7,15 @@
 # DistSSHKit `execute!(…; detached=true)`.
 #
 # Also: `julia -m DistSSHKitQueue` on the queue host (omit `--qhost`) and as a
-# client (`--qhost` over loopback OpenSSH). Kit slots on docker-ssh (`dskq-w1:1`).
+# client (`--qhost` over loopback OpenSSH). Kit slots on docker-ssh (`child:dskq-w1:1`).
 # Not a laptop + `local:N` topology. `enable` / `disable` / `teardown` use
 # `--write-only` (no user systemd / launchctl).
 #
 # Table jobs are the four *file*/*echo* demos. `pipeline_pi.jl` /
 # `pipeline_square.jl` call `go!` / `pipeline!` themselves — not Queue rows.
 #
-# Also: FIFO one-at-a-time, cancel-queued (skip that row, run the next).
+# Also: FIFO one-at-a-time, cancel queued (skip that row), cancel running
+# (`terminate_run!`, then the next queued row).
 #
 #   testenv/docker-ssh/scripts/up.sh --e2e
 #   testenv/apple-container-ssh/scripts/up.sh --e2e   # macOS Apple silicon, not CI
@@ -318,7 +319,7 @@ end
 
         mktempdir() do d
             host = HOSTS[1]
-            token = "$(host):1"
+            token = "child:$(host):1"
 
             @testset "Kit go/drive demos through the waiter" begin
                 cases = (
@@ -418,12 +419,51 @@ end
                 @test job(h, b).state === :cancelled
                 @test step!(h) == 1
                 @test job(h, a).state === :running
-                @test !cancel!(h, a)
                 @test drive_until_terminal!(h, a) === :done
                 @test step!(h) == 1
                 @test job(h, c).state === :running
                 @test drive_until_terminal!(h, c) === :done
                 @test job(h, b).state === :cancelled
+                @test step!(h) == 0
+            end
+
+            @testset "cancel running then the next queued row" begin
+                store_r = joinpath(d, "cancel-running.toml")
+                echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
+                hold = joinpath(d, "hold_cancel.jl")
+                write(hold, "sleep(30)\n")
+                h = Queue(; store = store_r)
+                out_a = joinpath(JOB_PROJECT, "go_out", "cancel_run_a")
+                out_b = joinpath(JOB_PROJECT, "go_out", "cancel_run_b")
+                for o in (out_a, out_b)
+                    isdir(o) && rm(o; recursive = true)
+                end
+                a = submit!(
+                    h,
+                    hold,
+                    String["parent:1"];
+                    kind = :go,
+                    project = JOB_PROJECT,
+                    output_dir = out_a,
+                    julia = "auto",
+                    args = String[],
+                    yes = true,
+                    quiet = true,
+                )
+                b = enqueue_kit!(h, :go, echo, token; out = out_b, args = ["64"])
+                @test step!(h) == 1
+                @test job(h, a).state === :running
+                t0 = time()
+                while !DistSSHKitQueue.kit_child_alive(job(h, a)) && (time() - t0) < 15
+                    sleep(0.05)
+                end
+                @test DistSSHKitQueue.kit_child_alive(job(h, a))
+                @test cancel!(h, a)
+                @test job(h, a).state === :cancelled
+                @test step!(h) == 1
+                @test job(h, b).state === :running
+                @test drive_until_terminal!(h, b) === :done
+                @test job(h, a).state === :cancelled
                 @test step!(h) == 0
             end
         end
@@ -438,7 +478,7 @@ end
                 mkpath(e2e_home)
                 cfg = joinpath(e2e_home, ".distsshkitqueue", "config.toml")
                 store = joinpath(e2e_home, ".distsshkitqueue", "jobs.toml")
-                token = "$(HOSTS[1]):1"
+                token = "child:$(HOSTS[1]):1"
                 script = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
                 @test isfile(script)
 
@@ -548,14 +588,14 @@ end
                         wout = read_cli(addenv(qh(["watch", "--ticks", "1", "--interval", "0.05"]), client_env...))
                         @test occursin(id1, wout)
 
-                        # Occupy the waiter on this box (`local:1`); a worker
+                        # Occupy the waiter on this box (`parent:1`); a worker
                         # `pi_echo` finishes before cancel. Submit the queued row
                         # immediately (same pattern as test/integration/cli.jl).
                         hold = joinpath(d, "hold.jl")
                         write(hold, "sleep(30)\n")
                         cancel_out = joinpath(JOB_PROJECT, "go_out", "qhost_cancel")
                         isdir(cancel_out) && rm(cancel_out; recursive=true)
-                        id2 = read_cli(addenv(qh(["submit", "go", "local:1", "--output-dir", cancel_out, hold]), client_env...))
+                        id2 = read_cli(addenv(qh(["submit", "go", "parent:1", "--output-dir", cancel_out, hold]), client_env...))
                         id3 = read_cli(addenv(qh(["submit", "go", token, script, "64"]), client_env...))
                         cancelled = read_cli(addenv(qh(["cancel", id3]), client_env...))
                         @test cancelled == id3

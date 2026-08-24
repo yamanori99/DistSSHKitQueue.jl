@@ -187,9 +187,7 @@ function fail_stale_running!(jobs::Vector{Job})
     for j in jobs
         j.state === :running || continue
         kit_child_alive(j) && continue
-        j.state = :failed
-        j.finished_at = now(UTC)
-        j.error = "serve restarted; running job marked failed"
+        settle_lost_kit_child!(j)
     end
     return jobs
 end

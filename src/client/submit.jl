@@ -15,17 +15,15 @@ function drop_nothing(d::Dict{String,Any})
     return out
 end
 
-function drive_hosts(parsed)::Vector{String}
-    out = String[]
-    if parsed.local_workers > 0
-        push!(out, "parenthost:$(parsed.local_workers)")
-    end
-    for (host, n) in parsed.hosts
-        DistSSHKit.is_local_host_name(host) && continue
-        push!(out, n === nothing ? String(host) : string(host, ":", n))
-    end
-    isempty(out) && push!(out, "parenthost")
+function submit_hosts(parsed; kind::Symbol)::Vector{String}
+    out = DistSSHKit.host_tokens(parsed; kind=kind)
+    isempty(out) && return String["parent"]
     return out
+end
+
+function submit_kit_bag(parsed; kind::Symbol)::Dict{String,Any}
+    raw = DistSSHKit.execute_kwargs_from_parsed(parsed; kind=kind)
+    return drop_nothing(Dict{String,Any}(String(k) => v for (k, v) in raw))
 end
 
 function submit_cli(store::AbstractString, kind::Symbol, script::AbstractString, hosts, kw::Dict{String,Any})
@@ -50,40 +48,25 @@ function submit_go(args::Vector{String})::Cint
     parsed = DistSSHKit.parse_go_args(args)
     parsed.help && (DistSSHKit.show_go_usage(); return 0)
     parsed.show_version && (DistSSHKit.println_kit_version(); return 0)
-    hosts = String[String(h) for h in parsed.hosts]
-    isempty(hosts) && (hosts = String["parenthost"])
-    kw = drop_nothing(Dict{String,Any}(
-        "args" => parsed.script_args,
-        "output_dir" => parsed.output_dir,
-        "julia" => parsed.julia,
-        "sync" => parsed.sync,
-        "quiet" => parsed.cli_session.quiet,
-        "yes" => true,
-    ))
-    return submit_cli(store_path(), :go, script_arg(parsed.script_path, "go"), hosts, kw)
+    return submit_cli(
+        store_path(),
+        :go,
+        script_arg(parsed.script_path, "go"),
+        submit_hosts(parsed; kind=:go),
+        submit_kit_bag(parsed; kind=:go),
+    )
 end
 
 function submit_drive(args::Vector{String})::Cint
     parsed = DistSSHKit.parse_drive_args(args)
-    parsed.help && (DistSSHKit.show_drive_requirements(); return 0)
+    parsed.help && (DistSSHKit.show_drive_usage(); return 0)
     parsed.show_version && (DistSSHKit.println_kit_version(); return 0)
-    kw = drop_nothing(Dict{String,Any}(
-        "args" => parsed.script_args,
-        "output_dir" => parsed.output_dir,
-        "log_dir" => parsed.log_dir,
-        "julia" => parsed.julia,
-        "sync" => parsed.sync_mode,
-        "skip_hash_check" => parsed.skip_hash_check,
-        "require_all_hosts" => parsed.require_all_hosts,
-        "quiet" => parsed.cli_session.quiet,
-        "yes" => true,
-    ))
     return submit_cli(
         store_path(),
         :drive,
         script_arg(parsed.script_path, "drive"),
-        drive_hosts(parsed),
-        kw,
+        submit_hosts(parsed; kind=:drive),
+        submit_kit_bag(parsed; kind=:drive),
     )
 end
 

@@ -4,6 +4,8 @@
 #   ./.github/jetls-check.sh
 #   ./.github/jetls-check.sh --progress=none
 #   ./.github/jetls-check.sh --print-files   # CI file list
+#
+# `test/e2e.jl` is a second test entry (not included from `runtests.jl`).
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"

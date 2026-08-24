@@ -2,7 +2,7 @@
 
 Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parenthost:1` or `local:1`; Codecov), JETLS, path-gated PR SSH E2E on Julia 1.12 (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
+This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on Julia 1.12 (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ macOS, Linux, or WSL2 Ubuntu. Not native Windows (the kit shells out to `ssh` / 
 | What | Need |
 | --- | --- |
 | Library, `Pkg.test()`, docs | Julia **1.12+** |
-| DistSSHKit | **0.3.3+** (hard dependency; `execute!`, `job_id`, `kit.pid`) |
+| DistSSHKit | **0.4.0+** (hard dependency; `execute!`, `job_id`, `kit.pid` / `kit.result`) |
 
 Prefer [juliaup](https://github.com/JuliaLang/juliaup).
 
@@ -43,28 +43,42 @@ gitleaks detect --source .
 
 Layout: [test/README.md](test/README.md).
 
-JETLS is the type gate (`./.github/jetls-check.sh`, hint+). Do not commit `.vscode/settings.json` to silence the Language Server.
+JETLS CI uses `aviatesk/JETLS.jl/.github/actions/check@release` (moving tag). After a bump, re-read [cli-check](https://aviatesk.github.io/JETLS.jl/dev/cli-check/) and keep failing on hint+.
+
+JETLS is the type gate. Do not commit `.vscode/settings.json` to silence the Language Server.
 
 [Fatou](https://fatou.dev) is local only. Do not add `fatou.toml` or Fatou to `.vscode/extensions.json`. After a Fatou bump, check it did not rewrite files you did not mean to touch.
 
 ### PR CI
 
-Ubuntu: `Pkg.test` (unit + integration; Codecov `pkgtest`), JETLS, and path-gated SSH E2E (Codecov `e2e`) on **1.12**, Gitleaks. **E2E daily** (`ssh-e2e-daily.yml`) is not a PR check: cron 04:00 JST plus `workflow_dispatch`, GHCR image `dskq-linux-ssh-worker`, Linux / `macos-15-intel` (Colima) / WSL2. Failure opens issue `E2E daily failed` (`ci`). No slots, no Documenter deploy yet. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`).
+Ubuntu **1.12** (no DistSSHKit slots): `Pkg.test`, JETLS, Aqua, Documenter, Gitleaks. Linux E2E runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed.
 
-CI E2E (`DSKQ_CODE_COVERAGE=1`) writes `.cov` and uploads to Codecov (merged with `Pkg.test`). Daily E2E does not upload coverage. Local coverage:
+These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
+
+`README.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`.
+
+A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. macOS / WSL stay on `E2E daily`, not the PR.
+
+CI uploads Codecov on **main push** only (`Pkg.test`, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E daily** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DSKQ_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
-Required to merge (ruleset `main` uses these names). A skipped E2E still leaves the job green. E2E daily is not required.
+Required to merge (ruleset `main` uses these names). A skipped E2E still leaves the job green. E2E daily and CI weekly are not required.
 
 - `Pkg.test - 1.12 - ubuntu-latest`
 - `JETLS - 1.12 - ubuntu-latest`
+- `Aqua - 1.12 - ubuntu-latest`
 - `Documenter - 1.12 - ubuntu-latest`
 - `Gitleaks`
 - `ubuntu-latest → ubuntu-24.04`
+
+| When | Workflow | What |
+| --- | --- | --- |
+| 04:00 JST, or Run workflow | `E2E daily` | `ubuntu-latest`, `macos-15-intel`, WSL2 → `ubuntu-24.04`. Linux job uploads E2E Codecov. Not a PR check. Failure opens (or comments on) Issue `E2E daily failed`; a later green run closes it. After a `cut` merge, dispatch this on that commit and wait for green before register. |
+| Sunday 10:00 JST, or Run workflow | `CI weekly` | Same `Pkg.test` / JETLS / Aqua as a PR (no coverage). Not a PR check. Catches Aqua / JETLS `@release` drift when nothing merged that week. Failure opens Issue `CI weekly failed` (`ci`). |
 
 ## Pull requests
 
@@ -85,7 +99,7 @@ On a breaking line bump `x` in `0.x.y`; otherwise bump `y`. Do not ship an empty
 
 Queue work does not, by itself, trigger a DistSSHKit General patch. Develop against `dev` / git. Docs, opt-in flags, and CI on the kit wait.
 
-If Queue cannot implement something without a kit hook, open a DistSSHKit Enhancement, land the small PR, then cut DistSSHKit (`0.3.y`) so Queue can pin General. Kit freeze and cut rules: [DistSSHKit CONTRIBUTING.md](https://github.com/yamanori99/DistSSHKit.jl/blob/main/CONTRIBUTING.md#when-to-cut).
+If Queue cannot implement something without a kit hook, open a DistSSHKit Enhancement, land the small PR, then cut DistSSHKit (`0.4.y`) so Queue can pin General. Kit freeze and cut rules: [DistSSHKit CONTRIBUTING.md](https://github.com/yamanori99/DistSSHKit.jl/blob/main/CONTRIBUTING.md#when-to-cut).
 
 ### When to cut
 

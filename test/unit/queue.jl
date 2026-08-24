@@ -13,8 +13,8 @@ end
 @testset "true FIFO one at a time" begin
     started = String[]
     q = Queue(; runner=j -> (push!(started, j.id); sleep(0.05)))
-    a = submit!(q, "a.jl", "worker:4")
-    b = submit!(q, "b.jl", "worker:1")
+    a = submit!(q, "a.jl", "child:worker:4")
+    b = submit!(q, "b.jl", "child:worker:1")
     @test step!(q) == 1
     @test job(q, a).state === :running
     @test job(q, b).state === :queued
@@ -25,10 +25,10 @@ end
     @test started == [a, b]
 end
 
-@testset "cancel queued only" begin
+@testset "cancel queued; running needs output_dir" begin
     q = Queue(; runner=_ -> sleep(0.05))
-    a = submit!(q, "a.jl", "local:2")
-    b = submit!(q, "b.jl", "local:2")
+    a = submit!(q, "a.jl", "parent:2")
+    b = submit!(q, "b.jl", "parent:2")
     @test cancel!(q, b)
     @test job(q, b).state === :cancelled
     @test step!(q) == 1
@@ -36,10 +36,27 @@ end
     _wait_state(q, a, :done)
 end
 
+@testset "cancel running via terminate_run! when output_dir is known" begin
+    mktempdir() do d
+        out = joinpath(d, "kit-out")
+        mkpath(out)
+        ev = Base.Event()
+        q = Queue(; runner=_ -> wait(ev))
+        id = submit!(q, "a.jl", "parent:1"; output_dir=out)
+        @test step!(q) == 1
+        @test job(q, id).state === :running
+        @test cancel!(q, id)
+        @test job(q, id).state === :cancelled
+        notify(ev)
+        sleep(0.05)
+        @test job(q, id).state === :cancelled
+    end
+end
+
 @testset "kit throw does not stall" begin
     q = Queue(; runner=j -> basename(j.script) == "bad.jl" ? error("boom") : nothing)
-    a = submit!(q, "bad.jl", "local:1")
-    b = submit!(q, "ok.jl", "local:1")
+    a = submit!(q, "bad.jl", "parent:1")
+    b = submit!(q, "ok.jl", "parent:1")
     @test step!(q) == 1
     _wait_state(q, a, :failed)
     @test occursin("boom", something(job(q, a).error, ""))
@@ -49,12 +66,12 @@ end
 
 @testset "kind=:drive" begin
     q = Queue(; runner=_ -> nothing)
-    id = submit!(q, "d.jl", "local:1"; kind=:drive)
+    id = submit!(q, "d.jl", "parent:1"; kind=:drive)
     j = job(q, id)
     @test j.kind === :drive
     @test haskey(j.kwargs, "project")
     @test !haskey(j.kwargs, "path_anchor")
-    gid = submit!(q, "g.jl", "local:1")
+    gid = submit!(q, "g.jl", "parent:1")
     g = job(q, gid)
     @test g.kind === :go
     @test !haskey(g.kwargs, "path_anchor")
@@ -69,7 +86,7 @@ end
         j = DistSSHKitQueue.Job(;
             kind=:go,
             script="/tmp/job.jl",
-            hosts=["parenthost:1"],
+            hosts=["parent:1"],
             state=:running,
             result_path=out,
         )
@@ -86,12 +103,55 @@ end
     end
 end
 
+@testset "two-line kit.pid is live" begin
+    mktempdir() do d
+        out = joinpath(d, "kit-out")
+        mkpath(out)
+        st = DistSSHKit.kit_process_start_key(getpid())
+        body = st === nothing ? string(getpid(), '\n') : string(getpid(), '\n', st, '\n')
+        write(joinpath(out, "kit.pid"), body)
+        j = DistSSHKitQueue.Job(;
+            kind=:go,
+            script="/tmp/job.jl",
+            hosts=["parent:1"],
+            state=:running,
+            result_path=out,
+        )
+        @test DistSSHKitQueue.kit_child_alive(j)
+        @test DistSSHKit.kit_pid_file_running(out)
+    end
+end
+
+@testset "kit.result settles a finished running row on load" begin
+    mktempdir() do d
+        out = joinpath(d, "kit-out")
+        mkpath(out)
+        DistSSHKit._write_kit_result_file(DistSSHKit.KitRunResult(
+            true, :go, out, nothing, nothing, 0,
+        ))
+        p = joinpath(d, "jobs.toml")
+        j = DistSSHKitQueue.Job(;
+            kind=:go,
+            script="/tmp/job.jl",
+            hosts=["parent:1"],
+            state=:running,
+            result_path=out,
+        )
+        DistSSHKitQueue.save_jobs(p, [j])
+        q = Queue(; store=p, runner=_ -> error("must not re-run"))
+        load!(q)
+        loaded = job(q, j.id)
+        @test loaded.state === :done
+        @test loaded.error === nothing
+    end
+end
+
 @testset "TOML store restart" begin
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         ev = Base.Event()
         q = Queue(; store=p, runner=_ -> wait(ev))
-        id = submit!(q, "a.jl", "local:1")
+        id = submit!(q, "a.jl", "parent:1")
         @test step!(q) == 1
         @test job(q, id).state === :running
         q2 = Queue(; store=p, runner=_ -> nothing)
@@ -116,36 +176,41 @@ end
     @test DistSSHKitQueue.require_kit_ok((ok=true, kind=:go, output_dir="/tmp/out")) === nothing
     @test DistSSHKitQueue.kit_result_path((ok=true, output_dir="/tmp/out")) == "/tmp/out"
     q = Queue(; runner=_ -> error("DistSSHKit go failed (ok=false)"))
-    id = submit!(q, "a.jl", "local:1")
+    id = submit!(q, "a.jl", "parent:1")
     @test step!(q) == 1
     _wait_state(q, id, :failed)
 end
 
 @testset "execute_kwargs drops names execute! detached rejects" begin
     q = Queue(; runner=_ -> nothing)
-    gid = submit!(q, "g.jl", "local:1"; path_anchor="/x", yes=false, log_dir="/logs", quiet=true)
+    gid = submit!(q, "g.jl", "parent:1"; path_anchor="/x", yes=false, log_dir="/logs", quiet=true)
     gkw = DistSSHKitQueue.execute_kwargs(job(q, gid))
     @test gkw.yes === true
     @test gkw.quiet === true
     @test !haskey(gkw, :path_anchor)
     @test !haskey(gkw, :job_id)
     @test !haskey(gkw, :log_dir)
-    did = submit!(q, "d.jl", "local:1"; kind=:drive, log_dir="/logs", skip_hash_check=false)
+    did = submit!(q, "d.jl", "parent:1"; kind=:drive, log_dir="/logs", skip_hash_check=false)
     dkw = DistSSHKitQueue.execute_kwargs(job(q, did))
     @test dkw.log_dir == "/logs"
     @test dkw.skip_hash_check === false
     @test dkw.yes === true
+    wid = submit!(q, "w.jl", "h1"; kind=:drive, workers=4, mem_headroom=0.5)
+    wkw = DistSSHKitQueue.execute_kwargs(job(q, wid))
+    @test wkw.workers == 4
+    @test wkw.mem_headroom == 0.5
+    @test !haskey(DistSSHKitQueue.execute_kwargs(job(q, gid)), :workers)
 end
 
 @testset "result_path from runner and kwargs" begin
     q = Queue(; runner=_ -> "/tmp/kit-out")
-    id = submit!(q, "a.jl", "local:1"; output_dir="/tmp/unused")
+    id = submit!(q, "a.jl", "parent:1"; output_dir="/tmp/unused")
     @test step!(q) == 1
     _wait_state(q, id, :done)
     @test job(q, id).result_path == "/tmp/kit-out"
 
     q2 = Queue(; runner=_ -> nothing)
-    id2 = submit!(q2, "b.jl", "local:1"; output_dir="/tmp/bag")
+    id2 = submit!(q2, "b.jl", "parent:1"; output_dir="/tmp/bag")
     @test step!(q2) == 1
     _wait_state(q2, id2, :done)
     @test job(q2, id2).result_path == "/tmp/bag"
@@ -155,8 +220,8 @@ end
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         q = Queue(; store=p, runner=_ -> sleep(0.05))
-        a = submit!(q, "a.jl", "local:1")
-        b = submit!(q, "b.jl", "local:1")
+        a = submit!(q, "a.jl", "parent:1")
+        b = submit!(q, "b.jl", "parent:1")
         @test step!(q) == 1
         other = Queue(; store=p)
         @test cancel!(other, b)
@@ -172,7 +237,7 @@ end
         p = joinpath(d, "jobs.toml")
         ev = Base.Event()
         q = Queue(; store=p, runner=_ -> wait(ev))
-        a = submit!(q, "a.jl", "local:1")
+        a = submit!(q, "a.jl", "parent:1")
         @test step!(q) == 1
         q2 = Queue(; store=p, runner=_ -> nothing)
         b = submit!(q2, "b.jl", "worker:2")
@@ -229,7 +294,7 @@ end
                 @test occursin("cluster-a ($(gethostname()))", via_out)
                 @test DistSSHKitQueue._qhost_disp(gethostname()) == gethostname()
                 code_go, out_go, _ = capture_stdio() do
-                    DistSSHKitQueue.main(["submit", "go", "worker:4", "job.jl"])
+                    DistSSHKitQueue.main(["submit", "go", "child:worker:4", "job.jl"])
                 end
                 @test code_go == 0
                 rows = DistSSHKitQueue.read_jobs(p)
@@ -237,7 +302,7 @@ end
                 @test strip(out_go) == rows[1].id
                 @test rows[1].kind === :go
                 @test rows[1].script == DistSSHKit.canonical_local_path(joinpath(pwd(), "job.jl"))
-                @test rows[1].hosts == ["worker:4"]
+                @test rows[1].hosts == ["child:worker:4"]
                 @test rows[1].state === :queued
                 @test rows[1].kwargs["project"] == proj
                 listed = sprint(io -> DistSSHKitQueue.show_status(p; io=io))
@@ -245,11 +310,11 @@ end
                 @test occursin("queued", listed)
                 @test occursin("STATE", listed)
                 code_alias, _, _ = capture_stdio() do
-                    DistSSHKitQueue.main(["go", "local:1", "alias.jl"])
+                    DistSSHKitQueue.main(["go", "parent:1", "alias.jl"])
                 end
                 @test code_alias == 0
                 code_drv, _, _ = capture_stdio() do
-                    DistSSHKitQueue.main(["submit", "drive", "local:2", "drv.jl"])
+                    DistSSHKitQueue.main(["submit", "drive", "parent:2", "drv.jl"])
                 end
                 @test code_drv == 0
                 rows = DistSSHKitQueue.read_jobs(p)
@@ -258,8 +323,15 @@ end
                 @test rows[2].script == DistSSHKit.canonical_local_path(joinpath(pwd(), "alias.jl"))
                 @test rows[3].kind === :drive
                 @test rows[3].script == DistSSHKit.canonical_local_path(joinpath(pwd(), "drv.jl"))
-                @test rows[3].hosts == ["parenthost:2"]
+                @test rows[3].hosts == ["parent:2"]
                 @test rows[3].kwargs["project"] == proj
+                code_w, _, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "drive", "--workers", "4", "child:host1", "drv.jl"])
+                end
+                @test code_w == 0
+                rows = DistSSHKitQueue.read_jobs(p)
+                @test rows[end].hosts == ["child:host1"]
+                @test rows[end].kwargs["workers"] == 4
                 cid = rows[2].id
                 code_c, out_c, _ = capture_stdio() do
                     DistSSHKitQueue.main(["cancel", cid])
@@ -297,7 +369,7 @@ end
                 @test occursin("(empty)", out)
                 @test occursin("Ctrl-C stops watch", out)
                 code_go, _, _ = capture_stdio() do
-                    DistSSHKitQueue.main(["submit", "go", "local:1", "a.jl"])
+                    DistSSHKitQueue.main(["submit", "go", "parent:1", "a.jl"])
                 end
                 @test code_go == 0
                 code2, out2, _ = capture_stdio() do
@@ -328,7 +400,7 @@ end
         ) do
             cd(jobdir) do
                 code, _, err = capture_stdio() do
-                    DistSSHKitQueue.main(["submit", "go", "local:1", "no_such.jl"])
+                    DistSSHKitQueue.main(["submit", "go", "parent:1", "no_such.jl"])
                 end
                 @test code == 1
                 @test occursin("not found", err)
@@ -346,7 +418,7 @@ end
                     DistSSHKitQueue.main(["cancel", "no-such-id"])
                 end
                 @test code3 == 1
-                @test occursin("is not queued", err3)
+                @test occursin("cannot be cancelled", err3)
 
                 code4, _, err4 = capture_stdio() do
                     DistSSHKitQueue.main(["--qhost", "h", "serve"])
@@ -362,7 +434,7 @@ end
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         q = Queue(; store=p, runner=_ -> error("boom: kaboom"))
-        id = submit!(q, "a.jl", "local:1")
+        id = submit!(q, "a.jl", "parent:1")
         @test step!(q) == 1
         _wait_state(q, id, :failed)
         listed = sprint(io -> DistSSHKitQueue.show_status(p; io=io))
@@ -373,7 +445,7 @@ end
 
 @testset "serve live line" begin
     @test DistSSHKitQueue._serve_live_text('⠋', nothing) == "  ⠋  idle"
-    j = DistSSHKitQueue.Job(; kind=:go, script="/tmp/job.jl", hosts=["local:1"], state=:running)
+    j = DistSSHKitQueue.Job(; kind=:go, script="/tmp/job.jl", hosts=["parent:1"], state=:running)
     t = DistSSHKitQueue._serve_live_text('⠙', j)
     @test startswith(t, "  ⠙  running  $(j.id)  go")
     @test occursin("job.jl", t)
