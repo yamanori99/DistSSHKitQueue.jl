@@ -66,9 +66,11 @@ end
 end
 
 @testset "detached serve script carries test tag" begin
-    script = DistSSHKitQueue.detached_serve_script("/julia", "/proj", "/tmp/q.log")
-    @test occursin("nohup", script)
-    @test !occursin("DISTSSHKITQUEUE_SERVE_TAG=", script)
+    withenv("DISTSSHKITQUEUE_SERVE_TAG" => nothing) do
+        script = DistSSHKitQueue.detached_serve_script("/julia", "/proj", "/tmp/q.log")
+        @test occursin("nohup", script)
+        @test !occursin("DISTSSHKITQUEUE_SERVE_TAG=", script)
+    end
     withenv("DISTSSHKITQUEUE_SERVE_TAG" => "dskq-test-tag") do
         tagged = DistSSHKitQueue.detached_serve_script("/julia", "/proj", "/tmp/q.log")
         @test occursin("DISTSSHKITQUEUE_SERVE_TAG='dskq-test-tag'", tagged)

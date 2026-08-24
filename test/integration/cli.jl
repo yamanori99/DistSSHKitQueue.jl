@@ -25,9 +25,10 @@ function wait_jobs(pred, env; tries=200, sleep_s=0.1)
     return rows
 end
 
-function wait_done(env; tries=600, sleep_s=0.2)
+function wait_done(env, id; tries=600, sleep_s=0.2)
     wait_jobs(env; tries=tries, sleep_s=sleep_s) do rows
-        any(j -> j.state === :done, rows) || any(j -> j.state === :failed, rows)
+        i = findfirst(j -> j.id == id, rows)
+        i !== nothing && rows[i].state in (:done, :failed)
     end
     return read(addenv(qcli(["status"]), env...), String)
 end
@@ -90,7 +91,7 @@ end
                 cd(jobdir) do
                     id = strip(read(addenv(qcli(["submit", "go", "parent:1", "hello.jl"]), env...), String))
                     @test !isempty(id)
-                    out = wait_done(env)
+                    out = wait_done(env, id)
                     @test occursin(id, out)
                     @test occursin("  done  ", out)
                     wout = read(addenv(qcli(["watch", "--ticks", "1", "--interval", "0.05"]), env...), String)

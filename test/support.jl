@@ -19,13 +19,8 @@ function capture_stdio(f)
     end
 end
 
-"""Mark this Julia as a DistSSHKitQueue test session.
-
-Autoserve `nohup` waiters outlive `submit` (product). Ctrl-C / a dead `Pkg.test`
-parent must still SIGTERM them. Sets `DISTSSHKITQUEUE_SERVE_TAG` and
-`DISTSSHKITQUEUE_TEST_PIDS`, then reaps on `atexit` or when the parent pid
-becomes 1 after we had a real parent.
-"""
+# Tag autoserve waiters for this Pkg.test process. nohup outlives submit
+# (product); atexit / parent-death SIGTERM must still find them.
 function install_serve_reaper!()
     Sys.iswindows() && return nothing
     tag = "dskq-$(getpid())-$(time_ns())"

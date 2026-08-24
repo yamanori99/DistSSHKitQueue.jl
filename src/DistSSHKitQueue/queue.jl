@@ -494,7 +494,9 @@ function serve!(q::Queue; interval::Real=0.2)
             end
             if store isa String
                 m = _store_mtime(store)
-                if m != last_mtime[]
+                # Kit writes kit.pid / kit.result without touching the table.
+                # Skip only when idle; a running row still needs step!.
+                if m != last_mtime[] || _running_copy(q) !== nothing
                     step!(q)
                     last_mtime[] = _store_mtime(store)
                 end
