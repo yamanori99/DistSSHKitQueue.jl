@@ -7,14 +7,27 @@ using DistSSHKitQueue
 const QUEUE_ROOT = abspath(joinpath(@__DIR__, "..", ".."))
 const JULIA = DistSSHKitQueue.default_julia_bin()
 
-qcli(args) = `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHKitQueue $(String[string(a) for a in args])`
+qcli(args) = DistSSHKitQueue.with_serve_tag(
+    `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHKitQueue $(String[string(a) for a in args])`,
+)
+
+function store_jobs(env)
+    return DistSSHKitQueue.load_jobs(env["DISTSSHKITQUEUE_STORE"])
+end
+
+function wait_jobs(pred, env; tries=200, sleep_s=0.1)
+    rows = DistSSHKitQueue.Job[]
+    for _ = 1:tries
+        rows = store_jobs(env)
+        pred(rows) && return rows
+        sleep(sleep_s)
+    end
+    return rows
+end
 
 function wait_done(env; tries=600, sleep_s=0.2)
-    for _ = 1:tries
-        out = read(addenv(qcli(["status"]), env...), String)
-        occursin("  done  ", out) && return out
-        occursin("  failed  ", out) && return out
-        sleep(sleep_s)
+    wait_jobs(env; tries=tries, sleep_s=sleep_s) do rows
+        any(j -> j.state === :done, rows) || any(j -> j.state === :failed, rows)
     end
     return read(addenv(qcli(["status"]), env...), String)
 end
@@ -101,12 +114,12 @@ end
                 @test !isempty(id1)
                 c = strip(read(addenv(qcli(["cancel", id2]), env...), String))
                 @test c == id2
-                listed = ""
-                for _ = 1:200
-                    listed = read(addenv(qcli(["status"]), env...), String)
-                    occursin(id1, listed) && occursin("  running  ", listed) && isfile(joinpath(hold_out, "kit.pid")) && break
-                    sleep(0.1)
+                rows = wait_jobs(env) do js
+                    a = findfirst(j -> j.id == id1, js)
+                    a !== nothing && js[a].state === :running && isfile(joinpath(hold_out, "kit.pid"))
                 end
+                @test any(j -> j.id == id1 && j.state === :running, rows)
+                listed = read(addenv(qcli(["status"]), env...), String)
                 @test occursin(id1, listed)
                 @test occursin("  running  ", listed)
                 st2 = read(addenv(qcli(["status"]), env...), String)
@@ -123,21 +136,20 @@ end
             cd(jobdir) do
                 id = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", outdir, "hold.jl"]), env...), String))
                 @test !isempty(id)
-                listed = ""
-                for _ = 1:200
-                    listed = read(addenv(qcli(["status"]), env...), String)
-                    occursin(id, listed) && occursin("  running  ", listed) && isfile(joinpath(outdir, "kit.pid")) && break
-                    sleep(0.1)
+                rows = wait_jobs(env) do js
+                    a = findfirst(j -> j.id == id, js)
+                    a !== nothing && js[a].state === :running && isfile(joinpath(outdir, "kit.pid"))
                 end
+                @test any(j -> j.id == id && j.state === :running, rows)
+                listed = read(addenv(qcli(["status"]), env...), String)
                 @test occursin("  running  ", listed)
                 c = strip(read(addenv(qcli(["cancel", id]), env...), String))
                 @test c == id
-                st = ""
-                for _ = 1:100
-                    st = read(addenv(qcli(["status"]), env...), String)
-                    occursin(id, st) && occursin("cancelled", st) && break
-                    sleep(0.1)
+                wait_jobs(env; tries=100) do js
+                    a = findfirst(j -> j.id == id, js)
+                    a !== nothing && js[a].state === :cancelled
                 end
+                st = read(addenv(qcli(["status"]), env...), String)
                 @test occursin(id, st)
                 @test occursin("cancelled", st)
             end

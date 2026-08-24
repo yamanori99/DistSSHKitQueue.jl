@@ -10,7 +10,7 @@ From the Queue checkout root:
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-That is `test/runtests.jl` (unit + integration). Real SSH:
+That is `test/runtests.jl` (unit + integration). It tags autoserve waiters and SIGTERMs them on exit or if `Pkg.test`'s parent dies, so Ctrl-C does not leave `nohup` `serve` on the laptop. Real SSH:
 
 ```bash
 testenv/docker-ssh/scripts/up.sh --e2e

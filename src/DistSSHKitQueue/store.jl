@@ -140,6 +140,24 @@ waiter_alive(store::AbstractString)::Bool = waiter_pid(store) !== nothing
 function write_pid_file(store::AbstractString)
     mkpath(dirname(store))
     write(store_pid_path(store), string(getpid()))
+    record_test_waiter_pid!(getpid())
+    return nothing
+end
+
+"""If tests set `DISTSSHKITQUEUE_TEST_PIDS`, append this waiter's pid.
+
+Harness `atexit` / parent-death reaper reads that list. Production leaves the
+env unset, so this is a no-op.
+"""
+function record_test_waiter_pid!(pid::Integer)
+    path = String(get(ENV, "DISTSSHKITQUEUE_TEST_PIDS", ""))
+    isempty(path) && return nothing
+    try
+        open(path, "a") do io
+            println(io, Int(pid))
+        end
+    catch
+    end
     return nothing
 end
 

@@ -40,6 +40,9 @@ if !_e2e_enabled()
     exit(0)
 end
 
+include(joinpath(@__DIR__, "support.jl"))
+install_serve_reaper!()
+
 const SSH_CONFIG = joinpath(DOCKER_SSH, ".generated", "ssh_config")
 const HOSTS_FILE = joinpath(DOCKER_SSH, ".generated", "hosts")
 
@@ -138,10 +141,12 @@ function julia_depot_path_env()::String
 end
 
 function e2e_qcmd(test_project::AbstractString, args)
-    return Cmd(String[
-        E2E_JULIA, "--startup-file=no", "--project=$test_project",
-        "-m", "DistSSHKitQueue", String[string(a) for a in args]...,
-    ])
+    return DistSSHKitQueue.with_serve_tag(
+        Cmd(String[
+            E2E_JULIA, "--startup-file=no", "--project=$test_project",
+            "-m", "DistSSHKitQueue", String[string(a) for a in args]...,
+        ]),
+    )
 end
 
 function wait_status(pred, cmd::Cmd; tries=600, sleep_s=0.2)
