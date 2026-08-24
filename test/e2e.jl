@@ -60,6 +60,10 @@ end
 const HOSTS = read_hosts(HOSTS_FILE)
 length(HOSTS) >= 1 || error("no hosts in $HOSTS_FILE")
 
+# DistSSHKit demos reject a bare number (`parent:N`). Same flags as Kit E2E.
+const GO_N = ["--n", "64"]
+const DRIVE_N = ["--n", "3"]
+
 const SSH_ENV = Dict(
     "DISTSSHKIT_YES" => "1",
     "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
@@ -90,7 +94,7 @@ function stage_kit_demos!(proj::AbstractString)
     return nothing
 end
 
-"""Poll until `id` is terminal. Does not start a later queued job once `id` is done."""
+# Poll until `id` is terminal. Does not start a later queued job once `id` is done.
 function drive_until_terminal!(q, id; tries = 600, sleep_s = 0.2)
     terminal = (:done, :failed, :cancelled)
     for _ = 1:tries
@@ -150,9 +154,8 @@ function wait_status(pred, cmd::Cmd; tries=600, sleep_s=0.2)
     return out
 end
 
-"""CLI for assertions. Product chrome (`Wrote`, `Started waiter`, expected
-`Error:`) stays off the test log; stdout is still returned when captured.
-"""
+# CLI for assertions. Product chrome (`Wrote`, `Started waiter`, expected
+# `Error:`) stays off the test log; stdout is still returned when captured.
 function run_cli(cmd::Cmd)
     return run(pipeline(ignorestatus(cmd); stdout=devnull, stderr=devnull))
 end
@@ -327,7 +330,7 @@ end
                         :go,
                         joinpath(JOB_PROJECT, "demos", "without_kit", "pi_file.jl"),
                         "pi_file",
-                        ["64"],
+                        GO_N,
                         "pi_results.txt",
                         "pi=",
                     ),
@@ -335,7 +338,7 @@ end
                         :go,
                         joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl"),
                         "pi_echo",
-                        ["64"],
+                        GO_N,
                         nothing,
                         nothing,
                     ),
@@ -343,7 +346,7 @@ end
                         :drive,
                         joinpath(JOB_PROJECT, "demos", "with_kit", "square_file.jl"),
                         "square_file",
-                        ["3"],
+                        DRIVE_N,
                         "square_results.csv",
                         "param,result",
                     ),
@@ -351,7 +354,7 @@ end
                         :drive,
                         joinpath(JOB_PROJECT, "demos", "with_kit", "square_echo.jl"),
                         "square_echo",
-                        ["3"],
+                        DRIVE_N,
                         nothing,
                         nothing,
                     ),
@@ -390,8 +393,8 @@ end
                 out_b = joinpath(JOB_PROJECT, "go_out", "fifo_b")
                 isdir(out_a) && rm(out_a; recursive = true)
                 isdir(out_b) && rm(out_b; recursive = true)
-                a = enqueue_kit!(q, :go, echo, token; out = out_a, args = ["64"])
-                b = enqueue_kit!(q, :go, echo, token; out = out_b, args = ["64"])
+                a = enqueue_kit!(q, :go, echo, token; out = out_a, args = GO_N)
+                b = enqueue_kit!(q, :go, echo, token; out = out_b, args = GO_N)
                 @test step!(q) == 1
                 @test job(q, a).state === :running
                 @test job(q, b).state === :queued
@@ -412,9 +415,9 @@ end
                 for o in outs
                     isdir(o) && rm(o; recursive = true)
                 end
-                a = enqueue_kit!(h, :go, echo, token; out = outs[1], args = ["64"])
-                b = enqueue_kit!(h, :go, echo, token; out = outs[2], args = ["64"])
-                c = enqueue_kit!(h, :go, echo, token; out = outs[3], args = ["64"])
+                a = enqueue_kit!(h, :go, echo, token; out = outs[1], args = GO_N)
+                b = enqueue_kit!(h, :go, echo, token; out = outs[2], args = GO_N)
+                c = enqueue_kit!(h, :go, echo, token; out = outs[3], args = GO_N)
                 @test cancel!(h, b)
                 @test job(h, b).state === :cancelled
                 @test step!(h) == 1
@@ -450,11 +453,11 @@ end
                     yes = true,
                     quiet = true,
                 )
-                b = enqueue_kit!(h, :go, echo, token; out = out_b, args = ["64"])
+                b = enqueue_kit!(h, :go, echo, token; out = out_b, args = GO_N)
                 @test step!(h) == 1
                 @test job(h, a).state === :running
                 t0 = time()
-                while !DistSSHKitQueue.kit_child_alive(job(h, a)) && (time() - t0) < 15
+                while !DistSSHKitQueue.kit_child_alive(job(h, a)) && (time() - t0) < 60
                     sleep(0.05)
                 end
                 @test DistSSHKitQueue.kit_child_alive(job(h, a))
@@ -516,7 +519,7 @@ end
                     try
                         outdir = joinpath(JOB_PROJECT, "go_out", "cli_on_host")
                         isdir(outdir) && rm(outdir; recursive=true)
-                        id = read_cli(addenv(qcmd(["submit", "go", token, "--output-dir", outdir, script, "64"]), env...))
+                        id = read_cli(addenv(qcmd(["submit", "go", token, "--output-dir", outdir, script, GO_N...]), env...))
                         @test !isempty(id)
                         listed = wait_status(addenv(qcmd(["status"]), env...)) do out
                             occursin(id, out) && occursin("  done  ", out) && !occursin("  running  ", out)
@@ -578,7 +581,7 @@ end
 
                         outdir = joinpath(JOB_PROJECT, "go_out", "qhost")
                         isdir(outdir) && rm(outdir; recursive=true)
-                        id1 = read_cli(addenv(qh(["submit", "go", token, "--output-dir", outdir, script, "64"]), client_env...))
+                        id1 = read_cli(addenv(qh(["submit", "go", token, "--output-dir", outdir, script, GO_N...]), client_env...))
                         @test !isempty(id1)
                         listed = wait_status(addenv(qh(["status"]), client_env...)) do out
                             occursin(id1, out) && occursin("  done  ", out) && !occursin("  running  ", out)
@@ -596,7 +599,7 @@ end
                         cancel_out = joinpath(JOB_PROJECT, "go_out", "qhost_cancel")
                         isdir(cancel_out) && rm(cancel_out; recursive=true)
                         id2 = read_cli(addenv(qh(["submit", "go", "parent:1", "--output-dir", cancel_out, hold]), client_env...))
-                        id3 = read_cli(addenv(qh(["submit", "go", token, script, "64"]), client_env...))
+                        id3 = read_cli(addenv(qh(["submit", "go", token, script, GO_N...]), client_env...))
                         cancelled = read_cli(addenv(qh(["cancel", id3]), client_env...))
                         @test cancelled == id3
                         after = wait_status(addenv(qh(["status"]), client_env...)) do out

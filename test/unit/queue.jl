@@ -53,6 +53,19 @@ end
     end
 end
 
+@testset "cancel running overwrites a concurrent :failed finish" begin
+    mktempdir() do d
+        out = joinpath(d, "kit-out")
+        mkpath(out)
+        q = Queue(; runner=_ -> wait(Base.Event()))
+        id = submit!(q, "a.jl", "parent:1"; output_dir=out)
+        @test step!(q) == 1
+        DistSSHKitQueue._finish!(q, id, :failed, "terminated"; result_path=out)
+        DistSSHKitQueue._finish!(q, id, :cancelled, nothing; result_path=out)
+        @test job(q, id).state === :cancelled
+    end
+end
+
 @testset "kit throw does not stall" begin
     q = Queue(; runner=j -> basename(j.script) == "bad.jl" ? error("boom") : nothing)
     a = submit!(q, "bad.jl", "parent:1")

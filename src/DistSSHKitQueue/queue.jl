@@ -321,7 +321,14 @@ function _finish!(q::Queue, id::AbstractString, state::Symbol, err; result_path=
             i = findfirst(j -> j.id == id, q.jobs)
             i === nothing && return nothing
             j = q.jobs[i]
-            j.state === :running || return nothing
+            # `:cancelled` must win a race with the spawn `_finish!(:failed)`
+            # after `terminate_run!` (E2E: state stayed `:failed` while
+            # `cancel!` still returned true).
+            if state === :cancelled
+                j.state in (:running, :failed) || return nothing
+            else
+                j.state === :running || return nothing
+            end
             j.state = state
             j.finished_at = now(UTC)
             j.error = err === nothing ? nothing : String(err)
