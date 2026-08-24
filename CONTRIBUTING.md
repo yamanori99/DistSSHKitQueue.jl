@@ -2,7 +2,7 @@
 
 Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on Julia 1.12 (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
+This is a **separate** package from DistSSHKit. Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **min** (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
 
 ## Requirements
 
@@ -33,6 +33,11 @@ julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
+```
+
+Run this on slot **min** and **max** (and **tip** if you have nightly). Layout: [test/README.md](test/README.md).
+
+```bash
 ./.github/jetls-check.sh    # hint+; same files as CI
 ./.github/aqua-check.sh     # latest registry Aqua; not part of Pkg.test()
 ./testenv/docker-ssh/scripts/up.sh --e2e
@@ -41,17 +46,29 @@ julia --project=docs --color=yes docs/make.jl
 gitleaks detect --source .
 ```
 
-Layout: [test/README.md](test/README.md).
-
 JETLS CI uses `aviatesk/JETLS.jl/.github/actions/check@release` (moving tag). After a bump, re-read [cli-check](https://aviatesk.github.io/JETLS.jl/dev/cli-check/) and keep failing on hint+.
 
 JETLS is the type gate. Do not commit `.vscode/settings.json` to silence the Language Server.
 
 [Fatou](https://fatou.dev) is local only. Do not add `fatou.toml` or Fatou to `.vscode/extensions.json`. After a Fatou bump, check it did not rewrite files you did not mean to touch.
 
+### Julia slots
+
+Exactly three pins, in [`.github/julia-slots.env`](.github/julia-slots.env). Do not add a fourth version job. Slide the pin; keep job names `min` / `max` / `tip`.
+
+| Slot | Role | Required |
+| --- | --- | --- |
+| **min** | `Project.toml` julia floor. Pkg.test (no coverage), Aqua, JETLS, Documenter, PR E2E, GHCR worker | yes |
+| **max** | Newest tagged or prerelease (`versions.json`). Pkg.test, Aqua. Codecov `pkgtest` on **main push** only | yes |
+| **tip** | Next-minor nightly. Pkg.test, Aqua. `continue-on-error` | no |
+
+JETLS is min plus `JULIA_SLOT_JETLS_MAX` (job name still `JETLS - max`). That pin lags when `max` / `tip` move past what JETLS lists (today 1.12.2–1.13). Raise it only after JETLS supports that runtime. No JETLS **tip**.
+
+When a new RC lands, change `JULIA_SLOT_MAX` only. When bumping compat, raise `JULIA_SLOT_MIN` (and the worker Dockerfile / WSL `--default-channel`) in the same PR.
+
 ### PR CI
 
-Ubuntu **1.12** (no DistSSHKit slots): `Pkg.test`, JETLS, Aqua, Documenter, Gitleaks. Linux E2E runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed.
+Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. Linux E2E (min) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed.
 
 These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
 
@@ -59,26 +76,29 @@ These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS /
 
 A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. macOS / WSL stay on `E2E daily`, not the PR.
 
-CI uploads Codecov on **main push** only (`Pkg.test`, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E daily** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
+CI uploads Codecov on **main push** only (`Pkg.test` max slot, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E daily** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DSKQ_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
-Required to merge (ruleset `main` uses these names). A skipped E2E still leaves the job green. E2E daily and CI weekly are not required.
+Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. A skipped E2E still leaves the job green. E2E daily and CI weekly are not required.
 
-- `Pkg.test - 1.12 - ubuntu-latest`
-- `JETLS - 1.12 - ubuntu-latest`
-- `Aqua - 1.12 - ubuntu-latest`
-- `Documenter - 1.12 - ubuntu-latest`
+- `Pkg.test - min - ubuntu-latest`
+- `Pkg.test - max - ubuntu-latest`
+- `JETLS - min - ubuntu-latest`
+- `JETLS - max - ubuntu-latest`
+- `Aqua - min - ubuntu-latest`
+- `Aqua - max - ubuntu-latest`
+- `Documenter - min - ubuntu-latest`
 - `Gitleaks`
 - `ubuntu-latest → ubuntu-24.04`
 
 | When | Workflow | What |
 | --- | --- | --- |
 | 04:00 JST, or Run workflow | `E2E daily` | `ubuntu-latest`, `macos-15-intel`, WSL2 → `ubuntu-24.04`. Linux job uploads E2E Codecov. Not a PR check. Failure opens (or comments on) Issue `E2E daily failed`; a later green run closes it. After a `cut` merge, dispatch this on that commit and wait for green before register. |
-| Sunday 10:00 JST, or Run workflow | `CI weekly` | Same `Pkg.test` / JETLS / Aqua as a PR (no coverage). Not a PR check. Catches Aqua / JETLS `@release` drift when nothing merged that week. Failure opens Issue `CI weekly failed` (`ci`). |
+| Sunday 10:00 JST, or Run workflow | `CI weekly` | Same `Pkg.test` / JETLS / Aqua slots as a PR (no coverage). Not a PR check. Catches max / Aqua / JETLS `@release` drift when nothing merged that week. Failure of min/max jobs opens Issue `CI weekly failed` (`ci`); tip is omitted from that notify. |
 
 ## Pull requests
 

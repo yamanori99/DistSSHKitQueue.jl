@@ -16,10 +16,30 @@ permissions:
   actions: write # julia-actions/cache delete-old-caches
 
 jobs:
-  # Queue stays Julia 1.12 (Project.toml). Do not copy DistSSHKit slots.
-  # Codecov (flag pkgtest): main push only — not on pull_request.
-  test:
-    name: Pkg.test - 1.12 - ubuntu-latest
+  # Full `Pkg.test()` stays Linux-only. Slow SSH E2E controllers are `E2E daily`.
+  # PRs run `E2E / ubuntu-latest → ubuntu-24.04`.
+  # Detect runs in each job (no `needs` hop). Docs-only PRs skip Pkg.test steps.
+  # Required check names are slot literals (min/max), not Julia versions.
+  # Codecov (flag pkgtest): main push, max slot only — not on pull_request.
+  test-min:
+    name: Pkg.test - min - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/ci-heavy
+        id: detect
+      - uses: ./.github/actions/julia-slot
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+        with:
+          slot: min
+      - uses: julia-actions/cache@v3
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+      - uses: ./.github/actions/pkg-test
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+
+  test-max:
+    name: Pkg.test - max - ubuntu-latest
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -30,10 +50,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/ci-heavy
         id: detect
-      - uses: julia-actions/setup-julia@v3
+      - uses: ./.github/actions/julia-slot
         if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
         with:
-          version: "1.12"
+          slot: max
       - uses: julia-actions/cache@v3
         if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
       - uses: ./.github/actions/pkg-test
@@ -41,3 +61,21 @@ jobs:
         with:
           coverage: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           upload: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+  test-tip:
+    name: Pkg.test - tip - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/ci-heavy
+        id: detect
+      - uses: ./.github/actions/julia-slot
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+        with:
+          slot: tip
+      - uses: julia-actions/cache@v3
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+      - uses: ./.github/actions/pkg-test
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'

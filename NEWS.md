@@ -21,7 +21,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 - `teardown -y` stops the waiter and removes the OS unit and `~/.distsshkitqueue` (not a git clone or `Pkg.rm`).
 - Client vs queue-host verbs: `--qhost` is client-only; `setup` / `serve` / `enable` / `disable` refuse it. Source: `src/client/` and `src/qhost/`.
 - Waiter runs DistSSHKit `execute!(kind; detached=true)` (`KitRunResult`). CLI `cancel <id>` (`:queued`, or `:running` via `terminate_run!`). Optional `enable` (LaunchAgent / systemd user). DistSSHKit **0.4.0+**.
-- CI: docs-only PRs skip Pkg.test / JETLS / Aqua / Documenter (`ci-heavy`). Codecov `pkgtest` on main push; E2E `e2e` on cut PRs and **E2E daily** Linux. **CI weekly** (Sunday) is not a PR check. GHCR worker image. Not registered.
-- Design: waiter is `serve`; clients use Kit `go` / `drive` argv. FIFO one table job. No Queue slot ceiling.
+- CI: Kit-shaped Julia slots (`min` / `max` / `tip`). JETLS min plus `JULIA_SLOT_JETLS_MAX` (~1.13). Codecov `pkgtest` on main push (max slot); E2E `e2e` on cut PRs and **E2E daily** Linux. Docs-only PRs skip heavy steps (`ci-heavy`). **CI weekly** (Sunday) is not a PR check. GHCR worker image. Not registered.
+- Design: waiter is `serve`; clients use Kit `go` / `drive` argv. FIFO one table job.
 - Names: `Queue`, `Job`, `submit!` / CLI `submit`, `cancel` / `cancel!`, `job` / `jobs`, `serve!` (`--interval`).
   Not registered.

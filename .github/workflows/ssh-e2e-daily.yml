@@ -53,9 +53,9 @@ jobs:
       id-token: write # Codecov OIDC (E2E coverage; not on PR E2E)
     steps:
       - uses: actions/checkout@v7
-      - uses: julia-actions/setup-julia@v3
+      - uses: ./.github/actions/julia-slot
         with:
-          version: "1.12"
+          slot: min
       - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-buildpkg@v1
         with:
@@ -96,9 +96,9 @@ jobs:
       actions: write
     steps:
       - uses: actions/checkout@v7
-      - uses: julia-actions/setup-julia@v3
+      - uses: ./.github/actions/julia-slot
         with:
-          version: "1.12"
+          slot: min
       - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-buildpkg@v1
         with:

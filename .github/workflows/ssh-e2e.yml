@@ -54,10 +54,10 @@ jobs:
             echo "coverage=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: julia-actions/setup-julia@v3
+      - uses: ./.github/actions/julia-slot
         if: steps.gate.outputs.e2e == 'true'
         with:
-          version: "1.12"
+          slot: min
       - name: Julia
         if: steps.gate.outputs.e2e == 'true'
         run: julia --version
