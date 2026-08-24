@@ -325,7 +325,7 @@ function _finish!(q::Queue, id::AbstractString, state::Symbol, err; result_path=
             # after `terminate_run!` (E2E: state stayed `:failed` while
             # `cancel!` still returned true).
             if state === :cancelled
-                j.state in (:running, :failed) || return nothing
+                (j.state === :running || j.state === :failed) || return nothing
             else
                 j.state === :running || return nothing
             end
