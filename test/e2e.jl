@@ -187,6 +187,22 @@ function find_sshd()
     error("sshd not found; qhost: E2E needs OpenSSH server")
 end
 
+# OpenSSH needs a root-owned privsep dir. Ubuntu's package creates it via systemd;
+# WSL2 CI often has no systemd, so `/run/sshd` is missing even when `sshd` is installed.
+function ensure_sshd_privsep_dir()
+    Sys.islinux() || return nothing
+    dest = isdir("/run") ? "/run/sshd" : "/var/run/sshd"
+    isdir(dest) && return nothing
+    if Libc.geteuid() == 0
+        mkpath(dest)
+        chmod(dest, 0o755)
+        return nothing
+    end
+    run(`sudo mkdir -p $dest`)
+    run(`sudo chmod 755 $dest`)
+    return nothing
+end
+
 function free_loopback_port()
     server = Sockets.listen(Sockets.IPv4(127, 0, 0, 1), 0)
     _, port = Sockets.getsockname(server)
@@ -222,6 +238,7 @@ function write_loopback_sshd(dir::AbstractString, port::Int, controller_key::Abs
 end
 
 function start_loopback_sshd(dir::AbstractString, port::Int, controller_key::AbstractString)
+    ensure_sshd_privsep_dir()
     cfg = write_loopback_sshd(dir, port, controller_key)
     log = joinpath(dir, "sshd.log")
     sshd = find_sshd()
