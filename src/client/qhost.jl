@@ -1,4 +1,4 @@
-"""Client `--qhost` / `--remote-julia`: peel flags and ssh to the queue host.
+"""Client `--qhost` / `--remote-julia`: peel flags and `run_on_host` to the queue host.
 
 `setup` / `serve` / `enable` / `disable` are not forwarded. Not a Kit placement token.
 """
@@ -52,37 +52,6 @@ function reject_qhost_on_local(sub::AbstractString, host::Union{Nothing,Abstract
         "`--qhost` is a client flag; `$sub` runs on the queue host. " *
         "Log in there and run it, or omit `--qhost` if this machine is the queue host.",
     ))
-end
-
-"""`julia -m DistSSHKitQueue <sub> <payload…>`, each token shell-quoted for ssh."""
-function remote_inner(rjulia::AbstractString, sub::AbstractString, payload::Vector{String})::String
-    parts = String[String(rjulia), "-m", "DistSSHKitQueue", String(sub)]
-    append!(parts, payload)
-    return join((sh_single_quote(p) for p in parts), " ")
-end
-
-function remote_command(
-    host::AbstractString,
-    rjulia::AbstractString,
-    sub::AbstractString,
-    payload::Vector{String};
-    tty::Bool=false,
-)::Cmd
-    inner = remote_inner(rjulia, sub, payload)
-    ssh = String["ssh"]
-    append!(ssh, DistSSHKit.ssh_opts(; request_tty=tty))
-    tty && push!(ssh, "-t")
-    push!(ssh, String(host), inner)
-    return Cmd(ssh)
-end
-
-function resolve_on_julia(host::AbstractString, spec::AbstractString)::String
-    found = DistSSHKit.resolve_remote_julia(String(host), spec)
-    found === nothing && throw(ArgumentError(
-        "no Julia on $(host) (ssh PATH is often empty; Kit tries juliaup then Homebrew). " *
-        "Pass --remote-julia PATH or set JULIA_DISTRIBUTED_EXE, like Kit --julia.",
-    ))
-    return found
 end
 
 function remote_dispatch(

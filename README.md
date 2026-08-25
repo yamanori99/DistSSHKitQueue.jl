@@ -67,7 +67,7 @@ Day to day you only **submit** from a client (`--qhost HOST`). If no waiter is u
 
 ## Queue host (always-on)
 
-Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). The table lives at `~/.distsshkitqueue/jobs.toml`.
+Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). DistSSHKit **0.4.1+** comes from General with it. The table lives at `~/.distsshkitqueue/jobs.toml`.
 
 A dedicated always-on box (Mac mini, Linux VM):
 

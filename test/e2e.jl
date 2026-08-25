@@ -8,7 +8,7 @@
 #
 # Also: `julia -m DistSSHKitQueue` on the queue host (omit `--qhost`) and as a
 # client (`--qhost` over loopback OpenSSH). Kit slots on docker-ssh (`child:dskq-w1:1`).
-# Not a laptop + `local:N` topology. `enable` / `disable` / `teardown` use
+# Not a laptop + `parent:N` topology. `enable` / `disable` / `teardown` use
 # `--write-only` (no user systemd / launchctl).
 #
 # Table jobs are the four *file*/*echo* demos. `pipeline_pi.jl` /

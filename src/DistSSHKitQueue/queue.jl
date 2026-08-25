@@ -244,6 +244,11 @@ end
 
 function _submit!(q::Queue, kind::Symbol, script::AbstractString, hosts; kwargs...)
     toks = String[String(x) for x in hosts]
+    for t in toks
+        # Kit 0.4 classifier (`parent[:N]` / `child:NAME[:N]`). Not exported; Kit
+        # tests and docs call it the same way.
+        DistSSHKit.parse_placement_token(t)
+    end
     kw = Dict{String,Any}(String(k) => v for (k, v) in pairs(kwargs))
     haskey(kw, "project") || (kw["project"] = job_project())
     j = Job(; kind=kind, script=resolve_script(script), hosts=toks, kwargs=kw)
@@ -259,6 +264,7 @@ end
 
 """Enqueue. `kind=:go` or `:drive` (DistSSHKit `execute!`).
 
+`hosts` must be DistSSHKit 0.4 placement tokens (`parent[:N]` / `child:NAME[:N]`).
 Missing `project` uses `job_project()` (cwd / `DISTRIBUTED_PROJECT_ROOT`), not the
 waiter `--project`. Same verb as CLI `submit`.
 """
