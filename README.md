@@ -37,9 +37,10 @@ A **client** is a **dev machine**. It does not run the queue. You point it at **
   ───────────────────────────────          ──────────────────────────
   yours / a colleague's / …                waiter   one Kit job at a time
        │                                   table    ~/.distsshkitqueue
-       │  julia -m DistSSHKitQueue         serve    now, this terminal
-       │    qhost:NAME                     enable   again after reboot
-       │    submit | status | add-host | list-host | watch | …
+       │  julia -m DistSSHKitQueue         add-host / remove-host
+       │    qhost:NAME                     serve    now, this terminal
+       │    submit | status | list-host    enable   again after reboot
+       │    watch | cancel | …
        └────────────────────────────────►  then DistSSHKit go/drive
                                            → workers (Kit tokens)
 ```
@@ -83,6 +84,8 @@ Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `p
 
 Not DistSSHKit `--hosts` (that still names workers on `go` / `drive`). These verbs only touch the lab inventory and how SSH would connect. They do not enqueue. `list-host` does not print private keys or IdentityFile.
 
+`add-host` / `remove-host` run on the queue host only (like `setup`). `list-host` can run there or from a client via `qhost:`.
+
 On the queue host:
 
 ```bash
@@ -91,10 +94,9 @@ julia -m DistSSHKitQueue list-host
 julia -m DistSSHKitQueue remove-host host1
 ```
 
-From a **client** the verbs are forwarded, like `status`. `ssh -G` still runs on the queue host, not on the client:
+From a **client**, `list-host` is forwarded like `status`. `ssh -G` still runs on the queue host, not on the client:
 
 ```bash
-julia -m DistSSHKitQueue qhost:mini add-host host1
 julia -m DistSSHKitQueue qhost:mini list-host
 ```
 
@@ -114,7 +116,7 @@ Foreground, this session only (no reboot registration):
 julia -m DistSSHKitQueue serve
 ```
 
-`qhost:HOST` is not valid here — `setup` / `serve` / `enable` / `disable` run only on this machine.
+`qhost:HOST` is not valid here — `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` run only on this machine.
 
 Already on that box (ssh session, console): omit `qhost:HOST` for `submit` / `status` / `watch` / `cancel` / `stop` / `teardown`. Kit argv is still DistSSHKit’s (`go child:NAME:N SCRIPT.jl`, or `parent:N` when workers are on the queue host).
 
@@ -129,7 +131,6 @@ Ctrl-C on `serve` or `watch` only stops that process — the waiter (or the live
 Run from the job directory with `julia --project=.`; Queue must be loadable from that env. Nothing is written on the laptop (no `~/.distsshkitqueue` there). `qhost:HOST` picks the queue host (same token style as Kit `child:NAME`). `--hosts` stays Kit's (workers). Pass `qhost:` every time if you work with several clusters:
 
 ```bash
-julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts add-host host1
 julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts list-host
 julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts submit go child:host:2 SCRIPT.jl
 julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts status

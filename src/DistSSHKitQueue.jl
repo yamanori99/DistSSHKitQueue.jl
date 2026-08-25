@@ -76,15 +76,9 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             _, _, payload = extract_remote_opts(rest)
             return list_host_cli(payload)
         elseif sub == "add-host"
-            r = maybe_remote(qhost, gjulia, "add-host", rest)
-            r === nothing || return r
-            _, _, payload = extract_remote_opts(rest)
-            return add_host_cli(payload)
+            return add_host_cli(rest)
         elseif sub == "remove-host"
-            r = maybe_remote(qhost, gjulia, "remove-host", rest)
-            r === nothing || return r
-            _, _, payload = extract_remote_opts(rest)
-            return remove_host_cli(payload)
+            return remove_host_cli(rest)
         elseif sub == "watch"
             r = maybe_remote(qhost, gjulia, "watch", rest; tty=stdout isa Base.TTY, forward_via=true)
             r === nothing || return r

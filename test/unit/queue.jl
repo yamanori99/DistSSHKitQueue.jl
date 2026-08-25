@@ -369,6 +369,7 @@ end
                 @test occursin("remove-host", help)
                 @test occursin("not Kit --hosts", help)
                 @test occursin("qhost:HOST list-host", help)
+                @test !occursin("qhost:HOST add-host", help)
                 @test !occursin("qhost:HOST allowed", help)
                 @test occursin("IdentityFile", help)
                 @test !occursin("--hosts HOST", help)
@@ -393,8 +394,8 @@ end
                 empty = sprint(io -> DistSSHKitQueue.show_status(p; io=io))
                 @test occursin("Store", empty)
                 @test occursin("(empty)", empty)
-                via_out = sprint(io -> DistSSHKitQueue.show_status(p; io=io, via="cluster-a"))
-                @test occursin("cluster-a ($(gethostname()))", via_out)
+                via_out = sprint(io -> DistSSHKitQueue.show_status(p; io=io, via="qbox"))
+                @test occursin("qbox ($(gethostname()))", via_out)
                 @test DistSSHKitQueue._qhost_disp(gethostname()) == gethostname()
                 code_go, out_go, _ = capture_stdio() do
                     DistSSHKitQueue.main(["submit", "go", "child:worker:4", "job.jl"])

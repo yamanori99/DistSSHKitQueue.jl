@@ -181,35 +181,29 @@ end
             path = fake * ":" * get(ENV, "PATH", "")
             withenv(env..., "PATH" => path) do
                 @test DistSSHKitQueue.main([
-                    "qhost:cluster-a",
+                    "qhost:qbox",
                     "--remote-julia", JULIA,
                     "status",
                 ]) == 0
                 @test DistSSHKitQueue.main([
-                    "qhost:cluster-a",
+                    "qhost:qbox",
                     "--remote-julia", JULIA,
                     "watch",
                     "--ticks", "1",
                 ]) == 0
                 @test DistSSHKitQueue.main([
-                    "qhost:cluster-a",
+                    "qhost:qbox",
                     "--remote-julia", JULIA,
                     "list-host",
                 ]) == 0
-                @test DistSSHKitQueue.main([
-                    "qhost:cluster-a",
-                    "--remote-julia", JULIA,
-                    "add-host",
-                    "host1",
-                ]) == 0
             end
             dumped = read(log, String)
-            @test occursin("cluster-a", dumped)
+            @test occursin("qbox", dumped)
             @test occursin("DistSSHKitQueue", dumped)
             @test occursin("status", dumped)
             @test occursin("watch", dumped)
             @test occursin("list-host", dumped)
-            @test occursin("add-host", dumped)
+            @test !occursin("add-host", dumped)
             @test occursin("--via", dumped)
         end
     end
