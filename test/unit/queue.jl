@@ -488,6 +488,27 @@ end
     @test occursin("DistSSHKit job already running is not killed", note)
 end
 
+@testset "go with job_id still runs the user script" begin
+    mktempdir() do d
+        mark = joinpath(d, "RAN")
+        write(joinpath(d, "Project.toml"), "[deps]\n")
+        write(joinpath(d, "mark.jl"), "write($(repr(mark)), \"yes\")\n")
+        kp = DistSSHKit.execute!(
+            :go,
+            joinpath(d, "mark.jl"),
+            ["parent:1"];
+            detached=true,
+            yes=true,
+            job_id="queue-slot-include",
+            project=d,
+            output_dir=joinpath(d, "out"),
+        )
+        r = wait(kp)
+        @test r.ok
+        @test isfile(mark)
+    end
+end
+
 @testset "service unit text is serve" begin
     plist = DistSSHKitQueue.launch_agent_plist("/opt/bin/julia", "/opt/Queue.jl")
     @test occursin("org.distsshkitqueue.serve", plist)

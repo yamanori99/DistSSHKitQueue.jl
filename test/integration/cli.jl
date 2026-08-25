@@ -46,8 +46,8 @@ function cli_env(d::AbstractString)
     jobdir = joinpath(d, "job")
     mkpath(jobdir)
     write(joinpath(jobdir, "Project.toml"), "[deps]\n")
-    write(joinpath(jobdir, "hello.jl"), "println(\"cli-local\")\n")
-    write(joinpath(jobdir, "hold.jl"), "run(`sleep 600`)\n")
+    write(joinpath(jobdir, "hello.jl"), "write(joinpath(@__DIR__, \"hello.ran\"), \"cli-local\\n\")\nprintln(\"cli-local\")\n")
+    write(joinpath(jobdir, "hold.jl"), "while true; sleep(1); end\n")
     write(cfg, "store = $(repr(store))\n\n[env]\nDISTSSHKIT_YES = \"1\"\n")
     env = Dict(
         "DISTSSHKITQUEUE_CONFIG" => cfg,
@@ -103,6 +103,7 @@ end
                     @test !isempty(id)
                     row = wait_job(env, id, (:done, :failed))
                     @test row.state === :done
+                    @test isfile(joinpath(jobdir, "hello.ran"))
                     out = read(addenv(qcli(["status"]), env...), String)
                     @test occursin(id, out)
                     wout = read(addenv(qcli(["watch", "--ticks", "1", "--interval", "0.05"]), env...), String)

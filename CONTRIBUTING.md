@@ -4,7 +4,7 @@ Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md).
 
 This is a **separate** package from DistSSHKit: a FIFO waiter in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
 
-Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **min** (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
+Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **max** (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
 
 ## Requirements
 
@@ -13,7 +13,7 @@ macOS, Linux, or WSL2 Ubuntu. Not native Windows (the kit shells out to `ssh` / 
 | What | Need |
 | --- | --- |
 | Library, `Pkg.test()`, docs | Julia **1.12+** |
-| DistSSHKit | **0.4.0+** (hard dependency; `execute!`, `job_id`, `kit.pid` / `kit.result`) |
+| DistSSHKit | **0.4.1+** (hard dependency; `execute!`, `job_id`, `kit.pid` / `kit.result`) |
 
 Prefer [juliaup](https://github.com/JuliaLang/juliaup).
 
@@ -60,17 +60,17 @@ Exactly three pins, in [`.github/julia-slots.env`](.github/julia-slots.env). Do 
 
 | Slot | Role | Required |
 | --- | --- | --- |
-| **min** | `Project.toml` julia floor. Pkg.test (no coverage), Aqua, JETLS, Documenter, PR E2E, GHCR worker | yes |
-| **max** | Newest tagged or prerelease (`versions.json`). Pkg.test, Aqua. Codecov `pkgtest` on **main push** only | yes |
+| **min** | `Project.toml` julia floor. Pkg.test (no coverage), Aqua, JETLS, Documenter | yes |
+| **max** | Newest tagged or prerelease (`versions.json`). Pkg.test, Aqua, PR / daily E2E, GHCR worker. Codecov `pkgtest` on **main push** only | yes |
 | **tip** | Next-minor nightly. Pkg.test, Aqua. `continue-on-error` | no |
 
 JETLS is min plus `JULIA_SLOT_JETLS_MAX` (job name still `JETLS - max`). That pin lags when `max` / `tip` move past what JETLS lists (today 1.12.2–1.13). Raise it only after JETLS supports that runtime. No JETLS **tip**.
 
-When a new RC lands, change `JULIA_SLOT_MAX` only. When bumping compat, raise `JULIA_SLOT_MIN` (and the worker Dockerfile / WSL `--default-channel`) in the same PR.
+When a new RC lands, change `JULIA_SLOT_MAX` only. If that RC is a new **major.minor**, bump the worker Dockerfile / WSL `--default-channel` in the same PR (E2E pair). When bumping compat, raise `JULIA_SLOT_MIN` only.
 
 ### PR CI
 
-Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. Linux E2E (min) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed.
+Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed.
 
 These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
 

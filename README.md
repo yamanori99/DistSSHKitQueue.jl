@@ -18,7 +18,7 @@ Small-lab job queue on top of [DistSSHKit.jl](https://github.com/yamanori99/Dist
 
 **DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a FIFO waiter that sits in front of it: the **queue host** holds the job table and the waiter, and any number of **clients** enqueue, list, watch, and cancel.
 
-Not on General yet. Julia **1.12+**, DistSSHKit **0.4.0+**.
+Not on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**.
 
 - [Concept](#concept)
 - [What to run](#what-to-run)
@@ -121,4 +121,4 @@ A scheduler inside DistSSHKit, weakdeps from Queue to DistSSHKit, a glue package
 
 ## Compatibility
 
-macOS and Linux (WSL2 Ubuntu); not native Windows, since the kit shells out to `ssh` / `rsync`. Julia **1.12+**, DistSSHKit **0.4.0+** — Queue sits on Kit's `execute!` / `KitProcess` / `kit.pid` / `kit.result`.
+macOS and Linux (WSL2 Ubuntu); not native Windows, since the kit shells out to `ssh` / `rsync`. Julia **1.12+**, DistSSHKit **0.4.1+** — Queue sits on Kit's `execute!` / `KitProcess` / `kit.pid` / `kit.result`.
