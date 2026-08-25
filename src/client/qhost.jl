@@ -127,6 +127,11 @@ function remote_dispatch(
     if !isempty(ticks)
         push!(assigns, "ENV[$(repr(WATCH_TICKS_ENV))] = $(repr(ticks))")
     end
+    for name in ("DISTSSHKIT_QUIET", "DISTSSHKIT_PROGRESS", "DISTSSHKIT_VERBOSE")
+        v = strip(get(ENV, name, ""))
+        isempty(v) && continue
+        push!(assigns, "ENV[$(repr(name))] = $(repr(v))")
+    end
     if !isempty(assigns)
         args = String[String(sub)]
         append!(args, String[String(a) for a in payload])

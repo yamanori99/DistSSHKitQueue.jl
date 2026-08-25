@@ -5,6 +5,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `status` / `watch` take Kit `-q` / `--quiet` (and `DISTSSHKIT_QUIET`): table only, no
+  Store / Process chrome. `--progress` / `--verbose` are accepted and keep chrome.
 - `enable --queue-env DIR` is the Queue env baked into the OS unit. `enable --project` is
   refused (that is Julia's load path / Kit's job tree). The job tree stays cwd /
   `DISTRIBUTED_PROJECT_ROOT`. The unit still runs `julia --project=<that env>`.

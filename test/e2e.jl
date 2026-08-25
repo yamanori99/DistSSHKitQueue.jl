@@ -544,7 +544,7 @@ end
                         end
                         @test occursin(id, listed)
                         @test occursin("  done  ", listed)
-                        wout = read_cli(addenv(qcmd(["watch", "--interval", "0.05"]), env...))
+                        wout = read_cli(addenv(qcmd(["watch", "--interval", "0.05"]), merge(env, Dict("DISTSSHKIT_QUIET" => "0"))...))
                         @test occursin("DistSSHKitQueue watch", wout)
                         @test occursin(id, wout)
                     finally
