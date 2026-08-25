@@ -84,8 +84,8 @@ end
 @testset "true FIFO one at a time" begin
     started = String[]
     q = Queue(; runner=j -> (push!(started, j.id); sleep(0.05)))
-    a = submit!(q, "a.jl", "child:worker:4")
-    b = submit!(q, "b.jl", "child:worker:1")
+    a = submit!(q, "a.jl", "child:host1:4")
+    b = submit!(q, "b.jl", "child:host1:1")
     @test step!(q) == 1
     @test job(q, a).state === :running
     @test job(q, b).state === :queued
@@ -423,7 +423,7 @@ end
         a = submit!(q, "a.jl", "parent:1")
         @test step!(q) == 1
         q2 = Queue(; store=p, runner=_ -> nothing)
-        b = submit!(q2, "b.jl", "child:worker:2")
+        b = submit!(q2, "b.jl", "child:host1:2")
         rows = DistSSHKitQueue.read_jobs(p)
         @test job(q, a).state === :running
         @test any(j -> j.id == b && j.state === :queued, rows)
@@ -492,7 +492,7 @@ end
                 @test occursin("qbox ($(gethostname()))", via_out)
                 @test DistSSHKitQueue._qhost_disp(gethostname()) == gethostname()
                 code_go, out_go, _ = capture_stdio() do
-                    DistSSHKitQueue.main(["submit", "go", "child:worker:4", "job.jl"])
+                    DistSSHKitQueue.main(["submit", "go", "child:host1:4", "job.jl"])
                 end
                 @test code_go == 0
                 rows = DistSSHKitQueue.read_jobs(p)
@@ -500,7 +500,7 @@ end
                 @test strip(out_go) == rows[1].id
                 @test rows[1].kind === :go
                 @test rows[1].script == DistSSHKit.canonical_local_path(joinpath(pwd(), "job.jl"))
-                @test rows[1].hosts == ["child:worker:4"]
+                @test rows[1].hosts == ["child:host1:4"]
                 @test rows[1].state === :queued
                 @test rows[1].kwargs["project"] == proj
                 listed = sprint(io -> DistSSHKitQueue.show_status(p; io=io))

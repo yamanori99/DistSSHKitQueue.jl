@@ -44,7 +44,7 @@ so DistSSHKit `setup --check` can run **without** `--ignore-julia-version`. Pins
 | Path | Role |
 | --- | --- |
 | [`Dockerfile`](Dockerfile) / [`start.sh`](start.sh) | Worker image (sshd, rsync, git, Julia via juliaup; slot **max**, today **1.13**) |
-| [`compose.yml`](compose.yml) | Two workers (`worker-1` / `worker-2`) |
+| [`compose.yml`](compose.yml) | Two children (`child-1` / `child-2`) |
 | [`scripts/gen-keys.sh`](scripts/gen-keys.sh) | Controller + inter-worker keys, SSH config |
 | [`scripts/up.sh`](scripts/up.sh) | Keys → down → up → wait (`--e2e` also runs the suite) |
 | [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh) | macOS Intel GitHub runner: Lima + Colima |

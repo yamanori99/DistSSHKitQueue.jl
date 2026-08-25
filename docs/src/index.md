@@ -15,7 +15,7 @@ This package is not on General yet. See the [README](https://github.com/yamanori
 ```bash
 julia --project=. -m DistSSHKitQueue qhost:HOST status
 julia --project=. -m DistSSHKitQueue qhost:HOST watch
-julia --project=. -m DistSSHKitQueue qhost:HOST submit go child:worker:4 SCRIPT.jl
+julia --project=. -m DistSSHKitQueue qhost:HOST submit go child:host1:4 SCRIPT.jl
 julia --project=. -m DistSSHKitQueue qhost:HOST cancel <id>
 ```
 
