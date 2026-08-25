@@ -1,29 +1,29 @@
-# Linux SSH workers for DistSSHKitQueue local Docker E2E.
+# Linux SSH children for DistSSHKitQueue local Docker E2E.
 # These are DistSSHKit go/drive targets (`child:NAME[:N]`). The queue host and the
 # waiter run on the host, not here.
 #
 # Project name is not the directory (`docker-ssh`): DistSSHKit uses the same
-# folder name, and sharing the Compose project recreates Kit's workers too.
+# folder name, and sharing the Compose project recreates Kit's children too.
 name: distsshkitqueue-docker-ssh
 services:
-  worker-1:
+  child-1:
     build:
       context: .
       dockerfile: Dockerfile
     image: local/dskq-linux-ssh-worker:latest
-    container_name: distsshkitqueue-worker-1
+    container_name: distsshkitqueue-child-1
     ports:
       - "2222:22"
     volumes:
       - ./mounted-keys:/mounted-keys:ro
     restart: "no"
 
-  worker-2:
+  child-2:
     build:
       context: .
       dockerfile: Dockerfile
     image: local/dskq-linux-ssh-worker:latest
-    container_name: distsshkitqueue-worker-2
+    container_name: distsshkitqueue-child-2
     ports:
       - "2223:22"
     volumes:

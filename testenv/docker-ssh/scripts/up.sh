@@ -66,7 +66,7 @@ if [[ -n "${DSKQ_WORKER_IMAGE:-}" ]]; then
   pull_worker_image "$DSKQ_WORKER_IMAGE"
 else
   # Build a single service so logs are not interleaved (both share the image).
-  "${COMPOSE[@]}" -f compose.yml build worker-1
+  "${COMPOSE[@]}" -f compose.yml build child-1
   if [[ -n "${DSKQ_PUSH_IMAGE:-}" ]]; then
     DSKQ_LOCAL_IMAGE="$LOCAL_IMAGE" ./scripts/push-image.sh "$DSKQ_PUSH_IMAGE"
   fi

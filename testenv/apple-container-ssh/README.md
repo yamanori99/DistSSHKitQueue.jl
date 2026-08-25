@@ -9,8 +9,8 @@ so [`test/e2e.jl`](../../test/e2e.jl) is unchanged.
 and for Linux / Docker Desktop / WSL.
 
 Do not run `docker-ssh` compose workers at the same time: both write
-`docker-ssh/.generated/ssh_config`. Container names are `dskq-worker-1` /
-`dskq-worker-2` so DistSSHKit's Apple `worker-1` / `worker-2` can coexist.
+`docker-ssh/.generated/ssh_config`. Container names are `dskq-child-1` /
+`dskq-child-2` so DistSSHKit's Apple `child-1` / `child-2` can coexist.
 
 ## Requirements
 
@@ -30,7 +30,7 @@ From this directory (queue root also works if you keep the path):
 
 First `up.sh` runs `container system start` and, if needed, builds
 `local/dskq-linux-ssh-worker:latest` from [`../docker-ssh/Dockerfile`](../docker-ssh/Dockerfile).
-Every run removes and recreates `dskq-worker-1` / `dskq-worker-2` (fresh state each time).
+Every run removes and recreates `dskq-child-1` / `dskq-child-2` (fresh state each time).
 Keys come from `docker-ssh/scripts/gen-keys.sh` (mounted from
 `docker-ssh/mounted-keys`). `up.sh` drops a stale `docker-ssh/.generated/known_hosts`
 (container sshd host keys / IPs change on recreate; `BatchMode` cannot replace them).
@@ -48,16 +48,16 @@ SSH aliases after `up.sh`:
 ssh -F ../docker-ssh/.generated/ssh_config dskq-w1 'echo ok; julia --version'
 ```
 
-Apple’s default network does not resolve `worker-1` / `worker-2` between
-containers. `up.sh` appends those names to each worker `/etc/hosts` so Kit
-inter-worker SSH matches Compose DNS.
+Apple’s default network does not resolve `child-1` / `child-2` between
+containers. `up.sh` appends those names to each child `/etc/hosts` so Kit
+inter-child SSH matches Compose DNS.
 
 ## Manual smoke (no E2E)
 
 `./scripts/up.sh` is enough. `container exec` has no `--` (that flag is Docker):
 
 ```bash
-container exec -it -u dev dskq-worker-1 bash -l
+container exec -it -u dev dskq-child-1 bash -l
 ```
 
 ## Teardown
@@ -85,4 +85,4 @@ Switch back to Docker: `docker-ssh/scripts/up.sh` rewrites `ssh_config` to
 | `401` pulling `dskq-linux-ssh-worker` | Let `up.sh` build, or `cd ../docker-ssh && container build -t local/dskq-linux-ssh-worker:latest .` |
 | SSH timeout | `container ls` — empty IP means `container start <name>` or `./scripts/up.sh` |
 | `Host key verification failed` / changed host key | `up.sh` wipes docker-ssh `known_hosts` and uses `StrictHostKeyChecking accept-new` |
-| peer SSH cannot reach `dev@worker-1` | Re-run `up.sh` (injects `/etc/hosts`); do not skip that step |
+| peer SSH cannot reach `dev@child-1` | Re-run `up.sh` (injects `/etc/hosts`); do not skip that step |
