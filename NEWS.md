@@ -5,6 +5,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `julia -m DistSSHKitQueue --version` (`-v`, `-V`) prints Queue then DistSSHKit.
+  `submit go -v` stays Kit only.
 - `status` / `watch` print the client `qhost:` token via `DISTSSHKITQUEUE_QHOST`
   (set on the ssh hop). No `--via` flag. Omit `qhost:` → `local (hostname)`.
 - `go --hosts` / `go --julia` (and `submit go` / `submit drive`) stay DistSSHKit's:
