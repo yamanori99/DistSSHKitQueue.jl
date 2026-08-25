@@ -520,6 +520,16 @@ end
                     @test run_cli(addenv(qcmd(["disable", "--write-only"]), env...)).exitcode == 0
                     @test !isfile(unit)
 
+                    # Glue only: header + Queue submit footer. Table layout is Kit E2E.
+                    size_env = merge(env, Dict("DISTSSHKIT_QUIET" => "0"))
+                    size_out = read_cli(addenv(
+                        qcmd(["size", "--gb-per-worker", "1.5", "parent", "child:$(HOSTS[1])"]),
+                        size_env...,
+                    ))
+                    @test occursin("DistSSHKitQueue size", size_out)
+                    @test occursin("Queue submit:", size_out)
+                    @test occursin("child:$(HOSTS[1]):", size_out)
+
                     serve_proc = run(pipeline(addenv(qcmd(["serve", "--interval", "0.2"]), env...); stdout=devnull, stderr=devnull); wait=false)
                     try
                         outdir = joinpath(JOB_PROJECT, "e2e_kit_out", "cli_on_host")

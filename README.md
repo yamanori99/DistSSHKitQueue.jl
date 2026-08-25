@@ -65,6 +65,7 @@ Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up,
 | --- | --- | --- |
 | `submit` | Enqueue a Kit `go` / `drive`. Starts a waiter if none is running. | Always (this is the product) |
 | `list-host` | Read-only Kit names and host tokens (`parent` / `child:NAME`) plus `ssh -G` Host / HostName / User / Port. Not Kit `--hosts`. | See which host token to pass to `submit` |
+| `size` | DistSSHKit `size` on the queue host (RAM/CPU, `--probe`). Omit tokens to use config `hosts`. Does not enqueue. | Pick `:N` for `submit` |
 | `add-host` | Write a Kit token into config `hosts` (`parent[:N]` / `child:NAME[:N]`). First add creates the list (submit is no longer allow-all). Optional `:N` is a max. No `serve` restart. | Lab inventory |
 | `remove-host` | Drop a Kit token from that list. Last name left is `hosts = []` (submit accepts none). No `serve` restart. A running Kit job is not stopped. | Lab inventory |
 | `serve` | Run the waiter **in this terminal, now**. Ctrl-C stops this waiter. | Watching the queue live on the queue host, or running without autoserve |
@@ -84,13 +85,14 @@ Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `p
 
 Not DistSSHKit `--hosts` (that still names workers on `go` / `drive`). These verbs only touch the lab inventory and how SSH would connect. They do not enqueue. `list-host` does not print private keys or IdentityFile.
 
-`add-host` / `remove-host` run on the queue host only (like `setup`). `list-host` can run there or from a client via `qhost:`.
+`add-host` / `remove-host` run on the queue host only (like `setup`). `list-host` and `size` can run there or from a client via `qhost:`. `size` is DistSSHKit `size` (job tree on the queue host). It does not enqueue.
 
 On the queue host:
 
 ```bash
 julia -m DistSSHKitQueue add-host parent child:host1
 julia -m DistSSHKitQueue list-host
+julia -m DistSSHKitQueue size
 julia -m DistSSHKitQueue remove-host child:host1
 ```
 
@@ -98,6 +100,8 @@ From a **client**, `list-host` is forwarded like `status`. `ssh -G` still runs o
 
 ```bash
 julia -m DistSSHKitQueue qhost:mini list-host
+julia -m DistSSHKitQueue qhost:mini size
+julia -m DistSSHKitQueue qhost:mini size --gb-per-worker 1.5 parent child:host1
 ```
 
 A dedicated always-on box (Mac mini, Linux VM):
