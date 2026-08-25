@@ -281,64 +281,74 @@ end
 end
 
 @testset "config host names" begin
+    H = DistSSHKitQueue.HostAllow
     @test DistSSHKitQueue.config_host_names(Dict{String,Any}()) === nothing
     @test DistSSHKitQueue.config_host_names(Dict{String,Any}("store" => "x")) === nothing
-    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => [" parent ", "host1"])) ==
-          Set(["parent", "host1"])
+    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => [" parent ", "child:host1"])) ==
+          H("parent" => nothing, "host1" => nothing)
     @test DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => ["child:host1", "parent:2"])) ==
-          Set(["host1", "parent"])
+          H("host1" => nothing, "parent" => 2)
     @test DistSSHKitQueue.config_host_names(Dict{String,Any}("allowed" => ["child:host1", "parent:2"])) ==
-          Set(["host1", "parent"])
+          H("host1" => nothing, "parent" => 2)
     @test DistSSHKitQueue.kit_ssh_name("child:host1:4") == "host1"
-    @test DistSSHKitQueue.kit_ssh_name("host1") == "host1"
-    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => Any[])) == Set{String}()
+    @test DistSSHKitQueue.kit_ssh_name("parent") == "parent"
+    @test_throws ArgumentError DistSSHKitQueue.kit_ssh_name("host1")
+    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => Any[])) == H()
+    @test_throws ArgumentError DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => ["host1"]))
     @test_throws ArgumentError DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => "parent"))
     @test_throws ArgumentError DistSSHKitQueue.config_host_names(
-        Dict{String,Any}("hosts" => ["parent"], "allowed" => ["host1"]),
+        Dict{String,Any}("hosts" => ["parent"], "allowed" => ["child:host1"]),
     )
 end
 
 @testset "add-host / remove-host write hosts" begin
     mktempdir() do d
+        H = DistSSHKitQueue.HostAllow
         cfg = joinpath(d, "config.toml")
         DistSSHKitQueue.write_config_template(cfg)
         DistSSHKitQueue.add_host_names!(cfg, ["parent", "child:host1"])
         text = read(cfg, String)
         @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
-              Set(["parent", "host1"])
+              H("parent" => nothing, "host1" => nothing)
         @test occursin("hosts = [", text)
-        @test occursin("\"host1\"", text)
+        @test occursin("child:host1", text)
         @test occursin("[env]", text)
         @test occursin("# DistSSHKitQueue", text)
         @test occursin("DISTRIBUTED_SSH_OPTS", text)
         @test !occursin("# hosts", text)
-        DistSSHKitQueue.add_host_names!(cfg, ["host1"])
+        DistSSHKitQueue.add_host_names!(cfg, ["child:host1"])
         @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
-              Set(["parent", "host1"])
+              H("parent" => nothing, "host1" => nothing)
+        DistSSHKitQueue.add_host_names!(cfg, ["child:host1:4"])
+        @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              H("parent" => nothing, "host1" => 4)
+        @test occursin("child:host1:4", read(cfg, String))
         DistSSHKitQueue.remove_host_names!(cfg, ["parent"])
         @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
-              Set(["host1"])
-        DistSSHKitQueue.remove_host_names!(cfg, ["host1"])
+              H("host1" => 4)
+        DistSSHKitQueue.remove_host_names!(cfg, ["child:host1"])
         @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
-              Set{String}()
+              H()
         @test occursin("hosts = []", read(cfg, String))
-        @test_throws ArgumentError DistSSHKitQueue.remove_host_names!(cfg, ["host1"])
+        @test_throws ArgumentError DistSSHKitQueue.remove_host_names!(cfg, ["child:host1"])
+        @test_throws ArgumentError DistSSHKitQueue.add_host_names!(cfg, ["host1"])
         missing = joinpath(d, "none.toml")
-        DistSSHKitQueue.add_host_names!(missing, ["host1"])
+        DistSSHKitQueue.add_host_names!(missing, ["child:host1"])
         @test isfile(missing)
         @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=missing)) ==
-              Set(["host1"])
+              H("host1" => nothing)
         @test_throws ArgumentError DistSSHKitQueue.add_host_names!(cfg, String[])
         @test DistSSHKitQueue.replace_or_insert_hosts_line("store = \"x\"\n", "hosts = []") ==
               "store = \"x\"\nhosts = []\n"
         old = joinpath(d, "old.toml")
         write(old, "store = \"x\"\nallowed = [\"parent\"]\n")
-        DistSSHKitQueue.add_host_names!(old, ["host1"])
+        DistSSHKitQueue.add_host_names!(old, ["child:host1"])
         migrated = read(old, String)
         @test occursin("hosts = [", migrated)
+        @test occursin("child:host1", migrated)
         @test !occursin("allowed =", migrated)
         @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=old)) ==
-              Set(["parent", "host1"])
+              H("parent" => nothing, "host1" => nothing)
     end
 end
 
