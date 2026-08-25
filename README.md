@@ -3,6 +3,8 @@
 > [!WARNING]
 > **Under construction.** Do not use this.
 
+[English](README.md) | [日本語](README.ja.md)
+
 [![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/CI.yml?branch=main&label=Test)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/CI.yml)
 [![codecov](https://codecov.io/gh/yamanori99/DistSSHKitQueue.jl/graph/badge.svg)](https://codecov.io/gh/yamanori99/DistSSHKitQueue.jl)
 [![JETLS](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/jetls.yml?branch=main&label=JETLS)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/jetls.yml)
@@ -11,26 +13,56 @@
 [![E2E daily](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/ssh-e2e-daily.yml?branch=main&label=E2E%20daily)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/ssh-e2e-daily.yml)
 
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/)
-[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](#compatibility)
+[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/requirements/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Small-lab job queue on top of [DistSSHKit.jl](https://github.com/yamanori99/DistSSHKit.jl).
+DistSSHKitQueue runs jobs one after another on machines that several
+people share. You can submit a job, check its status, and cancel.
+[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) does the run.
+Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
-**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a FIFO waiter that sits in front of it: the **queue host** holds the job table and the waiter, and any number of **clients** enqueue, list, watch, and cancel.
+Even small labs and individuals can keep one always-on machine, add
+SSH hosts, and use them together as a small set of compute nodes. Not
+on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**.
 
-Not on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**.
+## Install
 
-- [Concept](#concept)
-- [What to run](#what-to-run)
-- [Queue host (always-on)](#queue-host-always-on)
-- [Client (dev laptop)](#client-dev-laptop)
-- [Job record](#job-record)
-- [Out of scope](#out-of-scope)
-- [Compatibility](#compatibility)
+From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
-## Concept
+```julia
+pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl
+```
 
-A **client** is a **dev machine**. It does not run the queue. You point it at **one always-on queue host**. Any number of clients can do that; they share **one** FIFO table (one DistSSHKit job at a time).
+Or, equivalently, via the `Pkg` API:
+
+```julia
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl")
+```
+
+Not on General yet, so this is a URL add. DistSSHKit **0.4.1+** comes from
+General with it. Do not `Pkg.develop` Kit for ordinary Queue work.
+
+The queue host also needs **`ssh`**, **`rsync`**, and (only for git
+deploys) **`git`** — `pkg> add` does not install them. Full requirements:
+[Requirements](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/requirements/).
+
+For everything else, see the
+**[Documentation](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/)**.
+
+## Usage
+
+### Basic terms
+
+- **Queue host** — the always-on machine that holds `~/.distsshkitqueue` and
+  runs the waiter (macOS or Linux; a VM is fine). A sleeping laptop is not
+  this box.
+- **Client** — a dev machine that submits, lists, watches, or cancels. No
+  cap. It must not become the Kit master.
+- **Waiter** — the `serve` process on the queue host. It starts DistSSHKit
+  (`execute!(…; detached=true)`) and waits. Stopping it does not cancel a
+  Kit job that is already running.
+- **Workers** — where the script runs. DistSSHKit tokens: `parent[:N]` on
+  the queue host, `child:NAME[:N]` on SSH machines.
 
 ```text
   clients = dev machines (no cap)          one queue host (always on)
@@ -45,117 +77,54 @@ A **client** is a **dev machine**. It does not run the queue. You point it at **
                                            → workers (Kit tokens)
 ```
 
-`qhost:NAME` is the SSH name of that box (same idea as Kit `child:NAME`, but it names the queue host, not a worker). Already logged in there? Omit it.
+`qhost:NAME` is the SSH name of the queue host (same idea as Kit
+`child:NAME`, but it names the queue host, not a worker). Already logged in
+there? Omit it. One lab: `export DISTSSHKITQUEUE_HOST=…` and omit `qhost:`
+(the token still wins). `--hosts` / `--julia` stay on Kit `go` / `drive`.
+
+Placement tokens, `go` / `drive` flags, and remote setup are DistSSHKit's —
+see the [kit docs](https://yamanori99.github.io/DistSSHKit.jl/stable/).
+
+### Examples
+
+From a **client** (job directory; Queue must be loadable from that env):
 
 ```bash
+julia --project=. -m DistSSHKitQueue qhost:mini list-host
 julia --project=. -m DistSSHKitQueue qhost:mini submit go child:host1:4 SCRIPT.jl
+julia --project=. -m DistSSHKitQueue qhost:mini status
+julia --project=. -m DistSSHKitQueue qhost:mini watch
+julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
 ```
 
-- **Queue host** — the always-on machine that holds the table and runs the Kit master for the current job (macOS or Linux; a VM is fine). One waiter, one table. A sleeping laptop is not this box.
-- **Client** — a dev machine that submits, lists, watches, or cancels. No cap. It must not become the Kit master.
-- **Workers** — where the script actually runs. DistSSHKit tokens: `parent[:N]` on the queue host, `child:NAME[:N]` on SSH machines.
+`submit` starts a waiter on the queue host if none is running.
 
-Queue is not a bigger Kit and does not keep a lab-wide slot ceiling. The waiter starts DistSSHKit (`execute!(…; detached=true)`) and waits. Stopping the waiter does not cancel a Kit job that is already running.
-
-## What to run
-
-Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up, `submit` starts one on the queue host. You do not need `setup`, `serve`, or `enable` for a job to run.
-
-| Command | What it does | When you need it |
-| --- | --- | --- |
-| `submit` | Enqueue a Kit `go` / `drive`. Starts a waiter if none is running. | Always (this is the product) |
-| `list-host` | Read-only Kit names and host tokens (`parent` / `child:NAME`) plus `ssh -G` Host / HostName / User / Port. Not Kit `--hosts`. | See which host token to pass to `submit` |
-| `size` | DistSSHKit `size` on the queue host (RAM/CPU, `--probe`). Omit tokens to use config `hosts`. Does not enqueue. | Pick `:N` for `submit` |
-| `add-host` | Write a Kit token into config `hosts` (`parent[:N]` / `child:NAME[:N]`). First add creates the list (submit is no longer allow-all). Optional `:N` is a max. No `serve` restart. | Lab inventory |
-| `remove-host` | Drop a Kit token from that list. Last name left is `hosts = []` (submit accepts none). No `serve` restart. A running Kit job is not stopped. | Lab inventory |
-| `serve` | Run the waiter **in this terminal, now**. Ctrl-C stops this waiter. | Watching the queue live on the queue host, or running without autoserve |
-| `enable` | Tell the OS: after reboot / login, start `serve` again (LaunchAgent / systemd). `--queue-env` is the Queue env in that unit, not Julia `--project=` / the job tree. | A dedicated queue host that should come back by itself |
-| `setup` | Write `~/.distsshkitqueue/config.toml` if missing (`--force` rewrites). | Optional. Defaults work without it. Use it for `store=` or `[env]`. |
-| `stop` | Stop the waiter, keep files. `submit` will not auto-start until you `serve`. | Pause the queue |
-| `disable` | Remove the OS unit. Does not delete the job table. | This machine should no longer auto-serve at boot |
-| `teardown -y` | Stop waiter, remove unit and `~/.distsshkitqueue`. Same confirm as DistSSHKit (`DISTSSHKIT_YES`). | Wipe Queue state on this host |
-
-`serve` is “run the process”. `enable` is “register that process with the OS” (systemd’s word). They are not two ways to start the same thing. `enable` does not make a laptop a queue host.
-
-## Queue host (always-on)
-
-Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). DistSSHKit **0.4.1+** comes from General with it. The table lives at `~/.distsshkitqueue/jobs.toml`. Kit SSH names live in `config.toml` as `hosts`, using the same tokens as DistSSHKit (`parent[:N]` / `child:NAME[:N]`). Prefer CLI `add-host` / `remove-host` / `list-host` (hand-edit still works). Omit the key to allow any name. CLI `submit` re-reads that file each time, so `add-host` / `remove-host` apply without restarting `serve`. Library `submit!` uses `Queue(; allowed=…)` unless `follow_config=true`. A `:running` Kit job is not stopped when the list changes. `:queued` rows still start if a name is later removed.
-
-### `add-host` / `remove-host` / `list-host`
-
-Not DistSSHKit `--hosts` (that still names workers on `go` / `drive`). These verbs only touch the lab inventory and how SSH would connect. They do not enqueue. `list-host` does not print private keys or IdentityFile.
-
-`add-host` / `remove-host` run on the queue host only (like `setup`). `list-host` and `size` can run there or from a client via `qhost:`. `size` is DistSSHKit `size` (job tree on the queue host). It does not enqueue.
-
-On the queue host:
+On the **queue host** (once):
 
 ```bash
+julia -m DistSSHKitQueue setup
 julia -m DistSSHKitQueue add-host parent child:host1
-julia -m DistSSHKitQueue list-host
-julia -m DistSSHKitQueue size
-julia -m DistSSHKitQueue remove-host child:host1
+julia -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
 ```
 
-From a **client**, `list-host` is forwarded like `status`. `ssh -G` still runs on the queue host, not on the client:
+`setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` refuse
+`qhost:`. Command reference: [User Guide](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/manual/).
 
-```bash
-julia -m DistSSHKitQueue qhost:mini list-host
-julia -m DistSSHKitQueue qhost:mini size
-julia -m DistSSHKitQueue qhost:mini size --gb-per-worker 1.5 parent child:host1
-```
+## Documentation
 
-A dedicated always-on box (Mac mini, Linux VM):
+| | |
+| --- | --- |
+| Introduction | [Introduction](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/) |
+| First Steps | [First Steps](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/requirements/) |
+| User Guide | [User Guide](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/manual/) |
+| API | [API](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/api/) |
+| News | [NEWS.md](NEWS.md) |
 
-```bash
-# on the queue host
-julia -m DistSSHKitQueue setup                 # optional config.toml
-julia -m DistSSHKitQueue enable                # survive reboot
-```
+## Contributing
 
-After that, clients only `submit`. You do not leave a `serve` terminal open; the OS unit runs it.
+Bugs and feature requests: [Issues](https://github.com/yamanori99/DistSSHKitQueue.jl/issues).
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Foreground, this session only (no reboot registration):
+## License
 
-```bash
-julia -m DistSSHKitQueue serve
-```
-
-`qhost:HOST` is not valid here — `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` run only on this machine.
-
-Already on that box (ssh session, console): omit `qhost:HOST` for `submit` / `status` / `watch` / `cancel` / `stop` / `teardown`. Kit argv is still DistSSHKit’s (`go child:NAME:N SCRIPT.jl`, or `parent:N` when workers are on the queue host).
-
-`stop` halts the waiter but leaves config, store, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `qhost:HOST stop`. `disable` is the opposite of `enable`, not of `serve`.
-
-A dedicated env at `~/.distsshkitqueue/env`, if present, is preferred as `enable --queue-env` so a checkout can be deleted. `teardown` never runs `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/` results.
-
-Ctrl-C on `serve` or `watch` only stops that process — the waiter (or the live view), never a running Kit job.
-
-## Client (dev laptop)
-
-Run from the job directory with `julia --project=.`; Queue must be loadable from that env. Nothing is written on the laptop (no `~/.distsshkitqueue` there). `qhost:HOST` picks the queue host (same token style as Kit `child:NAME`). `--hosts` stays Kit's (workers). One lab: `export DISTSSHKITQUEUE_HOST=m4-mini-ts` and omit `qhost:`. Several clusters: pass `qhost:` each time (it wins). Do not set `DISTSSHKITQUEUE_HOST` on the queue host (or in its `config.toml` `[env]`).
-
-```bash
-export DISTSSHKITQUEUE_HOST=m4-mini-ts
-julia --project=. -m DistSSHKitQueue list-host
-julia --project=. -m DistSSHKitQueue submit go child:host:2 SCRIPT.jl
-julia --project=. -m DistSSHKitQueue status
-julia --project=. -m DistSSHKitQueue watch
-julia --project=. -m DistSSHKitQueue cancel <id>
-julia --project=. -m DistSSHKitQueue teardown -y
-```
-
-Remote Julia on the queue host is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). Kit `--julia` stays on `submit go` / `submit drive`. `SCRIPT.jl` and placement tokens are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `qhost:HOST` it uses `ssh -t` so the remote TTY can clear the screen. Both print `qhost`: the token plus this machine's hostname (or `local (hostname)` when you omitted it and `DISTSSHKITQUEUE_HOST` is unset). The client hop sets `DISTSSHKITQUEUE_QHOST`; there is no `--via`. Job `HOSTS` stays DistSSHKit `parent[:N]` / `child:NAME[:N]`.
-
-## Job record
-
-Each row in the table has: `id` (UUID), `kind` (`:go` / `:drive`), `script`, `hosts`, `state` (`:queued` / `:running` / `:done` / `:failed` / `:cancelled`), `queued_at` / `started_at` / `finished_at`, `error`, and `result_path` — Kit's output directory. If submit omitted `--output-dir`, the waiter sets one with DistSSHKit `allocate_output_dir` when the row becomes `:running` (so `cancel` and a later `serve` can find `kit.pid`). Queue does not keep a second copy of Kit's result tree. Kit kwargs (`args`, `project`, `output_dir`, …) travel as an opaque bag, forwarded through DistSSHKit's `execute!` allow-list. The waiter also passes `job_id` (the row UUID) so Kit progress lines can carry `job=`.
-
-The table is TOML on the queue host (`~/.distsshkitqueue/jobs.toml`), rewritten under a directory lock so several clients can enqueue at once. If the waiter dies: `:queued` rows reload on the next `serve`. A `:running` row whose DistSSHKit `kit.pid` is still alive stays `:running` (the waiter will not start the next FIFO job; it polls that pid). A `:running` row with no live `kit.pid` is `:done` or `:failed` from `kit.result` when that file exists, otherwise `:failed`.
-
-## Out of scope
-
-A scheduler inside DistSSHKit, weakdeps from Queue to DistSSHKit, a glue package, lab-wide slot ceilings or occupancy packing, preemption / fair-share / priorities / reservations / backfill, HTTP or a listen socket, a sleeping laptop as the waiter, auto-retry of crashed `:running` jobs, a Queue-owned copy of Kit's result trees, and native Windows.
-
-## Compatibility
-
-macOS and Linux (WSL2 Ubuntu); not native Windows, since the kit shells out to `ssh` / `rsync`. Julia **1.12+**, DistSSHKit **0.4.1+** — Queue sits on Kit's `execute!` / `KitProcess` / `kit.pid` / `kit.result`.
+Source code is [MIT](LICENSE).

@@ -1,6 +1,6 @@
 # Contributing
 
-Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md), [docs](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/) (`docs/`; [docs/README.md](docs/README.md)).
+Internals of this repo. Users: [README.md](README.md), [README.ja.md](README.ja.md), [NEWS.md](NEWS.md), [docs](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/) (`docs/`; [docs/README.md](docs/README.md)).
 
 This is a **separate** package from DistSSHKit: a FIFO waiter in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
 
@@ -76,7 +76,7 @@ Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Docum
 
 These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
 
-`README.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`.
+`README.md`, `README.ja.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`.
 
 A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. macOS / WSL stay on `E2E daily`, not the PR.
 
@@ -98,6 +98,7 @@ Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure.
 - `Documenter - min - ubuntu-latest`
 - `Gitleaks`
 - `ubuntu-latest → ubuntu-24.04`
+- `PR label`
 
 | When | Workflow | What |
 | --- | --- | --- |
@@ -143,7 +144,7 @@ If Queue cannot implement something without a kit hook, open a DistSSHKit Enhanc
 
 ## Issues
 
-**Issues** (Bug / Enhancement forms only): `bug` or `enhancement`. Usage questions can wait until Discussions are on. Security: [SECURITY.md](SECURITY.md).
+**Issues** (Bug / Enhancement forms only): `bug` or `enhancement`. The area dropdown is triage; add `area:*` if useful. Usage questions can wait until Discussions are on. Security: [SECURITY.md](SECURITY.md).
 
 A Queue failure is not automatically a Queue bug. Decide the repo first:
 
@@ -155,6 +156,48 @@ Do not file DistSSHKit on speculation. Reproduce against Kit (or this E2E with K
 
 Every PR needs one type label (`bug` / `enhancement` / `chore`) when labels exist.
 
+## Labels
+
+```bash
+./.github/gen-labeler.sh          # rewrite
+./.github/gen-labeler.sh --check  # CI drift
+```
+
+Every tracked path must match some `area:*` glob (`gen-labeler.sh --check`). Globs are positive paths; do not add `!` excludes (labeler ORs them as "not this path" and tags unrelated files). Path labeler syncs only `area:*`. After `setLabels` it restores type / `cut` / other non-area labels so a concurrent Type job is not wiped.
+
+| Paths | Label |
+| --- | --- |
+| `src/client/<stem>.jl` / `src/qhost/<stem>.jl` (`_` → `-` in the label) | `area:<stem>` |
+| Leftover queue (`src/DistSSHKitQueue.jl`, `src/DistSSHKitQueue/**`, matching unit tests, shared `test/integration/cli.jl`, package meta) | `area:queue` |
+| Harness under `test/` (not `unit/` / `integration/`) and `testenv/**` | `area:test` |
+| `test/e2e.jl` | client / qhost areas as well |
+| Product tests under `unit/` and `integration/` | that `area:<stem>` (plus `area:queue` when leftover shared queue) |
+| `docs/**` | `area:docs` |
+| `README.md`, `README.ja.md`, `NEWS.md`, `CONTRIBUTING.md`, `SECURITY.md` | `area:project-docs` |
+| `.github/**`, `codecov.yml` | `area:ci` |
+
+New client / qhost file or a new product-test tree: edit the script, regenerate, create the GitHub label.
+
+Backfill every PR after a vocabulary change:
+
+```bash
+./.github/retag-pr-areas.sh           # dry-run
+./.github/retag-pr-areas.sh --apply
+```
+
+### Type labels
+
+Every PR needs one of `bug` / `enhancement` / `chore`. Dependabot skips the type check (`dependencies` only). Override with `gh pr edit N --add-label …`.
+
+CI infers, in order:
+
+1. A unique type on a closing issue (`Fixes #N`)
+2. Else the branch prefix: `feat/` → enhancement, `fix/` → bug, `breaking/` → breaking, `chore/` / `docs/` / `ci/` / `test/` / anything else → chore
+
+`fix/` plus `Fixes` an enhancement issue gets `enhancement`. `breaking` may sit next to the type label. After merge a human registers; TagBot tags (once on General).
+
+Repo Settings → Branches → ruleset `main`: add required check `PR label`. Type labels (`bug` / `enhancement` / `breaking` / `chore` / `cut`) and each `area:*` must exist (`gh label create` if missing).
+
 ## Language
 
-`.jl` comments, docstrings, and errors: English. Install or Docs links: `docs/src` and README. User-visible behavior: NEWS (date the section when tagged). Generative AI is allowed; you own the diff. Keep docs plain.
+`.jl` comments, docstrings, and errors: English. Install or Docs links: `docs/src`, [README.md](README.md), and [README.ja.md](README.ja.md). User-visible behavior: NEWS (date the section when tagged). Generative AI is allowed; you own the diff. Keep docs plain.
