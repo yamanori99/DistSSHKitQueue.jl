@@ -71,7 +71,7 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             _, _, payload = extract_remote_opts(rest)
             return stop_cli(payload)
         elseif sub == "status"
-            r = maybe_remote(qhost, gjulia, "status", rest; forward_via=true)
+            r = maybe_remote(qhost, gjulia, "status", rest; label_qhost=true)
             r === nothing || return r
             _, _, payload = extract_remote_opts(rest)
             return status_cli(payload)
@@ -90,7 +90,7 @@ function main(args::Vector{String}=copy(ARGS))::Cint
         elseif sub == "remove-host"
             return remove_host_cli(rest)
         elseif sub == "watch"
-            r = maybe_remote(qhost, gjulia, "watch", rest; tty=stdout isa Base.TTY, forward_via=true)
+            r = maybe_remote(qhost, gjulia, "watch", rest; tty=stdout isa Base.TTY, label_qhost=true)
             r === nothing || return r
             _, _, payload = extract_remote_opts(rest)
             return watch_cli(payload)

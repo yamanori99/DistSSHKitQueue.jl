@@ -215,7 +215,8 @@ end
             @test occursin("child:w:2", dumped)
             @test occursin("hello.jl", dumped)
             @test !occursin("add-host", dumped)
-            @test occursin("--via", dumped)
+            @test occursin("DISTSSHKITQUEUE_QHOST", dumped)
+            @test !occursin("--via", dumped)
         end
     end
 

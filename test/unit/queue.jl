@@ -490,9 +490,18 @@ end
                 empty = sprint(io -> DistSSHKitQueue.show_status(p; io=io))
                 @test occursin("Store", empty)
                 @test occursin("(empty)", empty)
-                via_out = sprint(io -> DistSSHKitQueue.show_status(p; io=io, via="qbox"))
+                via_out = sprint(io -> DistSSHKitQueue.show_status(p; io=io, qhost="qbox"))
                 @test occursin("qbox ($(gethostname()))", via_out)
                 @test DistSSHKitQueue._qhost_disp(gethostname()) == gethostname()
+                env_out = withenv(DistSSHKitQueue.QHOST_DISPLAY_ENV => "from-env") do
+                    sprint(io -> DistSSHKitQueue.show_status(p; io=io))
+                end
+                @test occursin("from-env ($(gethostname()))", env_out)
+                code_via, _, err_via = capture_stdio() do
+                    DistSSHKitQueue.main(["status", "--via", "qbox"])
+                end
+                @test code_via == 1
+                @test occursin("unknown status option", err_via)
                 code_go, out_go, _ = capture_stdio() do
                     DistSSHKitQueue.main(["submit", "go", "child:host1:4", "job.jl"])
                 end

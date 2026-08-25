@@ -76,7 +76,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_section("Notes"; io=io)
     DistSSHKit.print_help_lines(io,
         "  Day to day: qhost:HOST from a client (like Kit child:NAME). On the queue host: omit it.",
-        "  status / watch print qhost (that token, or local plus hostname).",
+        "  status / watch print qhost (client token via DISTSSHKITQUEUE_QHOST, or local plus hostname).",
         "  A sleeping laptop is not a queue host.",
         "  Do not pass qhost:HOST to setup / serve / enable / disable / add-host / remove-host.",
         "  --hosts / --julia belong to Kit go/drive. Queue-host Julia: --remote-julia / JULIA_DISTRIBUTED_EXE.",
@@ -203,12 +203,12 @@ function _waiter_disp(store::AbstractString)::String
     return "none"
 end
 
-function _qhost_disp(via::Union{Nothing,AbstractString})::String
+function _qhost_disp(qhost::Union{Nothing,AbstractString})::String
     hn = gethostname()
-    if via === nothing || isempty(String(via))
+    if qhost === nothing || isempty(String(qhost))
         return "local ($hn)"
     end
-    v = String(via)
+    v = String(qhost)
     return v == hn ? v : "$v ($hn)"
 end
 
@@ -273,12 +273,12 @@ function print_status_table(
     store::AbstractString,
     rows::Vector{Job};
     io::IO=stdout,
-    via::Union{Nothing,AbstractString}=nothing,
+    qhost::Union{Nothing,AbstractString}=nothing,
 )
     DistSSHKit.print_help_section("Store"; io=io)
     DistSSHKit.print_help_lines(io,
         "  path   $(_q_short(store))",
-        "  qhost  $(_qhost_disp(via))",
+        "  qhost  $(_qhost_disp(qhost))",
     )
     DistSSHKit.print_help_blank(io)
     return print_jobs_table(rows; io=io)
@@ -288,14 +288,14 @@ function print_watch_frame(
     store::AbstractString,
     rows::Vector{Job};
     io::IO=stdout,
-    via::Union{Nothing,AbstractString}=nothing,
+    qhost::Union{Nothing,AbstractString}=nothing,
 )
     DistSSHKit.print_help_chrome("DistSSHKitQueue watch"; io=io)
     DistSSHKit.print_help_section("Process"; io=io)
     DistSSHKit.print_help_lines(io,
         "  store   $(_q_short(store))",
         "  waiter  $(_waiter_disp(store))",
-        "  qhost   $(_qhost_disp(via))",
+        "  qhost   $(_qhost_disp(qhost))",
     )
     DistSSHKit.print_help_blank(io)
     print_jobs_table(rows; io=io)
