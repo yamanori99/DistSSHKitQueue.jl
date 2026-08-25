@@ -409,6 +409,9 @@ end
                 @test occursin("Usage", help)
                 @test occursin("qhost:HOST", help)
                 @test occursin("list-host", help)
+                @test occursin("  size ", help)
+                @test occursin("DistSSHKit size on the queue host", help)
+                @test !occursin("[--size]", help)
                 @test occursin("add-host", help)
                 @test occursin("remove-host", help)
                 @test occursin("no serve restart", help)
@@ -608,6 +611,7 @@ exit 0
             @test occursin("Port 2222", out)
             @test !occursin("identityfile", lowercase(out))
             @test !occursin("id_rsa", out)
+            @test occursin("MAX", out)
         end
         write(cfg, "store = \"x\"\n")
         withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
@@ -655,6 +659,30 @@ exit 0
             @test occursin("unknown add-host option", err2)
         end
     end
+end
+
+@testset "size uses Kit argv or config hosts" begin
+    allow = DistSSHKitQueue.HostAllow("parent" => nothing, "host1" => 4)
+    inc, hosts = DistSSHKitQueue.size_hosts_from_allow(false, String[], allow)
+    @test inc
+    @test hosts == ["host1"]
+    inc2, hosts2 = DistSSHKitQueue.size_hosts_from_allow(true, String["w"], allow)
+    @test inc2
+    @test hosts2 == ["w"]
+    @test_throws ArgumentError DistSSHKitQueue.size_hosts_from_allow(false, String[], nothing)
+    @test_throws ArgumentError DistSSHKitQueue.size_hosts_from_allow(
+        false,
+        String[],
+        DistSSHKitQueue.HostAllow(),
+    )
+    code, out, _ = capture_stdio() do
+        DistSSHKitQueue.main(["size", "-h"])
+    end
+    @test code == 0
+    @test occursin("DistSSHKit size", out)
+    @test occursin("Queue", out)
+    @test occursin("qhost:HOST", out)
+    @test occursin("Does not enqueue", out)
 end
 
 @testset "watch reprints status then exits on --ticks" begin

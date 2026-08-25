@@ -38,6 +38,7 @@ include("client/qhost.jl")
 include("client/submit.jl")
 include("client/status.jl")
 include("client/list_host.jl")
+include("client/size.jl")
 include("client/edit_hosts.jl")
 include("client/cancel.jl")
 include("qhost/service.jl")
@@ -75,6 +76,11 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             r === nothing || return r
             _, _, payload = extract_remote_opts(rest)
             return list_host_cli(payload)
+        elseif sub == "size"
+            r = maybe_remote(qhost, gjulia, "size", rest)
+            r === nothing || return r
+            _, _, payload = extract_remote_opts(rest)
+            return size_cli(payload)
         elseif sub == "add-host"
             return add_host_cli(rest)
         elseif sub == "remove-host"

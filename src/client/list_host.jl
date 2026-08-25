@@ -61,8 +61,8 @@ function print_list_host(
     maxs = String[names[n] === nothing ? "-" : string(names[n]) for n in rows]
     mw = max(3, maximum(length, maxs))
     println(io, "  ", rpad("NAME", nw), "  ", rpad("HOST TOKEN", tw), "  ", rpad("MAX", mw), "  SSH")
-    for (n, mx) in zip(rows, maxs)
-        println(io, "  ", rpad(n, nw), "  ", rpad(_host_token(n), tw), "  ", rpad(mx, mw), "  ", _host_token_ssh_disp(n))
+    for n in rows
+        println(io, "  ", rpad(n, nw), "  ", rpad(_host_token(n), tw), "  ", rpad(names[n] === nothing ? "-" : string(names[n]), mw), "  ", _host_token_ssh_disp(n))
     end
     return nothing
 end
