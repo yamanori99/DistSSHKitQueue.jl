@@ -195,32 +195,49 @@ function _load_from_store!(q::Queue, store::String)
     return nothing
 end
 
+function _live_running(q::Queue)::Union{Nothing,Job}
+    live = q.live_id
+    live === nothing && return nothing
+    i = findfirst(j -> j.id == live, q.jobs)
+    i === nothing && return nothing
+    j = q.jobs[i]
+    return j.state === :running ? j : nothing
+end
+
+"""Merge disk into `q.jobs`.
+
+The waiter overlays its in-memory live row whenever disk still has that
+id and the disk row is not `:cancelled` (stale `load!` may have written
+`:failed` without `kit.pid`; a later `_finish!(:done)` must still land).
+Client `cancel!` persists `:cancelled`: that row wins, and `live_id` is
+dropped so `_finish!(:done)` after `terminate_run!` cannot resurrect the
+run.
+"""
 function reload_keep_live!(q::Queue)
     return reload_keep_live!(q, q.store)
 end
 reload_keep_live!(::Queue, ::Nothing) = nothing
 function reload_keep_live!(q::Queue, store::String)
     disk = read_jobs(store)
-    live = q.live_id
-    live_job = nothing
-    if live !== nothing
-        i = findfirst(j -> j.id == live, q.jobs)
-        if i !== nothing && q.jobs[i].state === :running
-            live_job = q.jobs[i]
-        end
-    end
+    live = _live_running(q)
     out = Job[]
     seen = false
     for d in disk
-        if live_job !== nothing && d.id == live
-            push!(out, live_job)
+        if live !== nothing && d.id == live.id
             seen = true
+            if d.state === :cancelled
+                push!(out, d)
+                q.live_id = nothing
+                live = nothing
+            else
+                push!(out, live)
+            end
         else
             push!(out, d)
         end
     end
-    if live_job !== nothing && !seen
-        push!(out, live_job)
+    if live !== nothing && !seen
+        push!(out, live)
     end
     q.jobs = out
     return nothing
