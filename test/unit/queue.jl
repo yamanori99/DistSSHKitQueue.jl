@@ -147,6 +147,7 @@ end
         @test DistSSHKitQueue.kit_child_alive(loaded)
         @test loaded.result_path == dir
         notify(ev)
+        _wait_state(waiter, id, :done)
     end
 end
 
