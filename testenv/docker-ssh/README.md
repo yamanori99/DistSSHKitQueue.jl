@@ -26,12 +26,12 @@ The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSH
 4. FIFO: two queued Kit jobs, one running at a time.
 5. Cancel the middle queued row; waiter skips it and runs the next.
 6. `result_path` is Kit’s collected tree; peek it on the queue host (no second collect).
-7. Queue-host CLI (omit `--qhost`, fake `HOME`): `setup`, `enable --write-only`,
+7. Queue-host CLI (omit `qhost:`, fake `HOME`): `setup`, `enable --write-only`,
    `disable --write-only`, foreground `serve`, `submit go child:dskq-w1:1 SCRIPT.jl`, `status`,
    `watch --ticks 1`, `stop`.
-8. Client `--qhost dskq-qh` over a **loopback OpenSSH** (not a fake `ssh` binary):
+8. Client `qhost:dskq-qh` over a **loopback OpenSSH** (not a fake `ssh` binary):
    `submit` / `status` / `watch` / `cancel` / `stop` / `teardown -y --write-only`.
-   `--qhost setup` is refused.
+   `qhost:HOST setup` is refused.
 9. Does not `systemctl enable --now` or `launchctl bootstrap`. Does not treat
    `parent:N` on a sleeping laptop as the product path.
 
@@ -78,7 +78,7 @@ Requires Docker Compose. From this directory:
 ```
 
 Manual smoke (no suite): after workers are up, this machine is the queue host.
-From a **client** (same box is fine if you still pass `--qhost` to a real ssh alias):
+From a **client** (same box is fine if you still pass `qhost:HOST` to a real ssh alias):
 
 ```bash
 # on the queue host, once
@@ -86,8 +86,8 @@ julia --project=../.. -m DistSSHKitQueue setup
 # put SSH opts in ~/.distsshkitqueue/config.toml [env]
 
 # from a client
-julia --project=../.. -m DistSSHKitQueue --qhost HOST submit go child:dskq-w1:1 SCRIPT.jl
-julia --project=../.. -m DistSSHKitQueue --qhost HOST status
+julia --project=../.. -m DistSSHKitQueue qhost:HOST submit go child:dskq-w1:1 SCRIPT.jl
+julia --project=../.. -m DistSSHKitQueue qhost:HOST status
 ```
 
 Or probe a worker without Queue:

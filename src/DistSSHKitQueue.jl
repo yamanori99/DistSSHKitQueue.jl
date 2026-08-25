@@ -45,7 +45,7 @@ include("qhost/serve.jl")
 
 show_usage(; io::IO=stdout) = print_queue_usage(io)
 
-"""CLI entry. Prefer `julia -m DistSSHKitQueue` (client `--qhost HOST` / queue-host `setup`)."""
+"""CLI entry. Prefer `julia -m DistSSHKitQueue` (client `qhost:HOST` / queue-host `setup`)."""
 function main(args::Vector{String}=copy(ARGS))::Cint
     apply_config_env!(load_config())
     qhost, gjulia, after = extract_remote_opts(args)

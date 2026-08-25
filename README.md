@@ -30,28 +30,35 @@ Not on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**.
 
 ## Concept
 
-The long-lived process on the queue host is Queue: one table job runs at a time (the Kit master). Queue is not a bigger Kit — `parent[:N]` / `child:NAME[:N]` is what that job passes on to DistSSHKit, and Queue does not keep a lab-wide slot ceiling.
+A **client** is a **dev machine**. It does not run the queue. You point it at **one always-on queue host**. Any number of clients can do that; they share **one** FIFO table (one DistSSHKit job at a time).
 
 ```text
-client A (laptop)  ──┐
-client B (another) ──┼── --qhost HOST  submit / status / watch / cancel / teardown ──►  queue host
-                     ┘                                                                 Queue waiter
-                                                                               store ~/.distsshkitqueue
-                                                                               serve  (now)
-                                                                               enable (after reboot)
+  clients = dev machines (no cap)          one queue host (always on)
+  ───────────────────────────────          ──────────────────────────
+  yours / a colleague's / …                waiter   one Kit job at a time
+       │                                   table    ~/.distsshkitqueue
+       │  julia -m DistSSHKitQueue         serve    now, this terminal
+       │    qhost:NAME                     enable   again after reboot
+       │    submit | status | watch | …
+       └────────────────────────────────►  then DistSSHKit go/drive
+                                           → workers (Kit tokens)
 ```
 
-Day to day you are a **client**. The queue host is a separate always-on box. A sleeping laptop is not that box.
+`qhost:NAME` is the SSH name of that box (same idea as Kit `child:NAME`, but it names the queue host, not a worker). Already logged in there? Omit it.
 
-- **Queue host** — always-on machine where the Kit master must run for queued jobs (macOS or Linux, a VM is fine). **One** waiter, **one** job table. If you are already logged into that box, omit `--qhost`. That is not a reason to park the waiter on a laptop.
-- **Client** — any machine that talks to that table (laptop, another workstation). Several clients at once is the point. A client must not become the Kit master.
-- **Workers** — DistSSHKit `parent[:N]` (queue host) and `child:NAME[:N]` (SSH names).
+```bash
+julia --project=. -m DistSSHKitQueue qhost:mini submit go child:gpu:4 SCRIPT.jl
+```
 
-Jobs from every client share one FIFO; there are no per-user or per-machine queues. The waiter calls DistSSHKit `execute!(kind, script, hosts; detached=true)` and waits — the child (`julia -m DistSSHKit go|drive`) is the Kit master, not the waiter itself. Stopping the waiter does not cancel a running Kit/SSH tree.
+- **Queue host** — the always-on machine that holds the table and runs the Kit master for the current job (macOS or Linux; a VM is fine). One waiter, one table. A sleeping laptop is not this box.
+- **Client** — a dev machine that submits, lists, watches, or cancels. No cap. It must not become the Kit master.
+- **Workers** — where the script actually runs. DistSSHKit tokens: `parent[:N]` on the queue host, `child:NAME[:N]` on SSH machines.
+
+Queue is not a bigger Kit and does not keep a lab-wide slot ceiling. The waiter starts DistSSHKit (`execute!(…; detached=true)`) and waits. Stopping the waiter does not cancel a Kit job that is already running.
 
 ## What to run
 
-Day to day you only **submit** from a client (`--qhost HOST`). If no waiter is up, `submit` starts one on the queue host. You do not need `setup`, `serve`, or `enable` for a job to run.
+Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up, `submit` starts one on the queue host. You do not need `setup`, `serve`, or `enable` for a job to run.
 
 | Command | What it does | When you need it |
 | --- | --- | --- |
@@ -85,11 +92,11 @@ Foreground, this session only (no reboot registration):
 julia -m DistSSHKitQueue serve
 ```
 
-`--qhost` is not valid here — `setup` / `serve` / `enable` / `disable` run only on this machine.
+`qhost:HOST` is not valid here — `setup` / `serve` / `enable` / `disable` run only on this machine.
 
-Already on that box (ssh session, console): omit `--qhost` for `submit` / `status` / `watch` / `cancel` / `stop` / `teardown`. Kit argv is still DistSSHKit’s (`go child:NAME:N SCRIPT.jl`, or `parent:N` when workers are on the queue host).
+Already on that box (ssh session, console): omit `qhost:HOST` for `submit` / `status` / `watch` / `cancel` / `stop` / `teardown`. Kit argv is still DistSSHKit’s (`go child:NAME:N SCRIPT.jl`, or `parent:N` when workers are on the queue host).
 
-`stop` halts the waiter but leaves config, store, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `--qhost HOST stop`. `disable` is the opposite of `enable`, not of `serve`.
+`stop` halts the waiter but leaves config, store, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `qhost:HOST stop`. `disable` is the opposite of `enable`, not of `serve`.
 
 A dedicated env at `~/.distsshkitqueue/env`, if present, is preferred as `--project` so a checkout can be deleted. `teardown` never runs `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/` results.
 
@@ -97,17 +104,17 @@ Ctrl-C on `serve` or `watch` only stops that process — the waiter (or the live
 
 ## Client (dev laptop)
 
-Run from the job directory with `julia --project=.`; Queue must be loadable from that env. Nothing is written on the laptop (no `~/.distsshkitqueue` there). `--qhost HOST` picks the queue host — pass it every time if you work with several clusters:
+Run from the job directory with `julia --project=.`; Queue must be loadable from that env. Nothing is written on the laptop (no `~/.distsshkitqueue` there). `qhost:HOST` picks the queue host (same token style as Kit `child:NAME`). `--hosts` stays Kit's (workers). Pass `qhost:` every time if you work with several clusters:
 
 ```bash
-julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts submit go child:host:2 SCRIPT.jl
-julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts status
-julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts watch
-julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts cancel <id>
-julia --project=. -m DistSSHKitQueue --qhost m4-mini-ts teardown -y
+julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts submit go child:host:2 SCRIPT.jl
+julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts status
+julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts watch
+julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts cancel <id>
+julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts teardown -y
 ```
 
-Remote Julia is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). `SCRIPT.jl` and placement tokens are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `--qhost` it uses `ssh -t` so the remote TTY can clear the screen. Both print `qhost`: the `--qhost` token plus this machine's hostname (or `local (hostname)` when you omitted `--qhost`). Job `HOSTS` stays DistSSHKit `parent[:N]` / `child:NAME[:N]`.
+Remote Julia on the hop is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). Kit `--julia` stays on `submit go` / `submit drive`. `SCRIPT.jl` and placement tokens are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `qhost:HOST` it uses `ssh -t` so the remote TTY can clear the screen. Both print `qhost`: the token plus this machine's hostname (or `local (hostname)` when you omitted it). Job `HOSTS` stays DistSSHKit `parent[:N]` / `child:NAME[:N]`.
 
 ## Job record
 

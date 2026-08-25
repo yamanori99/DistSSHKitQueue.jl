@@ -13,10 +13,10 @@ This package is not on General yet. See the [README](https://github.com/yamanori
 **Client** (dev laptop):
 
 ```bash
-julia --project=. -m DistSSHKitQueue --qhost HOST status
-julia --project=. -m DistSSHKitQueue --qhost HOST watch
-julia --project=. -m DistSSHKitQueue --qhost HOST submit go child:worker:4 SCRIPT.jl
-julia --project=. -m DistSSHKitQueue --qhost HOST cancel <id>
+julia --project=. -m DistSSHKitQueue qhost:HOST status
+julia --project=. -m DistSSHKitQueue qhost:HOST watch
+julia --project=. -m DistSSHKitQueue qhost:HOST submit go child:worker:4 SCRIPT.jl
+julia --project=. -m DistSSHKitQueue qhost:HOST cancel <id>
 ```
 
 **Queue host** (always-on):
@@ -28,7 +28,7 @@ julia -m DistSSHKitQueue enable
 julia -m DistSSHKitQueue teardown -y
 ```
 
-`--qhost` is client-only. `setup` / `serve` / `enable` / `disable` refuse it. Omit `--qhost` only when you are already on the queue host (not a sleeping laptop). `status` / `watch` print that qhost (or `local` plus hostname). `submit` auto-starts the waiter. The waiter calls DistSSHKit `execute!(…; detached=true, job_id=…)`.
+`qhost:HOST` is client-only. `setup` / `serve` / `enable` / `disable` refuse it. Omit it only when you are already on the queue host (not a sleeping laptop). `status` / `watch` print that qhost (or `local` plus hostname). `submit` auto-starts the waiter. The waiter calls DistSSHKit `execute!(…; detached=true, job_id=…)`.
 
 ## Installation
 

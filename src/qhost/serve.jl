@@ -19,7 +19,7 @@ end
 """Start `serve` so this Julia process can still exit.
 
 `run(...; wait=false)` keeps a libuv handle. `submit` then never exits, so
-client `--qhost` ssh hangs after `Started waiter`. A short-lived `sh -c ... &`
+client `qhost:HOST` ssh hangs after `Started waiter`. A short-lived `sh -c ... &`
 lets the waiter outlive `submit` without that handle. Windows has no waiter
 unit; keep the Julia spawn there.
 """

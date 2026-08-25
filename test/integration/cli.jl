@@ -1,5 +1,5 @@
 # Child CLI (`julia -m DistSSHKitQueue`) + parent:1. Not SSH.
-# Fake `ssh` only checks `--qhost` argv. Real OpenSSH client path is test/e2e.jl.
+# Fake `ssh` only checks `qhost:` argv. Real OpenSSH client path is test/e2e.jl.
 
 using Test
 using DistSSHKitQueue
@@ -172,7 +172,7 @@ end
         end
     end
 
-    @testset "--qhost HOST ssh argv (no remote exec)" begin
+    @testset "qhost:HOST ssh argv (no remote exec)" begin
         mktempdir() do d
             env, _, _, _ = cli_env(d)
             log = joinpath(d, "ssh.log")
@@ -181,12 +181,12 @@ end
             path = fake * ":" * get(ENV, "PATH", "")
             withenv(env..., "PATH" => path) do
                 @test DistSSHKitQueue.main([
-                    "--qhost", "cluster-a",
+                    "qhost:cluster-a",
                     "--remote-julia", JULIA,
                     "status",
                 ]) == 0
                 @test DistSSHKitQueue.main([
-                    "--qhost", "cluster-a",
+                    "qhost:cluster-a",
                     "--remote-julia", JULIA,
                     "watch",
                     "--ticks", "1",
