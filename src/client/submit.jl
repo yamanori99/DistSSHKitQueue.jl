@@ -27,7 +27,7 @@ function submit_kit_bag(parsed; kind::Symbol)::Dict{String,Any}
 end
 
 function submit_cli(store::AbstractString, kind::Symbol, script::AbstractString, hosts, kw::Dict{String,Any})
-    q = Queue(; store=store, allowed=config_host_names(load_config()))
+    q = Queue(; store=store, follow_config=true)
     nt = isempty(kw) ? NamedTuple() : (; (Symbol(k) => v for (k, v) in kw)...)
     id = submit!(q, String(script), String[String(x) for x in hosts]; kind=kind, nt...)
     ensure_waiter!(store)
