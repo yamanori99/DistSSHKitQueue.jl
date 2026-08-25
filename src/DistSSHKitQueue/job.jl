@@ -1,4 +1,5 @@
-"""One table row. `kwargs` is an opaque bag for DistSSHKit `execute!` (`project` is the job tree)."""
+"""One table row. `hosts` are DistSSHKit 0.4 tokens (`parent[:N]` / `child:NAME[:N]`).
+`kwargs` is an opaque bag for DistSSHKit `execute!` (`project` is the job tree)."""
 mutable struct Job
     id::String
     kind::Symbol

@@ -26,9 +26,7 @@ body:
       multiple: true
       options:
         - queue
-        - slots
-        - placeholder
-        - head
+        - submit
         - test
     validations:
       required: false

@@ -10,6 +10,16 @@ function _wait_state(q, id, st; tries=200)
     error("job $id stayed $(job(q, id).state), expected $st")
 end
 
+@testset "submit! rejects pre-0.4 host tokens" begin
+    q = Queue(; runner=_ -> nothing)
+    @test_throws ArgumentError submit!(q, "a.jl", "parenthost:2")
+    @test_throws ArgumentError submit!(q, "a.jl", "worker:2")
+    @test_throws ArgumentError submit!(q, "a.jl", "h1")
+    @test_throws ArgumentError submit!(q, "a.jl", "64")
+    id = submit!(q, "a.jl", "parent:1", "child:w1:2")
+    @test job(q, id).hosts == ["parent:1", "child:w1:2"]
+end
+
 @testset "true FIFO one at a time" begin
     started = String[]
     q = Queue(; runner=j -> (push!(started, j.id); sleep(0.05)))
@@ -221,7 +231,7 @@ end
     @test dkw.log_dir == "/logs"
     @test dkw.skip_hash_check === false
     @test dkw.yes === true
-    wid = submit!(q, "w.jl", "h1"; kind=:drive, workers=4, mem_headroom=0.5)
+    wid = submit!(q, "w.jl", "child:h1"; kind=:drive, workers=4, mem_headroom=0.5)
     wkw = DistSSHKitQueue.execute_kwargs(job(q, wid))
     @test wkw.workers == 4
     @test wkw.mem_headroom == 0.5
@@ -266,7 +276,7 @@ end
         a = submit!(q, "a.jl", "parent:1")
         @test step!(q) == 1
         q2 = Queue(; store=p, runner=_ -> nothing)
-        b = submit!(q2, "b.jl", "worker:2")
+        b = submit!(q2, "b.jl", "child:worker:2")
         rows = DistSSHKitQueue.read_jobs(p)
         @test job(q, a).state === :running
         @test any(j -> j.id == b && j.state === :queued, rows)

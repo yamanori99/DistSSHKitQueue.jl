@@ -38,7 +38,7 @@ From a checkout:
 pkg> dev /path/to/DistSSHKitQueue.jl
 ```
 
-Needs DistSSHKit **0.4.1+**, Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
+Needs DistSSHKit **0.4.1+** from General (a hard dependency; do not `Pkg.develop` Kit for ordinary Queue work), Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
 
 ## Contributing
 

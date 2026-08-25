@@ -213,7 +213,7 @@ end
     end
 end
 
-@testset "extract_remote_opts and remote_inner" begin
+@testset "extract_remote_opts" begin
     withenv("JULIA_DISTRIBUTED_EXE" => nothing) do
         host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "status"])
         @test host == "m4"
@@ -230,15 +230,17 @@ end
         @test p == ["status"]
     end
 
-    host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "--remote-julia", "/opt/julia", "go", "S.jl"])
+    host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts([
+        "--qhost", "m4", "--remote-julia", "/opt/julia", "go", "parent:1", "S.jl",
+    ])
     @test host2 == "m4"
     @test rjulia2 == "/opt/julia"
-    @test payload2 == ["go", "S.jl"]
+    @test payload2 == ["go", "parent:1", "S.jl"]
 
-    host3, j3, payload3 = DistSSHKitQueue.extract_remote_opts(["go", "S.jl"])
+    host3, j3, payload3 = DistSSHKitQueue.extract_remote_opts(["go", "child:w1:2", "S.jl"])
     @test host3 === nothing
     @test j3 === nothing
-    @test payload3 == ["go", "S.jl"]
+    @test payload3 == ["go", "child:w1:2", "S.jl"]
 
     @test_throws ArgumentError DistSSHKitQueue.coalesce_remote("a", nothing, "b", nothing)
     @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("setup", "m4")
@@ -249,19 +251,6 @@ end
     host4, _, payload4 = DistSSHKitQueue.extract_remote_opts(String[])
     @test host4 === nothing
     @test payload4 == String[]
-
-    @test DistSSHKitQueue.remote_inner("julia", "submit", ["go", "S.jl", "h:2"]) ==
-          "'julia' '-m' 'DistSSHKitQueue' 'submit' 'go' 'S.jl' 'h:2'"
-    cmd = DistSSHKitQueue.remote_command("m4-mini-ts", "julia", "status", String[])
-    s = string(cmd)
-    @test occursin("ssh", s)
-    @test occursin("m4-mini-ts", s)
-    @test occursin("DistSSHKitQueue", s)
-    @test !occursin(" -t ", " $s ")
-    wcmd = DistSSHKitQueue.remote_command("m4-mini-ts", "julia", "watch", String[]; tty=true)
-    ws = string(wcmd)
-    @test occursin("-t", ws)
-    @test occursin("watch", ws)
 end
 
 @testset "setup writes config, not a dskq shim" begin

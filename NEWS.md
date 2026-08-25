@@ -5,6 +5,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- DistSSHKit **0.4.1+** from General is the Queue floor (docs, CONTRIBUTING, examples, tests). Do not `Pkg.develop` Kit for ordinary Queue work. Library `submit!` rejects pre-0.4 host tokens (`parenthost`, bare `NAME:N`). `--qhost` is DistSSHKit `run_on_host` only (no second ssh builder).
 - DistSSHKit **0.4.1+** ([release](https://github.com/yamanori99/DistSSHKit.jl/releases/tag/v0.4.1)): queued `go` with `job_id` actually runs the slot script (`-L` mark file). 0.4.0 skipped the script because of `--eval`.
 - SSH E2E (controller + worker image) is Julia slot **max** (today 1.13), same pair as DistSSHKit. Compat floor stays 1.12.
 - DistSSHKit **0.4.1+**: `execute_detached_accepts` / `execute_kwargs_from_parsed` / `host_tokens`, `kit_pid_file_running`, `kit_result_from_dir` on waiter restart, `terminate_run!` for `:running` cancel, `--qhost` via `run_on_host`. Go/drive tokens are `parent[:N]` and `child:NAME[:N]` (`parenthost` / bare `host:N` are gone).
