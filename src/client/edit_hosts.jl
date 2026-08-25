@@ -1,4 +1,4 @@
-"""CLI `add-host` / `remove-host`: write Kit SSH names into config `allowed`."""
+"""CLI `add-host` / `remove-host`: write Kit SSH names into config `hosts`."""
 
 function add_host_cli(args::Vector{String})::Cint
     names = String[]
@@ -10,8 +10,8 @@ function add_host_cli(args::Vector{String})::Cint
         startswith(a, "-") && throw(ArgumentError("unknown add-host option: $(a)"))
         push!(names, a)
     end
-    add_allowed_names!(config_path(), names)
-    print_list_host(config_allowed_names(load_config()))
+    add_host_names!(config_path(), names)
+    print_list_host(config_host_names(load_config()))
     return 0
 end
 
@@ -25,7 +25,7 @@ function remove_host_cli(args::Vector{String})::Cint
         startswith(a, "-") && throw(ArgumentError("unknown remove-host option: $(a)"))
         push!(names, a)
     end
-    remove_allowed_names!(config_path(), names)
-    print_list_host(config_allowed_names(load_config()))
+    remove_host_names!(config_path(), names)
+    print_list_host(config_host_names(load_config()))
     return 0
 end

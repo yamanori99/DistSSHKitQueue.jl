@@ -5,7 +5,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
-- CLI `add-host` / `remove-host` write config `allowed` (Kit SSH names: `parent`, `host1`, or `child:host1` → `host1`). First add creates the list. Missing key stays allow-all. Empty array allows none. Hand-edit still works. CLI `submit` reads the file; library `submit!` uses `Queue(; allowed=…)`. `:N` stays on the job.
+- CLI `add-host` / `remove-host` write config `hosts` (Kit SSH names: `parent`, `host1`, or `child:host1` → `host1`). First add creates the list. Missing key stays allow-all. Empty array allows none. A leftover `allowed` key is still read until rewritten. Hand-edit still works. CLI `submit` reads the file; library `submit!` uses `Queue(; allowed=…)`. `:N` stays on the job.
 - Read-only CLI `list-host` (not Kit `--hosts`): prints that list as host tokens (`parent` / `child:NAME`) plus `ssh -G` Host / HostName / User / Port. No private keys, no IdentityFile. On the queue host: `list-host`. From a client: `qhost:HOST list-host` (same as `add-host`; `ssh -G` uses the queue host's SSH config).
 - Client queue host is `qhost:NAME` (like Kit `child:NAME`). `--qhost` is refused. `--hosts` / `--julia` stay on Kit `go` / `drive`. Queue-host Julia remains `--remote-julia` / `JULIA_DISTRIBUTED_EXE`.
 - DistSSHKit **0.4.1+** from General is the Queue floor (docs, CONTRIBUTING, examples, tests). Do not `Pkg.develop` Kit for ordinary Queue work. Library `submit!` rejects pre-0.4 host tokens (`parenthost`, bare `NAME:N`). `qhost:` is DistSSHKit `run_on_host` only (no second ssh builder).

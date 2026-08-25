@@ -296,7 +296,7 @@ Missing `project` uses `job_project()` (cwd / `DISTRIBUTED_PROJECT_ROOT`), not t
 waiter `--project`. Same verb as CLI `submit`.
 
 `q.allowed` is the inventory (`Queue(; allowed=…)`). It does not read
-`config.toml`; CLI `submit` does (`allowed = ["parent", "host1"]`).
+`config.toml`; CLI `submit` does (`hosts = ["parent", "host1"]`).
 """
 function submit!(q::Queue, script::AbstractString, hosts::AbstractString...; kind::Symbol=:go, kwargs...)
     return _submit!(q, kind, script, hosts; kwargs...)

@@ -452,7 +452,7 @@ end
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         cfg = joinpath(d, "config.toml")
-        write(cfg, "store = $(repr(p))\nallowed = [\"parent\"]\n")
+        write(cfg, "store = $(repr(p))\nhosts = [\"parent\"]\n")
         jobdir = mktempdir()
         write(joinpath(jobdir, "Project.toml"), "[deps]\n")
         write(joinpath(jobdir, "job.jl"), "1\n")
@@ -500,7 +500,7 @@ exit 0
         )
         chmod(joinpath(fake, "ssh"), 0o755)
         path = fake * ":" * get(ENV, "PATH", "")
-        write(cfg, "allowed = [\"parent\", \"host1\"]\n")
+        write(cfg, "hosts = [\"parent\", \"host1\"]\n")
         withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
             code, out, _ = capture_stdio() do
                 DistSSHKitQueue.main(["list-host"])
@@ -523,7 +523,7 @@ exit 0
             @test code == 0
             @test occursin("any Kit name", out)
         end
-        write(cfg, "allowed = []\n")
+        write(cfg, "hosts = []\n")
         withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
             code, out, _ = capture_stdio() do
                 DistSSHKitQueue.main(["list-host"])
@@ -545,14 +545,14 @@ exit 0
             end
             @test code == 0
             @test occursin("child:host1", out)
-            @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config()) ==
+            @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config()) ==
                   Set(["parent", "host1"])
             code2, out2, _ = capture_stdio() do
                 DistSSHKitQueue.main(["remove-host", "parent"])
             end
             @test code2 == 0
             @test occursin("host1", out2)
-            @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config()) ==
+            @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config()) ==
                   Set(["host1"])
             bad2, _, err2 = capture_stdio() do
                 DistSSHKitQueue.main(["add-host", "--hosts"])

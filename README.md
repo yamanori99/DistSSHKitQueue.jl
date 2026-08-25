@@ -64,8 +64,8 @@ Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up,
 | --- | --- | --- |
 | `submit` | Enqueue a Kit `go` / `drive`. Starts a waiter if none is running. | Always (this is the product) |
 | `list-host` | Read-only Kit names and host tokens (`parent` / `child:NAME`) plus `ssh -G` Host / HostName / User / Port. Not Kit `--hosts`. | See which host token to pass to `submit` |
-| `add-host` | Write a Kit SSH name into config `allowed` (`parent` or `host1` / `child:host1`). First add creates the list (submit is no longer allow-all). | Lab inventory |
-| `remove-host` | Drop a name from that list. Last name left is `allowed = []` (submit accepts none). | Lab inventory |
+| `add-host` | Write a Kit SSH name into config `hosts` (`parent` or `host1` / `child:host1`). First add creates the list (submit is no longer allow-all). | Lab inventory |
+| `remove-host` | Drop a name from that list. Last name left is `hosts = []` (submit accepts none). | Lab inventory |
 | `serve` | Run the waiter **in this terminal, now**. Ctrl-C stops this waiter. | Watching the queue live on the queue host, or running without autoserve |
 | `enable` | Tell the OS: after reboot / login, start `serve` again (LaunchAgent / systemd). | A dedicated queue host that should come back by itself |
 | `setup` | Write `~/.distsshkitqueue/config.toml` if missing (`--force` rewrites). | Optional. Defaults work without it. Use it for `store=` or `[env]`. |
@@ -77,7 +77,7 @@ Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up,
 
 ## Queue host (always-on)
 
-Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). DistSSHKit **0.4.1+** comes from General with it. The table lives at `~/.distsshkitqueue/jobs.toml`. Kit SSH names live in `config.toml` as `allowed`. Prefer CLI `add-host` / `remove-host` / `list-host` (hand-edit still works). Omit the key to allow any name. CLI `submit` reads that file; library `submit!` needs `Queue(; allowed=…)` and does not load `config.toml`.
+Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). DistSSHKit **0.4.1+** comes from General with it. The table lives at `~/.distsshkitqueue/jobs.toml`. Kit SSH names live in `config.toml` as `hosts`. Prefer CLI `add-host` / `remove-host` / `list-host` (hand-edit still works). Omit the key to allow any name. CLI `submit` reads that file; library `submit!` needs `Queue(; allowed=…)` and does not load `config.toml`.
 
 ### `add-host` / `remove-host` / `list-host`
 

@@ -1,4 +1,4 @@
-"""Read-only `list-host`: Kit names from config `allowed`, plus `ssh -G` connect fields.
+"""Read-only `list-host`: Kit names from config `hosts`, plus `ssh -G` connect fields.
 
 Prints host tokens (`parent` / `child:NAME`) for `submit`. Not Kit `--hosts`.
 Does not print private keys or IdentityFile.
@@ -48,11 +48,11 @@ function print_list_host(
 )
     DistSSHKit.print_help_chrome("DistSSHKitQueue list-host"; io=io)
     if names === nothing
-        println(io, "  (no allowed= in config; submit accepts any Kit name)")
+        println(io, "  (no hosts= in config; submit accepts any Kit name)")
         return nothing
     end
     if isempty(names)
-        println(io, "  (allowed = []; submit accepts none)")
+        println(io, "  (hosts = []; submit accepts none)")
         return nothing
     end
     rows = sorted_kit_ssh_names(names)
@@ -75,6 +75,6 @@ function list_host_cli(args::Vector{String})::Cint
         end
         throw(ArgumentError("unknown list-host option: $(a)"))
     end
-    print_list_host(config_allowed_names(load_config()))
+    print_list_host(config_host_names(load_config()))
     return 0
 end
