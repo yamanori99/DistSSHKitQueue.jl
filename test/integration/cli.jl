@@ -163,7 +163,7 @@ end
                     @test row.state === :running
                     c = strip(read(addenv(qcli(["cancel", id]), env...), String))
                     @test c == id
-                    done = wait_job(env, id, (:cancelled, :failed, :done); tries=200)
+                    done = wait_job(env, id, (:cancelled,); tries=200)
                     @test done.state === :cancelled
                 end
             finally

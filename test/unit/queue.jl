@@ -89,6 +89,48 @@ end
     end
 end
 
+@testset "reload keeps waiter :running over a stale disk snapshot" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        out = joinpath(d, "kit-out")
+        mkpath(out)
+        waiter = Queue(; store, runner=_ -> wait(Base.Event()))
+        id = submit!(waiter, "a.jl", "parent:1"; output_dir=out)
+        @test step!(waiter) == 1
+        DistSSHKitQueue._set_running_result_path!(waiter, id, out)
+        stale = DistSSHKitQueue.read_jobs(store)
+        stale[1].result_path = nothing
+        DistSSHKitQueue.save_jobs(store, stale)
+        DistSSHKitQueue.reload_keep_live!(waiter)
+        @test job(waiter, id).state === :running
+        @test job(waiter, id).result_path == out
+        @test waiter.live_id == id
+    end
+end
+
+@testset "client cancel on disk wins over waiter :done" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        out = joinpath(d, "kit-out")
+        mkpath(out)
+        ev = Base.Event()
+        waiter = Queue(; store, runner=_ -> wait(ev))
+        id = submit!(waiter, "a.jl", "parent:1"; output_dir=out)
+        @test step!(waiter) == 1
+        @test waiter.live_id == id
+        client = Queue(; store, runner=_ -> error("client must not run"))
+        @test cancel!(client, id)
+        @test job(client, id).state === :cancelled
+        DistSSHKitQueue._finish!(waiter, id, :done, nothing; result_path=out)
+        @test job(waiter, id).state === :cancelled
+        @test waiter.live_id === nothing
+        @test DistSSHKitQueue.read_jobs(store)[1].state === :cancelled
+        notify(ev)
+        sleep(0.05)
+        @test job(waiter, id).state === :cancelled
+    end
+end
+
 @testset "kit throw does not stall" begin
     q = Queue(; runner=j -> basename(j.script) == "bad.jl" ? error("boom") : nothing)
     a = submit!(q, "bad.jl", "parent:1")
