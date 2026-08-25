@@ -115,7 +115,10 @@ end
 function write_host_names!(path::AbstractString, names::Set{String})
     p = String(path)
     isfile(p) || write_config_template(p)
-    write(p, replace_or_insert_hosts_line(read(p, String), hosts_toml_line(names)))
+    body = replace_or_insert_hosts_line(read(p, String), hosts_toml_line(names))
+    tmp = string(p, ".tmp")
+    write(tmp, body)
+    mv(tmp, p; force=true)
     return names
 end
 

@@ -6,17 +6,27 @@ mutable struct Queue
     runner::Function
     live_id::Union{Nothing,String}
     allowed::Union{Nothing,Set{String}}
+    follow_config::Bool
 end
 
 function Queue(;
     store::Union{Nothing,AbstractString}=nothing,
     runner::Function=run_kit,
     allowed::Union{Nothing,AbstractVector,AbstractSet}=nothing,
+    follow_config::Bool=false,
 )
+    follow_config && allowed !== nothing && throw(ArgumentError(
+        "`follow_config` reads config hosts; omit `allowed`",
+    ))
     st = store === nothing ? nothing : String(store)
-    names = allowed === nothing ? nothing :
+    names = if follow_config
+        config_host_names(load_config())
+    elseif allowed === nothing
+        nothing
+    else
         Set{String}(filter(!isempty, String[kit_ssh_name(String(x)) for x in allowed]))
-    return Queue(ReentrantLock(), Job[], st, runner, nothing, names)
+    end
+    return Queue(ReentrantLock(), Job[], st, runner, nothing, names, follow_config)
 end
 
 """Kit job tree: `DISTRIBUTED_PROJECT_ROOT`, else the `Project.toml` above `cwd`, else `cwd`.
@@ -265,28 +275,31 @@ end
 
 function _submit!(q::Queue, kind::Symbol, script::AbstractString, hosts; kwargs...)
     toks = String[String(x) for x in hosts]
-    for t in toks
-        # Kit 0.4 classifier (`parent[:N]` / `child:NAME[:N]`). Not exported; Kit
-        # tests and docs call it the same way.
-        parsed = DistSSHKit.parse_placement_token(t)
-        allow = q.allowed
-        if allow !== nothing && !(parsed.name in allow)
-            throw(ArgumentError(
-                "Kit name $(repr(parsed.name)) is not allowed (token $(repr(t)))",
-            ))
-        end
-    end
+    fresh = q.follow_config ? config_host_names(load_config()) : nothing
     kw = Dict{String,Any}(String(k) => v for (k, v) in pairs(kwargs))
     haskey(kw, "project") || (kw["project"] = job_project())
-    j = Job(; kind=kind, script=resolve_script(script), hosts=toks, kwargs=kw)
+    script_path = resolve_script(script)
     _with_store(q) do
         lock(q.lock) do
+            q.follow_config && (q.allowed = fresh)
+            allow = q.allowed
+            for t in toks
+                # Kit 0.4 classifier (`parent[:N]` / `child:NAME[:N]`). Not exported; Kit
+                # tests and docs call it the same way.
+                parsed = DistSSHKit.parse_placement_token(t)
+                if allow !== nothing && !(parsed.name in allow)
+                    throw(ArgumentError(
+                        "Kit name $(repr(parsed.name)) is not allowed (token $(repr(t)))",
+                    ))
+                end
+            end
             reload_keep_live!(q)
+            j = Job(; kind=kind, script=script_path, hosts=toks, kwargs=kw)
             push!(q.jobs, j)
             _persist!(q)
+            return j.id
         end
     end
-    return j.id
 end
 
 """Enqueue. `kind=:go` or `:drive` (DistSSHKit `execute!`).
@@ -296,7 +309,10 @@ Missing `project` uses `job_project()` (cwd / `DISTRIBUTED_PROJECT_ROOT`), not t
 waiter `--project`. Same verb as CLI `submit`.
 
 `q.allowed` is the inventory (`Queue(; allowed=…)`). It does not read
-`config.toml`; CLI `submit` does (`hosts = ["parent", "host1"]`).
+`config.toml`. CLI `submit` uses `Queue(; follow_config=true)` so each
+enqueue re-reads `hosts` without restarting `serve`. `step!` does not
+drop `:queued` rows when a name is later removed, and does not stop a
+Kit job that is already `:running`.
 """
 function submit!(q::Queue, script::AbstractString, hosts::AbstractString...; kind::Symbol=:go, kwargs...)
     return _submit!(q, kind, script, hosts; kwargs...)

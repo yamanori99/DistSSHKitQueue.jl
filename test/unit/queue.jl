@@ -35,6 +35,41 @@ end
     @test_throws ArgumentError submit!(closed, "c.jl", "parent:1")
     open = Queue(; runner=_ -> nothing)
     @test submit!(open, "d.jl", "child:any:1") isa String
+    @test_throws ArgumentError Queue(; allowed=["parent"], follow_config=true)
+end
+
+@testset "follow_config re-reads hosts without a new Queue" begin
+    mktempdir() do d
+        cfg = joinpath(d, "config.toml")
+        store = joinpath(d, "jobs.toml")
+        write(cfg, "store = $(repr(store))\nhosts = [\"parent\"]\n")
+        withenv("DISTSSHKITQUEUE_CONFIG" => cfg) do
+            q = Queue(; store=store, runner=_ -> nothing, follow_config=true)
+            a = submit!(q, "a.jl", "parent:1")
+            @test job(q, a).state === :queued
+            @test_throws ArgumentError submit!(q, "b.jl", "child:host1:1")
+            DistSSHKitQueue.add_host_names!(cfg, ["host1"])
+            b = submit!(q, "b.jl", "child:host1:1")
+            @test job(q, b).hosts == ["child:host1:1"]
+        end
+    end
+end
+
+@testset "hosts change does not stop running or drop queued" begin
+    ev = Base.Event()
+    q = Queue(; runner=_ -> wait(ev), allowed=["parent", "host1"])
+    run_id = submit!(q, "run.jl", "parent:1")
+    queued_id = submit!(q, "q.jl", "child:host1:1")
+    @test step!(q) == 1
+    @test job(q, run_id).state === :running
+    q.allowed = Set(["parent"])
+    @test job(q, queued_id).state === :queued
+    @test step!(q) == 0
+    notify(ev)
+    _wait_state(q, run_id, :done)
+    @test step!(q) == 1
+    _wait_state(q, queued_id, :done)
+    @test job(q, queued_id).hosts == ["child:host1:1"]
 end
 
 @testset "true FIFO one at a time" begin
@@ -367,6 +402,8 @@ end
                 @test occursin("list-host", help)
                 @test occursin("add-host", help)
                 @test occursin("remove-host", help)
+                @test occursin("no serve restart", help)
+                @test occursin("Already queued rows still start", help)
                 @test occursin("not Kit --hosts", help)
                 @test occursin("qhost:HOST list-host", help)
                 @test !occursin("qhost:HOST add-host", help)
@@ -472,6 +509,52 @@ end
                 end
                 @test code_bad == 1
                 @test occursin("not allowed", err)
+            end
+        end
+    end
+end
+
+@testset "CLI add-host applies while serve is running" begin
+    mktempdir() do d
+        p = joinpath(d, "jobs.toml")
+        cfg = joinpath(d, "config.toml")
+        write(cfg, "store = $(repr(p))\nhosts = [\"parent\"]\n")
+        jobdir = mktempdir()
+        write(joinpath(jobdir, "Project.toml"), "[deps]\n")
+        write(joinpath(jobdir, "job.jl"), "1\n")
+        waiter = Queue(; store=p, runner=_ -> nothing)
+        withenv(
+            "DISTSSHKITQUEUE_STORE" => p,
+            "DISTSSHKITQUEUE_CONFIG" => cfg,
+            "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1",
+        ) do
+            cd(jobdir) do
+                capture_stdio() do
+                    t = @async DistSSHKitQueue.serve!(waiter; interval=0.02)
+                    for _ in 1:200
+                        DistSSHKitQueue.waiter_pid(p) == getpid() && break
+                        sleep(0.02)
+                    end
+                    @test DistSSHKitQueue.waiter_pid(p) == getpid()
+                    code_bad, _, err = capture_stdio() do
+                        DistSSHKitQueue.main(["submit", "go", "child:host1:1", "job.jl"])
+                    end
+                    @test code_bad == 1
+                    @test occursin("not allowed", err)
+                    code_add, _, _ = capture_stdio() do
+                        DistSSHKitQueue.main(["add-host", "host1"])
+                    end
+                    @test code_add == 0
+                    code_ok, _, _ = capture_stdio() do
+                        DistSSHKitQueue.main(["submit", "go", "child:host1:1", "job.jl"])
+                    end
+                    @test code_ok == 0
+                    schedule(t, InterruptException(); error=true)
+                    try
+                        wait(t)
+                    catch
+                    end
+                end
             end
         end
     end
