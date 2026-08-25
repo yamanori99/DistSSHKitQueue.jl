@@ -452,6 +452,7 @@ end
                 help = sprint(DistSSHKitQueue.print_queue_usage)
                 @test occursin("Usage", help)
                 @test occursin("qhost:HOST", help)
+                @test occursin("DISTSSHKITQUEUE_HOST", help)
                 @test occursin("list-host", help)
                 @test occursin("  size ", help)
                 @test occursin("DistSSHKit size on the queue host", help)

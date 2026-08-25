@@ -203,6 +203,13 @@ end
                     "hello.jl",
                 ]) == 0
             end
+            withenv(
+                env...,
+                "PATH" => path,
+                DistSSHKitQueue.QHOST_DEFAULT_ENV => "qbox",
+            ) do
+                @test DistSSHKitQueue.main(["--remote-julia", JULIA, "status"]) == 0
+            end
             dumped = read(log, String)
             @test occursin("qbox", dumped)
             @test occursin("DistSSHKitQueue", dumped)

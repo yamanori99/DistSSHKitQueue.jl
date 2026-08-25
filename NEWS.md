@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `DISTSSHKITQUEUE_HOST` is the default queue host (SSH name) when `qhost:` is omitted.
+  Token wins. Not `DISTSSHKIT_HOSTS`. Not forwarded on the hop. Not `DISTSSHKITQUEUE_QHOST`
+  (that is status/watch display).
 - `status` / `watch` take Kit `-q` / `--quiet` (and `DISTSSHKIT_QUIET`): table only, no
   Store / Process chrome. `--progress` / `--verbose` are accepted and keep chrome.
 - `enable --queue-env DIR` is the Queue env baked into the OS unit. `enable --project` is
