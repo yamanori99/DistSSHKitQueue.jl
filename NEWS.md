@@ -5,6 +5,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `teardown` confirms like DistSSHKit: `-y` / `--yes` / `DISTSSHKIT_YES` (`1` / `true` / `yes` / `on`).
+  `DISTSSHKITQUEUE_YES` is gone. `[env]` in the target `config.toml` still applies.
 - `julia -m DistSSHKitQueue --version` (`-v`, `-V`) prints Queue then DistSSHKit.
   `submit go -v` stays Kit only.
 - `status` / `watch` print the client `qhost:` token via `DISTSSHKITQUEUE_QHOST`

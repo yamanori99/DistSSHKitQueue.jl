@@ -73,7 +73,7 @@ Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up,
 | `setup` | Write `~/.distsshkitqueue/config.toml` if missing (`--force` rewrites). | Optional. Defaults work without it. Use it for `store=` or `[env]`. |
 | `stop` | Stop the waiter, keep files. `submit` will not auto-start until you `serve`. | Pause the queue |
 | `disable` | Remove the OS unit. Does not delete the job table. | This machine should no longer auto-serve at boot |
-| `teardown -y` | Stop waiter, remove unit and `~/.distsshkitqueue`. | Wipe Queue state on this host |
+| `teardown -y` | Stop waiter, remove unit and `~/.distsshkitqueue`. Same confirm as DistSSHKit (`DISTSSHKIT_YES`). | Wipe Queue state on this host |
 
 `serve` is “run the process”. `enable` is “register that process with the OS” (systemd’s word). They are not two ways to start the same thing. `enable` does not make a laptop a queue host.
 

@@ -97,6 +97,7 @@ function print_queue_usage(io::IO=stdout)
         "  list-host does not print private keys or IdentityFile.",
         "  config hosts = [\"parent\", \"child:host1:4\"]. Library submit! uses Queue(; allowed=…).",
         "  teardown -y: waiter, OS unit, ~/.distsshkitqueue (not a git clone).",
+        "  teardown also honors DISTSSHKIT_YES (same as DistSSHKit).",
         "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
         "  stop latches it off; only an explicit serve resumes (submit will not).",
         "  Bare go / drive alias submit go / submit drive. Kit go argv with a .jl",
