@@ -1,7 +1,5 @@
 # [DistSSHKitQueue.jl](@id DistSSHKitQueue.jl)
 
-!!! warning "Under construction. Do not use this."
-
 DistSSHKitQueue runs jobs one after another on machines that several
 people share. You can submit a job, check its status, and cancel.
 [DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) does the run.
@@ -34,16 +32,16 @@ How you call it:
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl
+pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1
 ```
 
 Or, equivalently, via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl", rev="v0.1.0-beta.1")
 ```
 
-Not on General yet, so this is a URL add. DistSSHKit **0.4.1+** comes from
+Not on General yet, so pin the beta tag by URL. DistSSHKit **0.4.1+** comes from
 General with it. Do not `Pkg.develop` Kit for ordinary Queue work.
 
 Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);

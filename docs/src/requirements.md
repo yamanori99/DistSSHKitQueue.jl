@@ -6,7 +6,7 @@ Prerequisites for [Introduction](@ref DistSSHKitQueue.jl) and
 still apply to workers. This page is Queue: queue host vs client.
 
 `pkg> add DistSSHKitQueue` does not install **`ssh`**, **`rsync`**, or
-**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl`.)
+**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1`.)
 
 ## All machines
 
@@ -32,7 +32,7 @@ Always-on box (Mac mini, Linux VM). A sleeping laptop is not this
 machine.
 
 Install Queue in the **default** env (`pkg> add DistSSHKitQueue`;
-pre-General: `pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl`).
+pre-General: `pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1`).
 The table lives at `~/.distsshkitqueue/jobs.toml`.
 
 Also install, as in DistSSHKit (the kit parent for each job is this

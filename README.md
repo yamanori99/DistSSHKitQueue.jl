@@ -1,8 +1,5 @@
 # DistSSHKitQueue.jl
 
-> [!WARNING]
-> **Under construction.** Do not use this.
-
 [English](README.md) | [日本語](README.ja.md)
 
 [![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/CI.yml?branch=main&label=Test)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/CI.yml)
@@ -30,16 +27,16 @@ on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**.
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl
+pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1
 ```
 
 Or, equivalently, via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl", rev="v0.1.0-beta.1")
 ```
 
-Not on General yet, so this is a URL add. DistSSHKit **0.4.1+** comes from
+Not on General yet, so pin the beta tag by URL. DistSSHKit **0.4.1+** comes from
 General with it. Do not `Pkg.develop` Kit for ordinary Queue work.
 
 The queue host also needs **`ssh`**, **`rsync`**, and (only for git

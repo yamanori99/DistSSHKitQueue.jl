@@ -1,5 +1,5 @@
 [deps]
-DistSSHKitQueue = "914ce1ba-5242-41bd-bc99-388259144065"
+DistSSHKitQueue = "ddddfce7-695b-401e-b38f-5c0cd1044d3d"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 
 [sources]
