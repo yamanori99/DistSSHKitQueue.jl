@@ -4,25 +4,64 @@
 CurrentModule = DistSSHKitQueue
 ```
 
-Submitters `using DistSSHKitQueue` or `julia -m DistSSHKitQueue submit go …`.
-Queue code `using DistSSHKit`. Job files for Kit `go` still do not import DistSSHKit.
+Julia entry points when you embed DistSSHKitQueue. Day-to-day work stays
+on the CLI (`julia --project=. -m DistSSHKitQueue …`); see
+[Introduction](@ref DistSSHKitQueue.jl),
+[First Steps](@ref Tutorial-Prepare), and the [User Guide](@ref Manual).
+REPL help also works (`?DistSSHKitQueue.submit!`).
 
-Prefer `julia -m DistSSHKitQueue`. From a client: `qhost:HOST` (not `--hosts`).
-Default hop: `DISTSSHKITQUEUE_HOST`. `add-host` / `remove-host` write config `hosts`
-on the queue host (Kit tokens `parent[:N]` / `child:NAME[:N]`). Do not restart
-`serve`; the next `submit` re-reads the file. `list-host` is read-only (not Kit
-`--hosts`). `size` is DistSSHKit `size` on the queue host. `cancel` of `:running`
-uses the Kit output dir (allocated at start if submit omitted `--output-dir`).
-CLI `submit` uses `follow_config`; library `submit!` uses `Queue(; allowed=…)`
-unless `follow_config=true`. Config: `~/.distsshkitqueue/config.toml`.
+Submitters `using DistSSHKitQueue`. Queue-host code `using DistSSHKit`.
+Job files for Kit `go` still do not import DistSSHKit.
 
-Library surface:
+Prefer the CLI. From a client: `qhost:HOST` (not `--hosts`). Default
+hop: `DISTSSHKITQUEUE_HOST`. CLI `submit` uses `follow_config`; library
+[`submit!`](@ref) uses `Queue(; allowed=…)` unless `follow_config=true`.
+Config: `~/.distsshkitqueue/config.toml`.
+
+```julia
+using DistSSHKitQueue
+
+q = Queue(; store=default_store_path(), follow_config=true)
+id = submit!(q, "SCRIPT.jl", "child:host1:4"; kind=:go)
+cancel!(q, id)
+serve!(q)
+```
+
+## Types
 
 ```@docs
 DistSSHKitQueue
 Queue
 Job
+```
+
+## Enqueue and cancel
+
+```@docs
 submit!
 cancel!
+```
+
+## Table
+
+```@docs
+jobs
+job
+load!
+step!
+```
+
+## Waiter
+
+```@docs
 serve!
 ```
+
+## Paths
+
+```@docs
+job_project
+```
+
+`default_store_path()` is `~/.distsshkitqueue/jobs.toml`.
+The waiter calls DistSSHKit `execute!(…; detached=true, job_id=…)`.

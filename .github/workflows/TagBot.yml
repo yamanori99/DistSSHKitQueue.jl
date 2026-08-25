@@ -1,0 +1,23 @@
+# TagBot creates `vX.Y.Z` tags after General-registry releases (JuliaTagBot /
+# workflow_dispatch). Manual `git tag -a` remains fine for maintainer overrides;
+# see CONTRIBUTING.md.
+#
+# DistSSHKitQueue is not on General yet; this workflow is idle until then.
+# Docs deploy with GITHUB_TOKEN on `v*` tags (no DOCUMENTER_KEY).
+name: TagBot
+on:
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch:
+jobs:
+  TagBot:
+    if: github.event_name == 'workflow_dispatch' || github.actor == 'JuliaTagBot'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: JuliaRegistries/TagBot@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

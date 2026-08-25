@@ -1,0 +1,45 @@
+# [submit](@id Manual-submit)
+
+Enqueue a DistSSHKit `go` or `drive`. Starts a waiter if none is
+running.
+
+```bash
+julia --project=. -m DistSSHKitQueue [qhost:HOST] submit go [Kit go argv]
+julia --project=. -m DistSSHKitQueue [qhost:HOST] submit drive [Kit drive argv]
+```
+
+Bare `go` / `drive` alias `submit go` / `submit drive`. A Kit-shaped
+line with a `.jl` and no Queue verb is `go`
+(`--hosts child:NAME:N SCRIPT.jl`).
+
+Also: [First job](@ref Tutorial-Client), [hosts](@ref Manual-hosts),
+`julia -m DistSSHKitQueue --help`. Kit flags:
+[go](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/go/),
+[drive](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/drive/).
+
+CLI `submit` uses `Queue(; follow_config=true)` so each enqueue
+re-reads config `hosts`. Library [`submit!`](@ref) uses
+`Queue(; allowed=…)` unless `follow_config=true`.
+
+The script is checked to exist **before** enqueue (path resolved on the
+queue host). Job id prints as a bare stdout line.
+
+## Flags
+
+Kit `go` / `drive` argv is forwarded as-is. Queue does not add a second
+flag set.
+
+| Flag | Meaning |
+| --- | --- |
+| `go` / `drive` | DistSSHKit kind (`execute!`) |
+| Kit tokens | `parent[:N]` / `child:NAME[:N]` (not a Queue ceiling) |
+| `--hosts` / `--julia` | Kit's. Queue-host Julia is `--remote-julia` / `JULIA_DISTRIBUTED_EXE` |
+| `-v` / `--version` | On `submit go` / `submit drive`: Kit only |
+| `-h` / `--help` | Kit help for that kind |
+
+Opt out of autoserve: `DISTSSHKITQUEUE_NO_AUTOSERVE=1`. A prior
+[`stop`](@ref Manual-waiter) also holds the waiter off until an
+explicit `serve`.
+
+A `:running` Kit job is not stopped when `hosts` changes. `:queued`
+rows still start if a name is later removed.

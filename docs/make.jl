@@ -15,6 +15,19 @@ makedocs(;
     ),
     pages=[
         "Introduction" => "index.md",
+        "First Steps" => [
+            "Requirements" => "requirements.md",
+            "Prepare" => "tutorial/prepare.md",
+            "First job" => "tutorial/client.md",
+        ],
+        "User Guide" => [
+            "Overview" => "manual/index.md",
+            "submit" => "manual/submit.md",
+            "status" => "manual/status.md",
+            "hosts" => "manual/hosts.md",
+            "waiter" => "manual/waiter.md",
+            "setup" => "manual/setup.md",
+        ],
         "API" => "api.md",
     ],
     checkdocs=:none,

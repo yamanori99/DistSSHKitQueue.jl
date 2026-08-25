@@ -30,7 +30,7 @@ end
 """`~/.distsshkitqueue/env`, a Queue environment independent of any dev checkout.
 
 Not created automatically (that would mean running `Pkg` network operations as a
-side effect of `setup`); see README for the one-time `Pkg.develop` / `Pkg.add`.
+side effect of `setup`); see README for the one-time `Pkg.add`.
 """
 function default_queue_env_dir(; home::AbstractString=homedir())::String
     return joinpath(home, ".distsshkitqueue", "env")

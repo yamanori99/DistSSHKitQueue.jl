@@ -2,66 +2,100 @@
 
 !!! warning "Under construction. Do not use this."
 
-Small-lab job queue on [DistSSHKit.jl](https://github.com/yamanori99/DistSSHKit.jl).
+DistSSHKitQueue runs jobs one after another on machines that several
+people share. You can submit a job, check its status, and cancel.
+[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) does the run.
+Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
-**DistSSHKit** runs one job (`go` / `drive`). **DistSSHKitQueue** is a FIFO waiter in
-front of it: one **queue host** holds the table and the waiter; **clients** enqueue,
-list, watch, and cancel.
-
-Not on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**. Placement tokens
+Even small labs and individuals often keep one always-on machine, add
+SSH hosts, and use them together as a small set of compute nodes. Not
+on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**. Placement tokens
 (`parent[:N]` / `child:NAME[:N]`) stay DistSSHKit's — see the
-[kit docs](https://yamanori99.github.io/DistSSHKit.jl/dev/). Concept diagram and the
-full verb table: [README](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/README.md).
+[kit docs](https://yamanori99.github.io/DistSSHKit.jl/stable/).
 
-## Client
+## What is DistSSHKitQueue?
 
-From the job directory. `qhost:HOST` names the queue host (like Kit `child:NAME`).
-One lab: `export DISTSSHKITQUEUE_HOST=…` and omit `qhost:` (the token still wins).
-`--hosts` / `--julia` stay on Kit `go` / `drive`.
+Day to day you **submit** from a client (`qhost:HOST`). If no waiter is up,
+`submit` starts one on the queue host. You do not need `setup`, `serve`, or
+`enable` for a job to run.
 
-```bash
-julia --project=. -m DistSSHKitQueue --version
-julia --project=. -m DistSSHKitQueue qhost:HOST list-host
-julia --project=. -m DistSSHKitQueue qhost:HOST size
-julia --project=. -m DistSSHKitQueue qhost:HOST submit go child:host1:4 SCRIPT.jl
-julia --project=. -m DistSSHKitQueue qhost:HOST status -q
-julia --project=. -m DistSSHKitQueue qhost:HOST watch
-julia --project=. -m DistSSHKitQueue qhost:HOST cancel <id>
-```
+How you call it:
 
-`submit` starts a waiter on the queue host if none is running. `status` / `watch`
-print that `qhost` (or `local (hostname)`). There is no `--via`. `watch` is a live
-table (Ctrl-C); it does not stop the waiter.
+- **CLI** — `julia --project=. -m DistSSHKitQueue qhost:HOST submit go …`
+- **Julia API** — `submit!` / `cancel!` / `serve!` on a [`Queue`](@ref)
+  ([API](@ref API))
 
-## Queue host
-
-Always-on box (not a sleeping laptop). `setup` / `serve` / `enable` / `disable` /
-`add-host` / `remove-host` refuse `qhost:`.
-
-```bash
-julia -m DistSSHKitQueue setup
-julia -m DistSSHKitQueue add-host parent child:host1
-julia -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
-julia -m DistSSHKitQueue serve
-julia -m DistSSHKitQueue teardown -y
-```
-
-`--queue-env` is the env that loads Queue in the OS unit, not Julia `--project=` /
-the job tree. `teardown` confirms like DistSSHKit (`DISTSSHKIT_YES`). The waiter
-calls DistSSHKit `execute!(…; detached=true, job_id=…)`.
+`qhost:NAME` names the queue host (like Kit `child:NAME`, but not a worker).
+`--hosts` / `--julia` stay on Kit `go` / `drive`. Queue-host Julia is
+`--remote-julia` / `JULIA_DISTRIBUTED_EXE`.
 
 ## Installation
 
-From a checkout:
+From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> dev /path/to/DistSSHKitQueue.jl
+pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl
 ```
 
-Needs DistSSHKit **0.4.1+** from General (do not `Pkg.develop` Kit for ordinary
-Queue work), Julia **1.12+**, plus `ssh` / `rsync` / `git` as in DistSSHKit.
+Or, equivalently, via the `Pkg` API:
+
+```julia
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl")
+```
+
+Not on General yet, so this is a URL add. DistSSHKit **0.4.1+** comes from
+General with it. Do not `Pkg.develop` Kit for ordinary Queue work.
+
+Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);
+`pkg> add` does not install them. [Requirements](@ref).
+
+## Basic terms
+
+- **Queue host** — the always-on machine that holds `~/.distsshkitqueue`
+  and runs the waiter. A sleeping laptop is not this box.
+- **Client** — a dev machine that submits, lists, watches, or cancels. No
+  cap. It must not become the Kit master.
+- **Waiter** — `serve` on the queue host. It starts DistSSHKit
+  (`execute!(…; detached=true)`) and waits. Stopping it does not cancel a
+  Kit job that is already running.
+- **Workers** — where the script runs. DistSSHKit tokens: `parent[:N]` on
+  the queue host, `child:NAME[:N]` on SSH machines.
+
+```text
+  clients = dev machines (no cap)          one queue host (always on)
+  ───────────────────────────────          ──────────────────────────
+  yours / a colleague's / …                waiter   one Kit job at a time
+       │                                   table    ~/.distsshkitqueue
+       │  julia -m DistSSHKitQueue         add-host / remove-host
+       │    qhost:NAME                     serve    now, this terminal
+       │    submit | status | list-host    enable   again after reboot
+       │    watch | cancel | …
+       └────────────────────────────────►  then DistSSHKit go/drive
+                                           → workers (Kit tokens)
+```
+
+Queue is not a bigger Kit and does not keep a lab-wide slot ceiling.
+`serve` is “run the process”. `enable` is “register that process with the
+OS”. They are not two ways to start the same thing.
+
+## Next
+
+Start at **[Requirements](@ref)**, then **[Prepare](@ref Tutorial-Prepare)**
+(queue host, once) and **[First job](@ref Tutorial-Client)** (from a
+laptop).
+
+Later: [`submit`](@ref Manual-submit), [`status`](@ref Manual-status), and
+the rest of the [User Guide](@ref Manual); or the **[API](@ref API)** to
+embed from Julia.
 
 ## Contributing
 
-Bugs and features: [Issues](https://github.com/yamanori99/DistSSHKitQueue.jl/issues).
-See [CONTRIBUTING.md](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/CONTRIBUTING.md).
+Bugs and feature requests:
+[Issues](https://github.com/yamanori99/DistSSHKitQueue.jl/issues).
+See
+[CONTRIBUTING.md](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/CONTRIBUTING.md).
+
+## License
+
+Source code is
+[MIT](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/LICENSE).

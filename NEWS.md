@@ -5,6 +5,11 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- Docs: Documenter First Steps / User Guide (Queue verbs; Kit `go` / `drive`
+  stay in the kit docs). Japanese README (`README.ja.md`). English README is
+  the landing page.
+- CI: Kit-shaped Type (`PR label`) and Labels (`area:*` from `src/client/` /
+  `src/qhost/`). TagBot workflow (idle until General).
 - Client hop is `qhost:NAME` (like Kit `child:NAME`). `--qhost` is refused. `--hosts` /
   `--julia` stay on Kit `go` / `drive`. Queue-host Julia is `--remote-julia` /
   `JULIA_DISTRIBUTED_EXE`. `qhost:` uses DistSSHKit `run_on_host`.
