@@ -196,6 +196,13 @@ end
                     "--remote-julia", JULIA,
                     "list-host",
                 ]) == 0
+                @test DistSSHKitQueue.main([
+                    "qhost:qbox",
+                    "--remote-julia", JULIA,
+                    "--hosts",
+                    "child:w:2",
+                    "hello.jl",
+                ]) == 0
             end
             dumped = read(log, String)
             @test occursin("qbox", dumped)
@@ -203,6 +210,10 @@ end
             @test occursin("status", dumped)
             @test occursin("watch", dumped)
             @test occursin("list-host", dumped)
+            @test occursin("go", dumped)
+            @test occursin("--hosts", dumped)
+            @test occursin("child:w:2", dumped)
+            @test occursin("hello.jl", dumped)
             @test !occursin("add-host", dumped)
             @test occursin("--via", dumped)
         end
