@@ -5,6 +5,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `go --hosts` / `go --julia` (and `submit go` / `submit drive`) stay DistSSHKit's:
+  Queue does not peel them as the queue hop (`qhost:` / `--remote-julia`).
+  A Kit-shaped line with a `.jl` and no Queue verb is `go` (`--hosts child:w:2 SCRIPT.jl`).
+  `enable --julia` is still the unit binary.
 - Testenv Docker / Apple SSH boxes are Compose `child-1` / `child-2` (Apple
   containers `dskq-child-*` so they can sit next to Kit). Peer DNS is
   `dev@child-1`. Examples use `child:host1`, not `child:worker`. Image tags stay

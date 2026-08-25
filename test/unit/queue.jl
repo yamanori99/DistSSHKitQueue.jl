@@ -466,6 +466,8 @@ end
                 @test !occursin("qhost:HOST add-host", help)
                 @test !occursin("qhost:HOST allowed", help)
                 @test occursin("IdentityFile", help)
+                @test occursin("Bare go / drive alias", help)
+                @test occursin("no Queue verb is go", help)
                 @test !occursin("--hosts HOST", help)
                 @test occursin("watch", help)
                 @test occursin("enable", help)
@@ -530,6 +532,24 @@ end
                 rows = DistSSHKitQueue.read_jobs(p)
                 @test rows[end].hosts == ["child:host1"]
                 @test rows[end].kwargs["workers"] == 4
+                code_hf, _, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["go", "--hosts", "child:w:2", "job.jl"])
+                end
+                @test code_hf == 0
+                rows = DistSSHKitQueue.read_jobs(p)
+                @test rows[end].hosts == ["child:w:2"]
+                code_sh, _, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["--hosts", "child:w:2", "job.jl"])
+                end
+                @test code_sh == 0
+                rows = DistSSHKitQueue.read_jobs(p)
+                @test rows[end].hosts == ["child:w:2"]
+                code_jl, _, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "go", "--julia", "/opt/queue-kit-julia", "job.jl"])
+                end
+                @test code_jl == 0
+                rows = DistSSHKitQueue.read_jobs(p)
+                @test rows[end].kwargs["julia"] == "/opt/queue-kit-julia"
                 cid = rows[2].id
                 code_c, out_c, _ = capture_stdio() do
                     DistSSHKitQueue.main(["cancel", cid])

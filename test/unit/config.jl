@@ -278,6 +278,15 @@ end
     host4, _, payload4 = DistSSHKitQueue.extract_remote_opts(String[])
     @test host4 === nothing
     @test payload4 == String[]
+
+    @test DistSSHKitQueue.looks_like_kit_go_argv(["--hosts", "child:w:2", "S.jl"])
+    @test DistSSHKitQueue.looks_like_kit_go_argv(["--julia", "/opt/julia", "S.jl"])
+    @test DistSSHKitQueue.looks_like_kit_go_argv(["child:w:2", "S.jl"])
+    @test !DistSSHKitQueue.looks_like_kit_go_argv(["go", "--hosts", "child:w:2", "S.jl"])
+    @test !DistSSHKitQueue.looks_like_kit_go_argv(["submit", "go", "--hosts", "child:w:2", "S.jl"])
+    @test !DistSSHKitQueue.looks_like_kit_go_argv(["enable", "--julia", "/opt/julia"])
+    @test !DistSSHKitQueue.looks_like_kit_go_argv(["status"])
+    @test !DistSSHKitQueue.looks_like_kit_go_argv(["--hosts", "child:w:2"])
 end
 
 @testset "config host names" begin
