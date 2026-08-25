@@ -43,7 +43,7 @@ function _host_token(name::AbstractString)::String
 end
 
 function print_list_host(
-    names::Union{Nothing,Set{String}};
+    names::Union{Nothing, HostAllow};
     io::IO=stdout,
 )
     DistSSHKit.print_help_chrome("DistSSHKitQueue list-host"; io=io)
@@ -58,9 +58,11 @@ function print_list_host(
     rows = sorted_kit_ssh_names(names)
     nw = max(4, maximum(length, rows))
     tw = max(10, maximum(length ∘ _host_token, rows))
-    println(io, "  ", rpad("NAME", nw), "  ", rpad("HOST TOKEN", tw), "  SSH")
-    for n in rows
-        println(io, "  ", rpad(n, nw), "  ", rpad(_host_token(n), tw), "  ", _host_token_ssh_disp(n))
+    maxs = String[names[n] === nothing ? "-" : string(names[n]) for n in rows]
+    mw = max(3, maximum(length, maxs))
+    println(io, "  ", rpad("NAME", nw), "  ", rpad("HOST TOKEN", tw), "  ", rpad("MAX", mw), "  SSH")
+    for (n, mx) in zip(rows, maxs)
+        println(io, "  ", rpad(n, nw), "  ", rpad(_host_token(n), tw), "  ", rpad(mx, mw), "  ", _host_token_ssh_disp(n))
     end
     return nothing
 end

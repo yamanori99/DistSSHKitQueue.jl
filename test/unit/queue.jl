@@ -21,7 +21,7 @@ end
 end
 
 @testset "submit! rejects Kit names not on allowed" begin
-    q = Queue(; runner=_ -> nothing, allowed=["parent", "host1"])
+    q = Queue(; runner=_ -> nothing, allowed=["parent", "child:host1"])
     id = submit!(q, "a.jl", "parent:2", "child:host1:4")
     @test job(q, id).hosts == ["parent:2", "child:host1:4"]
     @test_throws ArgumentError submit!(q, "b.jl", "child:other:1")
@@ -35,7 +35,16 @@ end
     @test_throws ArgumentError submit!(closed, "c.jl", "parent:1")
     open = Queue(; runner=_ -> nothing)
     @test submit!(open, "d.jl", "child:any:1") isa String
+    @test_throws ArgumentError Queue(; allowed=["host1"])
     @test_throws ArgumentError Queue(; allowed=["parent"], follow_config=true)
+end
+
+@testset "submit! rejects :N above the allowed max" begin
+    q = Queue(; runner=_ -> nothing, allowed=["parent:2", "child:host1:4"])
+    @test submit!(q, "ok.jl", "parent:2", "child:host1:4") isa String
+    @test_throws ArgumentError submit!(q, "big.jl", "child:host1:5")
+    @test_throws ArgumentError submit!(q, "non.jl", "child:host1")
+    @test_throws ArgumentError submit!(q, "p.jl", "parent:3")
 end
 
 @testset "follow_config re-reads hosts without a new Queue" begin
@@ -48,7 +57,7 @@ end
             a = submit!(q, "a.jl", "parent:1")
             @test job(q, a).state === :queued
             @test_throws ArgumentError submit!(q, "b.jl", "child:host1:1")
-            DistSSHKitQueue.add_host_names!(cfg, ["host1"])
+            DistSSHKitQueue.add_host_names!(cfg, ["child:host1"])
             b = submit!(q, "b.jl", "child:host1:1")
             @test job(q, b).hosts == ["child:host1:1"]
         end
@@ -57,12 +66,12 @@ end
 
 @testset "hosts change does not stop running or drop queued" begin
     ev = Base.Event()
-    q = Queue(; runner=_ -> wait(ev), allowed=["parent", "host1"])
+    q = Queue(; runner=_ -> wait(ev), allowed=["parent", "child:host1"])
     run_id = submit!(q, "run.jl", "parent:1")
     queued_id = submit!(q, "q.jl", "child:host1:1")
     @test step!(q) == 1
     @test job(q, run_id).state === :running
-    q.allowed = Set(["parent"])
+    q.allowed = DistSSHKitQueue.HostAllow("parent" => nothing)
     @test job(q, queued_id).state === :queued
     @test step!(q) == 0
     notify(ev)
@@ -404,6 +413,7 @@ end
                 @test occursin("remove-host", help)
                 @test occursin("no serve restart", help)
                 @test occursin("Already queued rows still start", help)
+                @test occursin("Bare host1 is not a token", help)
                 @test occursin("not Kit --hosts", help)
                 @test occursin("qhost:HOST list-host", help)
                 @test !occursin("qhost:HOST add-host", help)
@@ -542,7 +552,7 @@ end
                     @test code_bad == 1
                     @test occursin("not allowed", err)
                     code_add, _, _ = capture_stdio() do
-                        DistSSHKitQueue.main(["add-host", "host1"])
+                        DistSSHKitQueue.main(["add-host", "child:host1"])
                     end
                     @test code_add == 0
                     code_ok, _, _ = capture_stdio() do
@@ -584,7 +594,7 @@ exit 0
         )
         chmod(joinpath(fake, "ssh"), 0o755)
         path = fake * ":" * get(ENV, "PATH", "")
-        write(cfg, "hosts = [\"parent\", \"host1\"]\n")
+        write(cfg, "hosts = [\"parent\", \"child:host1\"]\n")
         withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
             code, out, _ = capture_stdio() do
                 DistSSHKitQueue.main(["list-host"])
@@ -630,14 +640,14 @@ exit 0
             @test code == 0
             @test occursin("child:host1", out)
             @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config()) ==
-                  Set(["parent", "host1"])
+                  DistSSHKitQueue.HostAllow("parent" => nothing, "host1" => nothing)
             code2, out2, _ = capture_stdio() do
                 DistSSHKitQueue.main(["remove-host", "parent"])
             end
             @test code2 == 0
             @test occursin("host1", out2)
             @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config()) ==
-                  Set(["host1"])
+                  DistSSHKitQueue.HostAllow("host1" => nothing)
             bad2, _, err2 = capture_stdio() do
                 DistSSHKitQueue.main(["add-host", "--hosts"])
             end

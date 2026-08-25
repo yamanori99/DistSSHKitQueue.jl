@@ -1,4 +1,4 @@
-"""CLI `add-host` / `remove-host`: write Kit SSH names into config `hosts`."""
+"""CLI `add-host` / `remove-host`: write Kit placement tokens into config `hosts`."""
 
 function add_host_cli(args::Vector{String})::Cint
     names = String[]

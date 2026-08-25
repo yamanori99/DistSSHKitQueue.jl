@@ -5,14 +5,14 @@ mutable struct Queue
     store::Union{Nothing,String}
     runner::Function
     live_id::Union{Nothing,String}
-    allowed::Union{Nothing,Set{String}}
+    allowed::Union{Nothing, HostAllow}
     follow_config::Bool
 end
 
 function Queue(;
     store::Union{Nothing,AbstractString}=nothing,
     runner::Function=run_kit,
-    allowed::Union{Nothing,AbstractVector,AbstractSet}=nothing,
+    allowed::Union{Nothing,AbstractVector,AbstractSet,AbstractDict}=nothing,
     follow_config::Bool=false,
 )
     follow_config && allowed !== nothing && throw(ArgumentError(
@@ -21,10 +21,8 @@ function Queue(;
     st = store === nothing ? nothing : String(store)
     names = if follow_config
         config_host_names(load_config())
-    elseif allowed === nothing
-        nothing
     else
-        Set{String}(filter(!isempty, String[kit_ssh_name(String(x)) for x in allowed]))
+        as_host_allow(allowed)
     end
     return Queue(ReentrantLock(), Job[], st, runner, nothing, names, follow_config)
 end
@@ -42,6 +40,54 @@ function job_project(; cwd::AbstractString=pwd())::String
 end
 
 resolve_script(path::AbstractString) = DistSSHKit.canonical_local_path(path)
+
+function as_host_allow(allowed)::Union{Nothing, HostAllow}
+    allowed === nothing && return nothing
+    if allowed isa AbstractDict
+        out = HostAllow()
+        for (k, v) in allowed
+            n = String(k)
+            if n == "parent" || startswith(n, "parent:") || startswith(n, "child:")
+                n = kit_ssh_name(n)
+            elseif isempty(n)
+                continue
+            end
+            cap = if v === nothing
+                nothing
+            else
+                _positive_n(Int(v), string(n, ":", v))
+            end
+            out[n] = cap
+        end
+        return out
+    end
+    return parse_host_caps(allowed)
+end
+
+function reject_host_token!(allow::Union{Nothing, HostAllow}, t::AbstractString)
+    parsed = DistSSHKit.parse_placement_token(t)
+    allow === nothing && return parsed
+    if !haskey(allow, parsed.name)
+        throw(ArgumentError(
+            "Kit name $(repr(parsed.name)) is not allowed (token $(repr(t)))",
+        ))
+    end
+    cap = allow[parsed.name]
+    cap === nothing && return parsed
+    jobn = parsed.n
+    if jobn === nothing
+        throw(ArgumentError(
+            "Kit name $(repr(parsed.name)) needs :N (max $(cap); token $(repr(t)))",
+        ))
+    end
+    if jobn > cap
+        throw(ArgumentError(
+            "Kit :N $(jobn) exceeds max $(cap) for $(repr(parsed.name)) (token $(repr(t)))",
+        ))
+    end
+    return parsed
+end
+
 
 function kit_kwargs(d::Dict{String,Any})
     isempty(d) && return NamedTuple()
@@ -284,14 +330,7 @@ function _submit!(q::Queue, kind::Symbol, script::AbstractString, hosts; kwargs.
             q.follow_config && (q.allowed = fresh)
             allow = q.allowed
             for t in toks
-                # Kit 0.4 classifier (`parent[:N]` / `child:NAME[:N]`). Not exported; Kit
-                # tests and docs call it the same way.
-                parsed = DistSSHKit.parse_placement_token(t)
-                if allow !== nothing && !(parsed.name in allow)
-                    throw(ArgumentError(
-                        "Kit name $(repr(parsed.name)) is not allowed (token $(repr(t)))",
-                    ))
-                end
+                reject_host_token!(allow, t)
             end
             reload_keep_live!(q)
             j = Job(; kind=kind, script=script_path, hosts=toks, kwargs=kw)
@@ -308,8 +347,8 @@ end
 Missing `project` uses `job_project()` (cwd / `DISTRIBUTED_PROJECT_ROOT`), not the
 waiter `--project`. Same verb as CLI `submit`.
 
-`q.allowed` is the inventory (`Queue(; allowed=…)`). It does not read
-`config.toml`. CLI `submit` uses `Queue(; follow_config=true)` so each
+`q.allowed` is the inventory (`Queue(; allowed=…)`), names plus optional max `:N`.
+It does not read `config.toml`. CLI `submit` uses `Queue(; follow_config=true)` so each
 enqueue re-reads `hosts` without restarting `serve`. `step!` does not
 drop `:queued` rows when a name is later removed, and does not stop a
 Kit job that is already `:running`.
