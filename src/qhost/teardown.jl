@@ -3,11 +3,12 @@
 A leftover `dskq` shim from older `setup` is removed if present.
 
 Does not `Pkg.rm` or delete a git clone. Kit job trees (`.distsshkit/`) stay.
-Needs `-y` / `--yes` (or `DISTSSHKITQUEUE_YES=1`).
+Needs `-y` / `--yes` (or Kit `DISTSSHKIT_YES`, same values as DistSSHKit: `1` / `true` / `yes` / `on`).
 """
 
 function teardown_yes()::Bool
-    return get(ENV, "DISTSSHKITQUEUE_YES", "") == "1"
+    v = strip(get(ENV, "DISTSSHKIT_YES", ""))
+    return v in ("1", "true", "yes", "on")
 end
 
 function teardown_store(; home::AbstractString=homedir(), config::AbstractString=config_path(; home=home))::String
@@ -84,7 +85,7 @@ function teardown_main(args::Vector{String})::Cint
     home = homedir()
     bindir = nothing
     config = nothing
-    yes = teardown_yes()
+    yes = false
     apply = true
     i = 1
     while i <= length(args)
@@ -113,5 +114,7 @@ function teardown_main(args::Vector{String})::Cint
     end
     bd = bindir === nothing ? default_bindir(; home=home) : String(bindir)
     cfg = config === nothing ? config_path(; home=home) : String(config)
+    apply_config_env!(load_config(; path=cfg))
+    yes = yes || teardown_yes()
     return teardown(; home=home, bindir=bd, config=cfg, yes=yes, apply=apply)
 end

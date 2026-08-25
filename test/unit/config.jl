@@ -428,7 +428,11 @@ end
         mkpath(bindir)
         wrap = joinpath(bindir, "dskq")
         write(wrap, "#!/bin/sh\n")
-        withenv("DISTSSHKITQUEUE_CONFIG" => nothing, "DISTSSHKITQUEUE_STORE" => nothing) do
+        withenv(
+            "DISTSSHKITQUEUE_CONFIG" => nothing,
+            "DISTSSHKITQUEUE_STORE" => nothing,
+            "DISTSSHKIT_YES" => nothing,
+        ) do
             code1, _, err1 = capture_stdio() do
                 DistSSHKitQueue.teardown_main(["--home", home, "--write-only"])
             end
@@ -444,5 +448,50 @@ end
         end
         @test !ispath(data)
         @test !isfile(wrap)
+    end
+end
+
+@testset "teardown honors DISTSSHKIT_YES like DistSSHKit" begin
+    mktempdir() do home
+        data = joinpath(home, ".distsshkitqueue")
+        mkpath(data)
+        cfg = joinpath(data, "config.toml")
+        store = joinpath(data, "jobs.toml")
+        write(cfg, "store = $(repr(store))\n")
+        write(store, "jobs = []\n")
+        withenv(
+            "DISTSSHKITQUEUE_CONFIG" => nothing,
+            "DISTSSHKITQUEUE_STORE" => nothing,
+            "DISTSSHKIT_YES" => "true",
+        ) do
+            code, _, err = capture_stdio() do
+                DistSSHKitQueue.teardown_main(["--home", home, "--write-only"])
+            end
+            @test code == 0
+            @test !occursin("teardown needs -y", err)
+        end
+        @test !ispath(data)
+    end
+end
+
+@testset "teardown DISTSSHKIT_YES from target config [env]" begin
+    mktempdir() do home
+        data = joinpath(home, ".distsshkitqueue")
+        mkpath(data)
+        cfg = joinpath(data, "config.toml")
+        store = joinpath(data, "jobs.toml")
+        write(cfg, "store = $(repr(store))\n\n[env]\nDISTSSHKIT_YES = \"1\"\n")
+        write(store, "jobs = []\n")
+        withenv(
+            "DISTSSHKITQUEUE_CONFIG" => nothing,
+            "DISTSSHKITQUEUE_STORE" => nothing,
+            "DISTSSHKIT_YES" => nothing,
+        ) do
+            code, _, _ = capture_stdio() do
+                DistSSHKitQueue.teardown_main(["--home", home, "--write-only"])
+            end
+            @test code == 0
+        end
+        @test !ispath(data)
     end
 end
