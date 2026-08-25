@@ -5,6 +5,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `:running` cancel and waiter restart no longer need the submitter to pass `--output-dir`. At start the waiter records DistSSHKit `allocate_output_dir` (or the given `output_dir`) on the row so `terminate_run!` / `kit.pid` have a path.
 - CLI `add-host` / `remove-host` write config `hosts` on the queue host (not via `qhost:`). Tokens are DistSSHKit's: `parent[:N]` / `child:NAME[:N]` (not a bare `host1`). Optional `:N` is a per-name max; a larger submit `:N` is refused. First add creates the list. Missing key stays allow-all. Empty array allows none. A leftover `allowed` key is still read until rewritten. Hand-edit still works. Do not restart `serve`: the next `submit` re-reads the file. A Kit job that is already `:running` is not stopped. `:queued` rows still start if a name is later removed. CLI `submit` uses `follow_config`; library `submit!` uses `Queue(; allowed=…)` unless `follow_config=true`.
 - Read-only CLI `list-host` (not Kit `--hosts`): prints that list as host tokens (`parent` / `child:NAME`) plus `ssh -G` Host / HostName / User / Port. No private keys, no IdentityFile. On the queue host: `list-host`. From a client: `qhost:HOST list-host` (`ssh -G` uses the queue host's SSH config).
 - CLI `size`: DistSSHKit `size` on the queue host (job tree, same flags: `parent` / `child:NAME`, `--gb-per-worker`, `--probe`, …). Omit tokens to size config `hosts`. `qhost:HOST size`. Does not enqueue; prints a `submit drive` template. Not a submit gate.

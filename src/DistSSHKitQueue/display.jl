@@ -57,7 +57,7 @@ function print_queue_usage(io::IO=stdout)
         "  watch [--interval S]           Live status; Ctrl-C leaves the waiter",
         "  submit go [Kit go argv]        Enqueue DistSSHKit go (parent[:N] / child:NAME[:N])",
         "  submit drive [Kit drive argv]  Enqueue DistSSHKit drive",
-        "  cancel <id>                    Drop a :queued row, or stop :running",
+        "  cancel <id>                    Drop a :queued row, or stop :running (Kit output dir)",
         "  teardown -y                    Stop waiter and remove queue-host files",
     )
     DistSSHKit.print_help_blank(io)
