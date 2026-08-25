@@ -14,7 +14,7 @@ Optional Mac-only path (same image and `test/e2e.jl`):
 
 ## What the E2E proves
 
-The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `child:NAME[:N]` workers only.
+The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `child:NAME[:N]` workers only. Do not add a container named `qhost`; the client hop is loopback `qhost:dskq-qh`. SSH Host `dskq-w1` / `dskq-w2` is not Compose `child-1` / `child-2` (naming: issue #35). Roles: [test/README.md](../../test/README.md#ssh-e2e-roles).
 
 [`test/e2e.jl`](../../test/e2e.jl):
 

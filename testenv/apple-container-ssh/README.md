@@ -3,7 +3,8 @@
 Linux SSH workers on a Mac via Apple
 [`container`](https://github.com/apple/container). Same image, keys, and
 `dskq-w1` / `dskq-w2` aliases as [`../docker-ssh`](../docker-ssh),
-so [`test/e2e.jl`](../../test/e2e.jl) is unchanged.
+so [`test/e2e.jl`](../../test/e2e.jl) is unchanged. Those aliases are Kit
+**child** Hosts, not a queue host. Roles: [test/README.md](../../test/README.md#ssh-e2e-roles).
 
 **Not CI and not `Pkg.test()`.** Compose path stays the default for GitHub
 and for Linux / Docker Desktop / WSL.

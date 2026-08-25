@@ -8,6 +8,8 @@
 #
 # Also: `julia -m DistSSHKitQueue` on the queue host (omit `qhost:HOST`) and as a
 # client (`qhost:HOST` over loopback OpenSSH). Kit slots on docker-ssh (`child:dskq-w1:1`).
+# Three roles, one suite: client = loopback, qhost = this host, child = containers.
+# Do not treat a container as qhost. `parent:1` only occupies FIFO here.
 # Not a laptop + `parent:N` topology. `enable` / `disable` / `teardown` use
 # `--write-only` (no user systemd / launchctl).
 #
