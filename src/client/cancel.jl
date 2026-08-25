@@ -1,4 +1,4 @@
-"""Client `cancel <id>`. `:queued`, or `:running` when Kit `output_dir` is known."""
+"""Client `cancel <id>`. `:queued`, or `:running` when the Kit output dir is known (allocated at start if omitted)."""
 
 function cancel_cli(args::Vector{String})::Cint
     isempty(args) && throw(ArgumentError("cancel: need a job id"))

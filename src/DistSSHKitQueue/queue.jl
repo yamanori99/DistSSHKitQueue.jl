@@ -169,6 +169,24 @@ function kit_output_dir(j::Job)::Union{Nothing,String}
     return isempty(s) ? nothing : s
 end
 
+"""Set Kit `output_dir` before spawn so `:running` cancel and restart adopt need no submitter path.
+
+Uses DistSSHKit `allocate_output_dir` when the bag omitted `output_dir`. No-op if
+the script is not on disk (unit stubs)."""
+function ensure_kit_output_dir!(j::Job)
+    kit_output_dir(j) !== nothing && return nothing
+    isfile(j.script) || return nothing
+    proj = get(j.kwargs, "project", nothing)
+    proj isa AbstractString || (proj = job_project())
+    isdir(String(proj)) || return nothing
+    dir = DistSSHKit.allocate_output_dir(
+        j.kind, j.script; project=String(proj), job_id=j.id,
+    )
+    j.kwargs["output_dir"] = dir
+    j.result_path = dir
+    return nothing
+end
+
 """Whether DistSSHKit's detached `kit.pid` still names this run (pid + start key)."""
 function kit_child_alive(j::Job)::Bool
     dir = kit_output_dir(j)
@@ -361,7 +379,7 @@ function submit!(q::Queue, script::AbstractString, hosts::AbstractVector{<:Abstr
     return _submit!(q, kind, script, hosts; kwargs...)
 end
 
-"""Cancel `:queued`, or `:running` via DistSSHKit `terminate_run!` when `result_path` / `output_dir` is known."""
+"""Cancel `:queued`, or `:running` via DistSSHKit `terminate_run!` when the Kit output dir is known."""
 function cancel!(q::Queue, id::AbstractString)::Bool
     action = _with_store(q) do
         lock(q.lock) do
@@ -437,6 +455,7 @@ function _start!(q::Queue, j::Job)
     j.state = :running
     j.started_at = now(UTC)
     q.live_id = j.id
+    ensure_kit_output_dir!(j)
     _persist!(q)
     runner = q.runner
     id = j.id

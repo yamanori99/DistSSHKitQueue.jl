@@ -153,13 +153,13 @@ end
     @testset "cancel running parent:1" begin
         mktempdir() do d
             env, _, store, jobdir = cli_env(d)
-            outdir = joinpath(d, "cancel-run-out")
             try
                 cd(jobdir) do
-                    id = strip(read(addenv(qcli(["submit", "go", "parent:1", "--output-dir", outdir, "hold.jl"]), env...), String))
+                    id = strip(read(addenv(qcli(["submit", "go", "parent:1", "hold.jl"]), env...), String))
                     @test !isempty(id)
                     row = wait_job(env, id, (:running,))
-                    wait_kit_pid(joinpath(outdir, "kit.pid"))
+                    @test row.result_path !== nothing
+                    wait_kit_pid(joinpath(row.result_path, "kit.pid"))
                     @test row.state === :running
                     c = strip(read(addenv(qcli(["cancel", id]), env...), String))
                     @test c == id
