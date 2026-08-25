@@ -191,12 +191,18 @@ end
                     "watch",
                     "--ticks", "1",
                 ]) == 0
+                @test DistSSHKitQueue.main([
+                    "qhost:cluster-a",
+                    "--remote-julia", JULIA,
+                    "allowed",
+                ]) == 0
             end
             dumped = read(log, String)
             @test occursin("cluster-a", dumped)
             @test occursin("DistSSHKitQueue", dumped)
             @test occursin("status", dumped)
             @test occursin("watch", dumped)
+            @test occursin("allowed", dumped)
             @test occursin("--via", dumped)
         end
     end

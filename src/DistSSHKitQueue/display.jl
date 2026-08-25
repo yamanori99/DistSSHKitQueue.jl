@@ -52,6 +52,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_lines(io,
         "  (--project=. is the job tree; no files written on the laptop.)",
         "  status                         List jobs on the queue host",
+        "  allowed                        Kit names and ssh -G Host / HostName / User / Port",
         "  watch [--interval S]           Live status; Ctrl-C leaves the waiter",
         "  submit go [Kit go argv]        Enqueue DistSSHKit go (parent[:N] / child:NAME[:N])",
         "  submit drive [Kit drive argv]  Enqueue DistSSHKit drive",

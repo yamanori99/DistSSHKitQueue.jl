@@ -37,6 +37,7 @@ include("DistSSHKitQueue/queue.jl")
 include("client/qhost.jl")
 include("client/submit.jl")
 include("client/status.jl")
+include("client/allowed.jl")
 include("client/cancel.jl")
 include("qhost/service.jl")
 include("qhost/setup.jl")
@@ -68,6 +69,11 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             r === nothing || return r
             _, _, payload = extract_remote_opts(rest)
             return status_cli(payload)
+        elseif sub == "allowed"
+            r = maybe_remote(qhost, gjulia, "allowed", rest)
+            r === nothing || return r
+            _, _, payload = extract_remote_opts(rest)
+            return allowed_cli(payload)
         elseif sub == "watch"
             r = maybe_remote(qhost, gjulia, "watch", rest; tty=stdout isa Base.TTY, forward_via=true)
             r === nothing || return r

@@ -364,6 +364,7 @@ end
                 help = sprint(DistSSHKitQueue.print_queue_usage)
                 @test occursin("Usage", help)
                 @test occursin("qhost:HOST", help)
+                @test occursin("allowed", help)
                 @test !occursin("--hosts HOST", help)
                 @test occursin("watch", help)
                 @test occursin("enable", help)
@@ -465,6 +466,71 @@ end
                 @test code_bad == 1
                 @test occursin("not allowed", err)
             end
+        end
+    end
+end
+
+@testset "CLI allowed lists names and ssh -G fields" begin
+    mktempdir() do d
+        cfg = joinpath(d, "config.toml")
+        fake = joinpath(d, "fakebin")
+        mkpath(fake)
+        write(
+            joinpath(fake, "ssh"),
+            """
+#!/bin/sh
+for a in "\$@"; do
+  if [ "\$a" = "-G" ]; then
+    printf '%s\\n' "host gpu"
+    printf '%s\\n' "hostname 10.0.0.8"
+    printf '%s\\n' "user lab"
+    printf '%s\\n' "port 2222"
+    printf '%s\\n' "identityfile /secret/id_rsa"
+    exit 0
+  fi
+done
+exit 0
+""",
+        )
+        chmod(joinpath(fake, "ssh"), 0o755)
+        path = fake * ":" * get(ENV, "PATH", "")
+        write(cfg, "allowed = [\"parent\", \"gpu\"]\n")
+        withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
+            code, out, _ = capture_stdio() do
+                DistSSHKitQueue.main(["allowed"])
+            end
+            @test code == 0
+            @test occursin("parent", out)
+            @test occursin("child:gpu", out)
+            @test occursin("this machine", out)
+            @test occursin("HostName 10.0.0.8", out)
+            @test occursin("User lab", out)
+            @test occursin("Port 2222", out)
+            @test !occursin("identityfile", lowercase(out))
+            @test !occursin("id_rsa", out)
+        end
+        write(cfg, "store = \"x\"\n")
+        withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
+            code, out, _ = capture_stdio() do
+                DistSSHKitQueue.main(["allowed"])
+            end
+            @test code == 0
+            @test occursin("any Kit name", out)
+        end
+        write(cfg, "allowed = []\n")
+        withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
+            code, out, _ = capture_stdio() do
+                DistSSHKitQueue.main(["allowed"])
+            end
+            @test code == 0
+            @test occursin("accepts none", out)
+        end
+        withenv("DISTSSHKITQUEUE_CONFIG" => cfg) do
+            bad, _, err = capture_stdio() do
+                DistSSHKitQueue.main(["allowed", "--hosts"])
+            end
+            @test bad == 1
+            @test occursin("unknown allowed option", err)
         end
     end
 end
