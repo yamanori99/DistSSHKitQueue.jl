@@ -20,6 +20,23 @@ end
     @test job(q, id).hosts == ["parent:1", "child:w1:2"]
 end
 
+@testset "submit! rejects Kit names not on allowed" begin
+    q = Queue(; runner=_ -> nothing, allowed=["parent", "gpu"])
+    id = submit!(q, "a.jl", "parent:2", "child:gpu:4")
+    @test job(q, id).hosts == ["parent:2", "child:gpu:4"]
+    @test_throws ArgumentError submit!(q, "b.jl", "child:other:1")
+    tokened = Queue(; runner=_ -> nothing, allowed=["child:gpu"])
+    gid = submit!(tokened, "g.jl", "child:gpu:4")
+    @test job(tokened, gid).hosts == ["child:gpu:4"]
+    mixed = Queue(; runner=_ -> nothing, allowed=["parent"])
+    @test_throws ArgumentError submit!(mixed, "m.jl", "parent:1", "child:other:1")
+    @test isempty(jobs(mixed))
+    closed = Queue(; runner=_ -> nothing, allowed=String[])
+    @test_throws ArgumentError submit!(closed, "c.jl", "parent:1")
+    open = Queue(; runner=_ -> nothing)
+    @test submit!(open, "d.jl", "child:any:1") isa String
+end
+
 @testset "true FIFO one at a time" begin
     started = String[]
     q = Queue(; runner=j -> (push!(started, j.id); sleep(0.05)))
@@ -419,6 +436,34 @@ end
                 @test strip(out_c) == cid
                 cancelled = DistSSHKitQueue.read_jobs(p)
                 @test any(j -> j.id == cid && j.state === :cancelled, cancelled)
+            end
+        end
+    end
+end
+
+@testset "CLI submit respects config allowed" begin
+    mktempdir() do d
+        p = joinpath(d, "jobs.toml")
+        cfg = joinpath(d, "config.toml")
+        write(cfg, "store = $(repr(p))\nallowed = [\"parent\"]\n")
+        jobdir = mktempdir()
+        write(joinpath(jobdir, "Project.toml"), "[deps]\n")
+        write(joinpath(jobdir, "job.jl"), "1\n")
+        withenv(
+            "DISTSSHKITQUEUE_STORE" => p,
+            "DISTSSHKITQUEUE_CONFIG" => cfg,
+            "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1",
+        ) do
+            cd(jobdir) do
+                code_ok, _, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "go", "parent:1", "job.jl"])
+                end
+                @test code_ok == 0
+                code_bad, _, err = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "go", "child:gpu:1", "job.jl"])
+                end
+                @test code_bad == 1
+                @test occursin("not allowed", err)
             end
         end
     end

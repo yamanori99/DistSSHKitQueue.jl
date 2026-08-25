@@ -5,6 +5,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- Optional `allowed` in `config.toml`: Kit SSH names (`parent`, `gpu`) or tokens (`child:gpu` → `gpu`). Missing key keeps today's allow-all. Present empty array allows none. CLI `submit` reads the file; library `submit!` uses `Queue(; allowed=…)`. `:N` stays on the job.
 - Client queue host is `qhost:NAME` (like Kit `child:NAME`). `--qhost` is refused. `--hosts` / `--julia` stay on Kit `go` / `drive`. Hop Julia remains `--remote-julia` / `JULIA_DISTRIBUTED_EXE`.
 - DistSSHKit **0.4.1+** from General is the Queue floor (docs, CONTRIBUTING, examples, tests). Do not `Pkg.develop` Kit for ordinary Queue work. Library `submit!` rejects pre-0.4 host tokens (`parenthost`, bare `NAME:N`). `qhost:` is DistSSHKit `run_on_host` only (no second ssh builder).
 - DistSSHKit **0.4.1+** ([release](https://github.com/yamanori99/DistSSHKit.jl/releases/tag/v0.4.1)): queued `go` with `job_id` actually runs the slot script (`-L` mark file). 0.4.0 skipped the script because of `--eval`.

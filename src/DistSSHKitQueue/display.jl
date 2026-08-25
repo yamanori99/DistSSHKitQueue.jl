@@ -76,6 +76,7 @@ function print_queue_usage(io::IO=stdout)
         "  A sleeping laptop is not a queue host.",
         "  Do not pass qhost:HOST to setup / serve / enable / disable.",
         "  --hosts / --julia belong to Kit go/drive. Hop Julia: --remote-julia / JULIA_DISTRIBUTED_EXE.",
+        "  config allowed = [\"parent\", \"gpu\"] (or child:gpu). Library submit! uses Queue(; allowed=…).",
         "  teardown -y: waiter, OS unit, ~/.distsshkitqueue (not a git clone).",
         "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
         "  stop latches it off; only an explicit serve resumes (submit will not).",

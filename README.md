@@ -74,7 +74,7 @@ Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up,
 
 ## Queue host (always-on)
 
-Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). DistSSHKit **0.4.1+** comes from General with it. The table lives at `~/.distsshkitqueue/jobs.toml`.
+Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). DistSSHKit **0.4.1+** comes from General with it. The table lives at `~/.distsshkitqueue/jobs.toml`. Optional `allowed = ["parent", "gpu"]` in `config.toml` is the lab's Kit SSH names (`parent` and `child` NAMEs; `child:gpu` means `gpu`). Omit the key to allow any name. CLI `submit` reads that file; library `submit!` needs `Queue(; allowed=…)` and does not load `config.toml`.
 
 A dedicated always-on box (Mac mini, Linux VM):
 
