@@ -21,7 +21,7 @@ people share. You can submit a job, check its status, and cancel.
 [DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) does the run.
 Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
-Even small labs and individuals often keep one always-on machine, add
+Even small labs and individuals can keep one always-on machine, add
 SSH hosts, and use them together as a small set of compute nodes. Not
 on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**.
 
