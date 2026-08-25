@@ -471,6 +471,7 @@ end
                 @test occursin("submit go -v is Kit only", help)
                 @test !occursin("--hosts HOST", help)
                 @test occursin("watch", help)
+                @test occursin("status [-q]", help)
                 @test occursin("enable", help)
                 @test occursin("--queue-env", help)
                 @test occursin("disable", help)
@@ -521,6 +522,25 @@ end
                 end
                 @test code_via == 1
                 @test occursin("unknown status option", err_via)
+                code_q, out_q, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["status", "-q"])
+                end
+                @test code_q == 0
+                @test occursin("(empty)", out_q)
+                @test !occursin("Store", out_q)
+                @test !occursin("qhost", out_q)
+                withenv("DISTSSHKIT_QUIET" => "1") do
+                    code_qe, out_qe, _ = capture_stdio() do
+                        DistSSHKitQueue.main(["status"])
+                    end
+                    @test code_qe == 0
+                    @test !occursin("Store", out_qe)
+                end
+                code_qv, _, err_qv = capture_stdio() do
+                    DistSSHKitQueue.main(["status", "-q", "--verbose"])
+                end
+                @test code_qv == 1
+                @test occursin("cannot combine", err_qv)
                 code_go, out_go, _ = capture_stdio() do
                     DistSSHKitQueue.main(["submit", "go", "child:host1:4", "job.jl"])
                 end
@@ -801,6 +821,13 @@ end
                 @test occursin("local ($(gethostname()))", out)
                 @test occursin("(empty)", out)
                 @test occursin("Ctrl-C stops watch", out)
+                code_qw, out_qw, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["watch", "-q", "--interval", "0.01"])
+                end
+                @test code_qw == 0
+                @test occursin("(empty)", out_qw)
+                @test !occursin("DistSSHKitQueue watch", out_qw)
+                @test !occursin("Ctrl-C stops watch", out_qw)
                 code_go, _, _ = capture_stdio() do
                     DistSSHKitQueue.main(["submit", "go", "parent:1", "a.jl"])
                 end

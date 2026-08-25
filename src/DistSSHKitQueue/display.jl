@@ -58,10 +58,10 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_section("Client"; io=io)
     DistSSHKit.print_help_lines(io,
         "  (julia --project= loads Queue; the job tree is cwd / DISTRIBUTED_PROJECT_ROOT.)",
-        "  status                         List jobs on the queue host",
+        "  status [-q]                    List jobs on the queue host",
         "  list-host                      Host tokens from config hosts; ssh -G Host / HostName / User / Port",
         "  size [Kit size argv]           DistSSHKit size on the queue host (does not enqueue)",
-        "  watch [--interval S]           Live status; Ctrl-C leaves the waiter",
+        "  watch [-q] [--interval S]      Live status; Ctrl-C leaves the waiter",
         "  submit go [Kit go argv]        Enqueue DistSSHKit go (parent[:N] / child:NAME[:N])",
         "  submit drive [Kit drive argv]  Enqueue DistSSHKit drive",
         "  cancel <id>                    Drop a :queued row, or stop :running (Kit output dir)",
@@ -106,6 +106,7 @@ function print_queue_usage(io::IO=stdout)
         "  Ctrl-C on serve stops the waiter. A DistSSHKit job already running is not killed.",
         "  enable --queue-env DIR is the Queue env in the OS unit (julia --project= there).",
         "  The job tree is cwd / DISTRIBUTED_PROJECT_ROOT, not enable --queue-env.",
+        "  status / watch -q hide chrome (Kit --quiet / DISTSSHKIT_QUIET). --progress / --verbose stay chrome.",
         "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
         "  Store:  $(_q_short(default_store_path()))   DISTSSHKITQUEUE_STORE / config store=",
     )
@@ -284,13 +285,16 @@ function print_status_table(
     rows::Vector{Job};
     io::IO=stdout,
     qhost::Union{Nothing,AbstractString}=nothing,
+    quiet::Bool=false,
 )
-    DistSSHKit.print_help_section("Store"; io=io)
-    DistSSHKit.print_help_lines(io,
-        "  path   $(_q_short(store))",
-        "  qhost  $(_qhost_disp(qhost))",
-    )
-    DistSSHKit.print_help_blank(io)
+    if !quiet
+        DistSSHKit.print_help_section("Store"; io=io)
+        DistSSHKit.print_help_lines(io,
+            "  path   $(_q_short(store))",
+            "  qhost  $(_qhost_disp(qhost))",
+        )
+        DistSSHKit.print_help_blank(io)
+    end
     return print_jobs_table(rows; io=io)
 end
 
@@ -299,17 +303,22 @@ function print_watch_frame(
     rows::Vector{Job};
     io::IO=stdout,
     qhost::Union{Nothing,AbstractString}=nothing,
+    quiet::Bool=false,
 )
-    DistSSHKit.print_help_chrome("DistSSHKitQueue watch"; io=io)
-    DistSSHKit.print_help_section("Process"; io=io)
-    DistSSHKit.print_help_lines(io,
-        "  store   $(_q_short(store))",
-        "  waiter  $(_waiter_disp(store))",
-        "  qhost   $(_qhost_disp(qhost))",
-    )
-    DistSSHKit.print_help_blank(io)
+    if !quiet
+        DistSSHKit.print_help_chrome("DistSSHKitQueue watch"; io=io)
+        DistSSHKit.print_help_section("Process"; io=io)
+        DistSSHKit.print_help_lines(io,
+            "  store   $(_q_short(store))",
+            "  waiter  $(_waiter_disp(store))",
+            "  qhost   $(_qhost_disp(qhost))",
+        )
+        DistSSHKit.print_help_blank(io)
+    end
     print_jobs_table(rows; io=io)
-    DistSSHKit.print_help_blank(io)
-    DistSSHKit.print_help_lines(io, "Ctrl-C stops watch; the waiter stays.")
+    if !quiet
+        DistSSHKit.print_help_blank(io)
+        DistSSHKit.print_help_lines(io, "Ctrl-C stops watch; the waiter stays.")
+    end
     return nothing
 end
