@@ -19,6 +19,14 @@ function parse_qhost_token(raw::AbstractString)::String
     return String(name)
 end
 
+"""SSH name shown on `status` / `watch`. Set by the client hop; not a CLI flag."""
+const QHOST_DISPLAY_ENV = "DISTSSHKITQUEUE_QHOST"
+
+function qhost_display_from_env()::Union{Nothing,String}
+    v = strip(get(ENV, QHOST_DISPLAY_ENV, ""))
+    return isempty(v) ? nothing : String(v)
+end
+
 function _set_qhost(cur::Union{Nothing,String}, next::AbstractString)::String
     n = String(next)
     if cur !== nothing && cur != n
@@ -105,9 +113,18 @@ function remote_dispatch(
     sub::AbstractString,
     payload::Vector{String};
     tty::Bool=false,
+    qhost_display::Union{Nothing,AbstractString}=nothing,
 )::Cint
-    argv = String["-m", "DistSSHKitQueue", String(sub)]
-    append!(argv, payload)
+    label = qhost_display === nothing ? nothing : strip(String(qhost_display))
+    if label !== nothing && !isempty(label)
+        args = String[String(sub)]
+        append!(args, String[String(a) for a in payload])
+        expr = "ENV[$(repr(QHOST_DISPLAY_ENV))] = $(repr(label)); exit(Int(DistSSHKitQueue.main($(repr(args)))))"
+        argv = String["-e", "using DistSSHKitQueue; " * expr]
+    else
+        argv = String["-m", "DistSSHKitQueue", String(sub)]
+        append!(argv, payload)
+    end
     spec = strip(String(rjulia))
     auto = isempty(spec) || spec == "auto"
     proc = DistSSHKit.run_on_host(
@@ -129,8 +146,8 @@ end
 
 """If a queue host is set, ssh `sub` + `rest` and return the exit code; else `nothing`.
 
-`forward_via`: prepend `--via dest` so remote `status` / `watch` can print the
-client token (not a Kit placement token). Other verbs must not set this.
+`label_qhost`: remote `status` / `watch` print the client token via
+`DISTSSHKITQUEUE_QHOST` (not a CLI flag; re-passing `qhost:` would recurse).
 """
 function maybe_remote(
     qhost::Union{Nothing,AbstractString},
@@ -138,11 +155,11 @@ function maybe_remote(
     sub::AbstractString,
     rest::Vector{String};
     tty::Bool=false,
-    forward_via::Bool=false,
+    label_qhost::Bool=false,
 )::Union{Nothing,Cint}
     host, rjulia, payload = extract_remote_opts(rest)
     dest, spec = coalesce_remote(qhost, gjulia, host, rjulia)
     dest === nothing && return nothing
-    pl = forward_via ? String["--via", dest, payload...] : payload
-    return remote_dispatch(dest, spec, sub, pl; tty=tty)
+    disp = label_qhost ? dest : nothing
+    return remote_dispatch(dest, spec, sub, payload; tty=tty, qhost_display=disp)
 end

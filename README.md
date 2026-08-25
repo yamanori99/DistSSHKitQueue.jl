@@ -143,7 +143,7 @@ julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts cancel <id>
 julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts teardown -y
 ```
 
-Remote Julia on the queue host is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). Kit `--julia` stays on `submit go` / `submit drive`. `SCRIPT.jl` and placement tokens are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `qhost:HOST` it uses `ssh -t` so the remote TTY can clear the screen. Both print `qhost`: the token plus this machine's hostname (or `local (hostname)` when you omitted it). Job `HOSTS` stays DistSSHKit `parent[:N]` / `child:NAME[:N]`.
+Remote Julia on the queue host is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). Kit `--julia` stays on `submit go` / `submit drive`. `SCRIPT.jl` and placement tokens are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `qhost:HOST` it uses `ssh -t` so the remote TTY can clear the screen. Both print `qhost`: the token plus this machine's hostname (or `local (hostname)` when you omitted it). The client hop sets `DISTSSHKITQUEUE_QHOST`; there is no `--via`. Job `HOSTS` stays DistSSHKit `parent[:N]` / `child:NAME[:N]`.
 
 ## Job record
 
