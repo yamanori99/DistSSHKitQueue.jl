@@ -69,7 +69,7 @@ Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up,
 | `add-host` | Write a Kit token into config `hosts` (`parent[:N]` / `child:NAME[:N]`). First add creates the list (submit is no longer allow-all). Optional `:N` is a max. No `serve` restart. | Lab inventory |
 | `remove-host` | Drop a Kit token from that list. Last name left is `hosts = []` (submit accepts none). No `serve` restart. A running Kit job is not stopped. | Lab inventory |
 | `serve` | Run the waiter **in this terminal, now**. Ctrl-C stops this waiter. | Watching the queue live on the queue host, or running without autoserve |
-| `enable` | Tell the OS: after reboot / login, start `serve` again (LaunchAgent / systemd). | A dedicated queue host that should come back by itself |
+| `enable` | Tell the OS: after reboot / login, start `serve` again (LaunchAgent / systemd). `--queue-env` is the Queue env in that unit, not Julia `--project=` / the job tree. | A dedicated queue host that should come back by itself |
 | `setup` | Write `~/.distsshkitqueue/config.toml` if missing (`--force` rewrites). | Optional. Defaults work without it. Use it for `store=` or `[env]`. |
 | `stop` | Stop the waiter, keep files. `submit` will not auto-start until you `serve`. | Pause the queue |
 | `disable` | Remove the OS unit. Does not delete the job table. | This machine should no longer auto-serve at boot |
@@ -126,7 +126,7 @@ Already on that box (ssh session, console): omit `qhost:HOST` for `submit` / `st
 
 `stop` halts the waiter but leaves config, store, and any OS unit. It latches the waiter off, so `submit` will not auto-start it; only an explicit `serve` resumes. Clients can `qhost:HOST stop`. `disable` is the opposite of `enable`, not of `serve`.
 
-A dedicated env at `~/.distsshkitqueue/env`, if present, is preferred as `--project` so a checkout can be deleted. `teardown` never runs `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/` results.
+A dedicated env at `~/.distsshkitqueue/env`, if present, is preferred as `enable --queue-env` so a checkout can be deleted. `teardown` never runs `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/` results.
 
 Ctrl-C on `serve` or `watch` only stops that process — the waiter (or the live view), never a running Kit job.
 

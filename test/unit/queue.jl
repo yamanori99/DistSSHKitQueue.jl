@@ -472,6 +472,7 @@ end
                 @test !occursin("--hosts HOST", help)
                 @test occursin("watch", help)
                 @test occursin("enable", help)
+                @test occursin("--queue-env", help)
                 @test occursin("disable", help)
                 @test occursin("sleeping laptop", help)
                 @test !occursin("service install", help)
@@ -932,4 +933,13 @@ end
     unit = DistSSHKitQueue.systemd_user_unit("/usr/bin/julia", "/opt/Queue.jl")
     @test occursin("ExecStart=/usr/bin/julia --startup-file=no --project=/opt/Queue.jl -m DistSSHKitQueue serve", unit)
     @test occursin("Restart=on-failure", unit)
+end
+
+@testset "enable refuses --project; --queue-env is the Queue env" begin
+    code, _, err = capture_stdio() do
+        DistSSHKitQueue.main(["enable", "--write-only", "--project", "/opt/Queue.jl"])
+    end
+    @test code == 1
+    @test occursin("--queue-env", err)
+    @test occursin("not --project", err)
 end

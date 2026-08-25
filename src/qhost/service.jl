@@ -153,9 +153,14 @@ function enable_main(args::Vector{String})::Cint
         if args[i] == "--julia" && i < length(args)
             julia = args[i+1]
             i += 2
-        elseif args[i] == "--project" && i < length(args)
+        elseif args[i] == "--queue-env" && i < length(args)
             project = args[i+1]
             i += 2
+        elseif args[i] == "--project"
+            throw(ArgumentError(
+                "enable: use --queue-env DIR, not --project. " *
+                "Julia `--project=` loads DistSSHKitQueue; the job tree is cwd / DISTRIBUTED_PROJECT_ROOT.",
+            ))
         elseif args[i] == "--write-only"
             apply = false
             i += 1

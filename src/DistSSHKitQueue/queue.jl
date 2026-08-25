@@ -363,7 +363,7 @@ end
 
 `hosts` must be DistSSHKit 0.4 placement tokens (`parent[:N]` / `child:NAME[:N]`).
 Missing `project` uses `job_project()` (cwd / `DISTRIBUTED_PROJECT_ROOT`), not the
-waiter `--project`. Same verb as CLI `submit`.
+waiter env (`enable --queue-env` / Julia `--project=` that loaded Queue). Same verb as CLI `submit`.
 
 `q.allowed` is the inventory (`Queue(; allowed=…)`), names plus optional max `:N`.
 It does not read `config.toml`. CLI `submit` uses `Queue(; follow_config=true)` so each

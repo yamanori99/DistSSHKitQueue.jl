@@ -512,7 +512,7 @@ end
                     env = merge(host_env, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
                     @test run_cli(addenv(qcmd(["setup"]), env...)).exitcode == 0
                     @test isfile(cfg)
-                    @test run_cli(addenv(qcmd(["enable", "--write-only", "--project", test_project, "--julia", E2E_JULIA]), env...)).exitcode == 0
+                    @test run_cli(addenv(qcmd(["enable", "--write-only", "--queue-env", test_project, "--julia", E2E_JULIA]), env...)).exitcode == 0
                     unit = if Sys.isapple()
                         DistSSHKitQueue.launch_agent_path(; home=e2e_home)
                     else
