@@ -40,10 +40,34 @@ function config_store_path(cfg::AbstractDict)::Union{Nothing,String}
     return isempty(s) ? nothing : String(expanduser(s))
 end
 
+"""Kit SSH name: `parent[:N]` / `child:NAME[:N]` → `name`, else the stripped string (`gpu`)."""
+function kit_ssh_name(raw::AbstractString)::String
+    s = strip(String(raw))
+    isempty(s) && return ""
+    try
+        return String(DistSSHKit.parse_placement_token(s).name)
+    catch e
+        e isa ArgumentError || rethrow()
+        return s
+    end
+end
+
+"""Kit SSH names (`parent`, `child` NAME). Missing key: allow all. Empty array: allow none.
+
+Entries may be inventory names or placement tokens (`child:gpu` → `gpu`).
+"""
+function config_allowed_names(cfg::AbstractDict)::Union{Nothing,Set{String}}
+    raw = get(cfg, "allowed", nothing)
+    raw === nothing && return nothing
+    raw isa AbstractVector || throw(ArgumentError("`allowed` must be an array of Kit SSH names"))
+    return Set{String}(filter(!isempty, String[kit_ssh_name(String(x)) for x in raw]))
+end
+
 function default_config_body(; store::AbstractString=default_store_path())::String
     return """
 # DistSSHKitQueue. Override with DISTSSHKITQUEUE_CONFIG / DISTSSHKITQUEUE_STORE.
 store = $(repr(String(store)))
+# allowed = ["parent", "gpu"]   # or child:gpu
 
 [env]
 # DISTRIBUTED_SSH_OPTS = "-F /path/to/ssh_config"

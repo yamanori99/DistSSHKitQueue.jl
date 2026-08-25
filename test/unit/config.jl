@@ -267,6 +267,19 @@ end
     @test payload4 == String[]
 end
 
+@testset "config allowed names" begin
+    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}()) === nothing
+    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("store" => "x")) === nothing
+    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => [" parent ", "gpu"])) ==
+          Set(["parent", "gpu"])
+    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => ["child:gpu", "parent:2"])) ==
+          Set(["gpu", "parent"])
+    @test DistSSHKitQueue.kit_ssh_name("child:gpu:4") == "gpu"
+    @test DistSSHKitQueue.kit_ssh_name("gpu") == "gpu"
+    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => Any[])) == Set{String}()
+    @test_throws ArgumentError DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => "parent"))
+end
+
 @testset "setup writes config, not a dskq shim" begin
     mktempdir() do d
         bindir = joinpath(d, "bin")
@@ -283,6 +296,7 @@ end
         @test !isfile(joinpath(bindir, "dskq"))
         @test isfile(cfg)
         @test occursin("[env]", read(cfg, String))
+        @test occursin("# allowed", read(cfg, String))
         @test DistSSHKitQueue.write_config_template(other) === false
         @test read(other, String) == "store = \"x\"\n"
     end

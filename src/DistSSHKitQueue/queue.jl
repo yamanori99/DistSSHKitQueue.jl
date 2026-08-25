@@ -5,14 +5,18 @@ mutable struct Queue
     store::Union{Nothing,String}
     runner::Function
     live_id::Union{Nothing,String}
+    allowed::Union{Nothing,Set{String}}
 end
 
 function Queue(;
     store::Union{Nothing,AbstractString}=nothing,
     runner::Function=run_kit,
+    allowed::Union{Nothing,AbstractVector,AbstractSet}=nothing,
 )
     st = store === nothing ? nothing : String(store)
-    return Queue(ReentrantLock(), Job[], st, runner, nothing)
+    names = allowed === nothing ? nothing :
+        Set{String}(filter(!isempty, String[kit_ssh_name(String(x)) for x in allowed]))
+    return Queue(ReentrantLock(), Job[], st, runner, nothing, names)
 end
 
 """Kit job tree: `DISTRIBUTED_PROJECT_ROOT`, else the `Project.toml` above `cwd`, else `cwd`.
@@ -264,7 +268,13 @@ function _submit!(q::Queue, kind::Symbol, script::AbstractString, hosts; kwargs.
     for t in toks
         # Kit 0.4 classifier (`parent[:N]` / `child:NAME[:N]`). Not exported; Kit
         # tests and docs call it the same way.
-        DistSSHKit.parse_placement_token(t)
+        parsed = DistSSHKit.parse_placement_token(t)
+        allow = q.allowed
+        if allow !== nothing && !(parsed.name in allow)
+            throw(ArgumentError(
+                "Kit name $(repr(parsed.name)) is not allowed (token $(repr(t)))",
+            ))
+        end
     end
     kw = Dict{String,Any}(String(k) => v for (k, v) in pairs(kwargs))
     haskey(kw, "project") || (kw["project"] = job_project())
@@ -284,6 +294,9 @@ end
 `hosts` must be DistSSHKit 0.4 placement tokens (`parent[:N]` / `child:NAME[:N]`).
 Missing `project` uses `job_project()` (cwd / `DISTRIBUTED_PROJECT_ROOT`), not the
 waiter `--project`. Same verb as CLI `submit`.
+
+`q.allowed` is the inventory (`Queue(; allowed=…)`). It does not read
+`config.toml`; CLI `submit` does (`allowed = ["parent", "gpu"]`).
 """
 function submit!(q::Queue, script::AbstractString, hosts::AbstractString...; kind::Symbol=:go, kwargs...)
     return _submit!(q, kind, script, hosts; kwargs...)
