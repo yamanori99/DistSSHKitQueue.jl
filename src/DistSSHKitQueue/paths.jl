@@ -36,12 +36,12 @@ function default_queue_env_dir(; home::AbstractString=homedir())::String
     return joinpath(home, ".distsshkitqueue", "env")
 end
 
-"""The `--project` `enable` bakes in by default: the dedicated env dir if
+"""The `--queue-env` `enable` bakes in by default: the dedicated env dir if
 it has been set up, else the currently active project (e.g. a dev checkout).
 """
 function default_queue_env(; dedicated::AbstractString=default_queue_env_dir())::String
     isfile(joinpath(dedicated, "Project.toml")) && return dedicated
     proj = Base.active_project()
-    proj === nothing && throw(ArgumentError("service: no active project; pass --project"))
+    proj === nothing && throw(ArgumentError("service: no active project; pass --queue-env"))
     return DistSSHKit.canonical_local_path(dirname(proj))
 end

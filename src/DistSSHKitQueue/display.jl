@@ -57,7 +57,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Client"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  (--project=. is the job tree; no files written on the laptop.)",
+        "  (julia --project= loads Queue; the job tree is cwd / DISTRIBUTED_PROJECT_ROOT.)",
         "  status                         List jobs on the queue host",
         "  list-host                      Host tokens from config hosts; ssh -G Host / HostName / User / Port",
         "  size [Kit size argv]           DistSSHKit size on the queue host (does not enqueue)",
@@ -75,7 +75,7 @@ function print_queue_usage(io::IO=stdout)
         "  remove-host TOKEN [TOKEN...]   Drop those Kit tokens (no serve restart)",
         "  serve                          Run the waiter in this terminal",
         "  stop                           Stop that waiter, keep config / store",
-        "  enable                         After reboot, start serve (LaunchAgent / systemd)",
+        "  enable [--queue-env DIR]       After reboot, start serve (LaunchAgent / systemd)",
         "  disable                        Remove that OS registration",
         "  teardown -y                    Same as client teardown, locally",
     )
@@ -104,7 +104,8 @@ function print_queue_usage(io::IO=stdout)
         "  and no Queue verb is go (`--hosts child:NAME:N SCRIPT.jl`).",
         "  --version / -v print DistSSHKitQueue then DistSSHKit. submit go -v is Kit only.",
         "  Ctrl-C on serve stops the waiter. A DistSSHKit job already running is not killed.",
-        "  Ctrl-C on watch stops the live view only.",
+        "  enable --queue-env DIR is the Queue env in the OS unit (julia --project= there).",
+        "  The job tree is cwd / DISTRIBUTED_PROJECT_ROOT, not enable --queue-env.",
         "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
         "  Store:  $(_q_short(default_store_path()))   DISTSSHKITQUEUE_STORE / config store=",
     )

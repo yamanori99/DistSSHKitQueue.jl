@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `enable --queue-env DIR` is the Queue env baked into the OS unit. `enable --project` is
+  refused (that is Julia's load path / Kit's job tree). The job tree stays cwd /
+  `DISTRIBUTED_PROJECT_ROOT`. The unit still runs `julia --project=<that env>`.
 - `watch` has no `--ticks`. Tests / E2E use `DISTSSHKITQUEUE_WATCH_TICKS` (forwarded
   on `qhost:`). The verb is a live status table; a monitor package may take the name.
 - `teardown` confirms like DistSSHKit: `-y` / `--yes` / `DISTSSHKIT_YES` (`1` / `true` / `yes` / `on`).
