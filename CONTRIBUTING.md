@@ -1,6 +1,6 @@
 # Contributing
 
-Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md).
+Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md), [docs](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/) (`docs/`; [docs/README.md](docs/README.md)).
 
 This is a **separate** package from DistSSHKit: a FIFO waiter in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
 
