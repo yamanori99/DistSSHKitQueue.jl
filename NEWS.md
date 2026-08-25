@@ -5,6 +5,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `watch` has no `--ticks`. Tests / E2E use `DISTSSHKITQUEUE_WATCH_TICKS` (forwarded
+  on `qhost:`). The verb is a live status table; a monitor package may take the name.
 - `teardown` confirms like DistSSHKit: `-y` / `--yes` / `DISTSSHKIT_YES` (`1` / `true` / `yes` / `on`).
   `DISTSSHKITQUEUE_YES` is gone. `[env]` in the target `config.toml` still applies.
 - `julia -m DistSSHKitQueue --version` (`-v`, `-V`) prints Queue then DistSSHKit.

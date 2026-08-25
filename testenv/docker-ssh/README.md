@@ -28,7 +28,7 @@ The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSH
 6. `result_path` is Kit’s collected tree; peek it on the queue host (no second collect).
 7. Queue-host CLI (omit `qhost:`, fake `HOME`): `setup`, `enable --write-only`,
    `disable --write-only`, foreground `serve`, `submit go child:dskq-w1:1 SCRIPT.jl`, `status`,
-   `watch --ticks 1`, `stop`.
+   `watch` (harness `DISTSSHKITQUEUE_WATCH_TICKS=1`), `stop`.
 8. Client `qhost:dskq-qh` over a **loopback OpenSSH** (not a fake `ssh` binary):
    `submit` / `status` / `watch` / `cancel` / `stop` / `teardown -y --write-only`.
    `qhost:HOST setup` is refused.
