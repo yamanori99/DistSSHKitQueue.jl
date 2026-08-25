@@ -1,6 +1,7 @@
-"""Read-only `allowed`: Kit SSH names from config, plus `ssh -G` Host / HostName / User / Port.
+"""Read-only `list-host`: Kit names from config `allowed`, plus `ssh -G` connect fields.
 
-Does not print private keys or IdentityFile. Verb is not Kit `--hosts`.
+Prints host tokens (`parent` / `child:NAME`) for `submit`. Not Kit `--hosts`.
+Does not print private keys or IdentityFile.
 """
 
 const _SSH_G_KEYS = ("host", "hostname", "user", "port")
@@ -24,7 +25,7 @@ function ssh_g_connect(name::AbstractString)::Dict{String,String}
     return out
 end
 
-function _allowed_ssh_disp(name::AbstractString)::String
+function _host_token_ssh_disp(name::AbstractString)::String
     DistSSHKit.is_parent_host_name(name) && return "this machine ($(gethostname()))"
     g = ssh_g_connect(name)
     isempty(g) && return "(ssh -G failed)"
@@ -36,22 +37,16 @@ function _allowed_ssh_disp(name::AbstractString)::String
     return join(parts, "  ")
 end
 
-function _allowed_token(name::AbstractString)::String
+function _host_token(name::AbstractString)::String
     DistSSHKit.is_parent_host_name(name) && return "parent"
     return "child:$(name)"
 end
 
-function _sorted_allowed_names(names::Set{String})::Vector{String}
-    v = collect(names)
-    sort!(v; by=n -> (DistSSHKit.is_parent_host_name(n) ? 0 : 1, n))
-    return v
-end
-
-function print_allowed(
+function print_list_host(
     names::Union{Nothing,Set{String}};
     io::IO=stdout,
 )
-    DistSSHKit.print_help_chrome("DistSSHKitQueue allowed"; io=io)
+    DistSSHKit.print_help_chrome("DistSSHKitQueue list-host"; io=io)
     if names === nothing
         println(io, "  (no allowed= in config; submit accepts any Kit name)")
         return nothing
@@ -60,17 +55,17 @@ function print_allowed(
         println(io, "  (allowed = []; submit accepts none)")
         return nothing
     end
-    rows = _sorted_allowed_names(names)
+    rows = sorted_kit_ssh_names(names)
     nw = max(4, maximum(length, rows))
-    tw = max(5, maximum(length ∘ _allowed_token, rows))
-    println(io, "  ", rpad("NAME", nw), "  ", rpad("TOKEN", tw), "  SSH")
+    tw = max(10, maximum(length ∘ _host_token, rows))
+    println(io, "  ", rpad("NAME", nw), "  ", rpad("HOST TOKEN", tw), "  SSH")
     for n in rows
-        println(io, "  ", rpad(n, nw), "  ", rpad(_allowed_token(n), tw), "  ", _allowed_ssh_disp(n))
+        println(io, "  ", rpad(n, nw), "  ", rpad(_host_token(n), tw), "  ", _host_token_ssh_disp(n))
     end
     return nothing
 end
 
-function allowed_cli(args::Vector{String})::Cint
+function list_host_cli(args::Vector{String})::Cint
     i = 1
     while i <= length(args)
         a = args[i]
@@ -78,8 +73,8 @@ function allowed_cli(args::Vector{String})::Cint
             show_usage()
             return 0
         end
-        throw(ArgumentError("unknown allowed option: $(a)"))
+        throw(ArgumentError("unknown list-host option: $(a)"))
     end
-    print_allowed(config_allowed_names(load_config()))
+    print_list_host(config_allowed_names(load_config()))
     return 0
 end

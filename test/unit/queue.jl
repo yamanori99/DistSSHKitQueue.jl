@@ -21,13 +21,13 @@ end
 end
 
 @testset "submit! rejects Kit names not on allowed" begin
-    q = Queue(; runner=_ -> nothing, allowed=["parent", "gpu"])
-    id = submit!(q, "a.jl", "parent:2", "child:gpu:4")
-    @test job(q, id).hosts == ["parent:2", "child:gpu:4"]
+    q = Queue(; runner=_ -> nothing, allowed=["parent", "host1"])
+    id = submit!(q, "a.jl", "parent:2", "child:host1:4")
+    @test job(q, id).hosts == ["parent:2", "child:host1:4"]
     @test_throws ArgumentError submit!(q, "b.jl", "child:other:1")
-    tokened = Queue(; runner=_ -> nothing, allowed=["child:gpu"])
-    gid = submit!(tokened, "g.jl", "child:gpu:4")
-    @test job(tokened, gid).hosts == ["child:gpu:4"]
+    tokened = Queue(; runner=_ -> nothing, allowed=["child:host1"])
+    gid = submit!(tokened, "g.jl", "child:host1:4")
+    @test job(tokened, gid).hosts == ["child:host1:4"]
     mixed = Queue(; runner=_ -> nothing, allowed=["parent"])
     @test_throws ArgumentError submit!(mixed, "m.jl", "parent:1", "child:other:1")
     @test isempty(jobs(mixed))
@@ -364,7 +364,13 @@ end
                 help = sprint(DistSSHKitQueue.print_queue_usage)
                 @test occursin("Usage", help)
                 @test occursin("qhost:HOST", help)
-                @test occursin("allowed", help)
+                @test occursin("list-host", help)
+                @test occursin("add-host", help)
+                @test occursin("remove-host", help)
+                @test occursin("not Kit --hosts", help)
+                @test occursin("qhost:HOST list-host", help)
+                @test !occursin("qhost:HOST allowed", help)
+                @test occursin("IdentityFile", help)
                 @test !occursin("--hosts HOST", help)
                 @test occursin("watch", help)
                 @test occursin("enable", help)
@@ -461,7 +467,7 @@ end
                 end
                 @test code_ok == 0
                 code_bad, _, err = capture_stdio() do
-                    DistSSHKitQueue.main(["submit", "go", "child:gpu:1", "job.jl"])
+                    DistSSHKitQueue.main(["submit", "go", "child:host1:1", "job.jl"])
                 end
                 @test code_bad == 1
                 @test occursin("not allowed", err)
@@ -470,7 +476,7 @@ end
     end
 end
 
-@testset "CLI allowed lists names and ssh -G fields" begin
+@testset "CLI list-host lists names and ssh -G fields" begin
     mktempdir() do d
         cfg = joinpath(d, "config.toml")
         fake = joinpath(d, "fakebin")
@@ -481,7 +487,7 @@ end
 #!/bin/sh
 for a in "\$@"; do
   if [ "\$a" = "-G" ]; then
-    printf '%s\\n' "host gpu"
+    printf '%s\\n' "host host1"
     printf '%s\\n' "hostname 10.0.0.8"
     printf '%s\\n' "user lab"
     printf '%s\\n' "port 2222"
@@ -494,14 +500,14 @@ exit 0
         )
         chmod(joinpath(fake, "ssh"), 0o755)
         path = fake * ":" * get(ENV, "PATH", "")
-        write(cfg, "allowed = [\"parent\", \"gpu\"]\n")
+        write(cfg, "allowed = [\"parent\", \"host1\"]\n")
         withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
             code, out, _ = capture_stdio() do
-                DistSSHKitQueue.main(["allowed"])
+                DistSSHKitQueue.main(["list-host"])
             end
             @test code == 0
             @test occursin("parent", out)
-            @test occursin("child:gpu", out)
+            @test occursin("child:host1", out)
             @test occursin("this machine", out)
             @test occursin("HostName 10.0.0.8", out)
             @test occursin("User lab", out)
@@ -512,7 +518,7 @@ exit 0
         write(cfg, "store = \"x\"\n")
         withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
             code, out, _ = capture_stdio() do
-                DistSSHKitQueue.main(["allowed"])
+                DistSSHKitQueue.main(["list-host"])
             end
             @test code == 0
             @test occursin("any Kit name", out)
@@ -520,17 +526,39 @@ exit 0
         write(cfg, "allowed = []\n")
         withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
             code, out, _ = capture_stdio() do
-                DistSSHKitQueue.main(["allowed"])
+                DistSSHKitQueue.main(["list-host"])
             end
             @test code == 0
             @test occursin("accepts none", out)
         end
         withenv("DISTSSHKITQUEUE_CONFIG" => cfg) do
             bad, _, err = capture_stdio() do
-                DistSSHKitQueue.main(["allowed", "--hosts"])
+                DistSSHKitQueue.main(["list-host", "--hosts"])
             end
             @test bad == 1
-            @test occursin("unknown allowed option", err)
+            @test occursin("unknown list-host option", err)
+        end
+        write(cfg, DistSSHKitQueue.default_config_body(; store=joinpath(d, "jobs.toml")))
+        withenv("DISTSSHKITQUEUE_CONFIG" => cfg, "PATH" => path) do
+            code, out, _ = capture_stdio() do
+                DistSSHKitQueue.main(["add-host", "parent", "child:host1"])
+            end
+            @test code == 0
+            @test occursin("child:host1", out)
+            @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config()) ==
+                  Set(["parent", "host1"])
+            code2, out2, _ = capture_stdio() do
+                DistSSHKitQueue.main(["remove-host", "parent"])
+            end
+            @test code2 == 0
+            @test occursin("host1", out2)
+            @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config()) ==
+                  Set(["host1"])
+            bad2, _, err2 = capture_stdio() do
+                DistSSHKitQueue.main(["add-host", "--hosts"])
+            end
+            @test bad2 == 1
+            @test occursin("unknown add-host option", err2)
         end
     end
 end

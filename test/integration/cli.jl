@@ -194,7 +194,13 @@ end
                 @test DistSSHKitQueue.main([
                     "qhost:cluster-a",
                     "--remote-julia", JULIA,
-                    "allowed",
+                    "list-host",
+                ]) == 0
+                @test DistSSHKitQueue.main([
+                    "qhost:cluster-a",
+                    "--remote-julia", JULIA,
+                    "add-host",
+                    "host1",
                 ]) == 0
             end
             dumped = read(log, String)
@@ -202,7 +208,8 @@ end
             @test occursin("DistSSHKitQueue", dumped)
             @test occursin("status", dumped)
             @test occursin("watch", dumped)
-            @test occursin("allowed", dumped)
+            @test occursin("list-host", dumped)
+            @test occursin("add-host", dumped)
             @test occursin("--via", dumped)
         end
     end

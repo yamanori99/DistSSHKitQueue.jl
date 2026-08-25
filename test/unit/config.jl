@@ -270,14 +270,50 @@ end
 @testset "config allowed names" begin
     @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}()) === nothing
     @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("store" => "x")) === nothing
-    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => [" parent ", "gpu"])) ==
-          Set(["parent", "gpu"])
-    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => ["child:gpu", "parent:2"])) ==
-          Set(["gpu", "parent"])
-    @test DistSSHKitQueue.kit_ssh_name("child:gpu:4") == "gpu"
-    @test DistSSHKitQueue.kit_ssh_name("gpu") == "gpu"
+    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => [" parent ", "host1"])) ==
+          Set(["parent", "host1"])
+    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => ["child:host1", "parent:2"])) ==
+          Set(["host1", "parent"])
+    @test DistSSHKitQueue.kit_ssh_name("child:host1:4") == "host1"
+    @test DistSSHKitQueue.kit_ssh_name("host1") == "host1"
     @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => Any[])) == Set{String}()
     @test_throws ArgumentError DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => "parent"))
+end
+
+@testset "add-host / remove-host write allowed" begin
+    mktempdir() do d
+        cfg = joinpath(d, "config.toml")
+        DistSSHKitQueue.write_config_template(cfg)
+        DistSSHKitQueue.add_allowed_names!(cfg, ["parent", "child:host1"])
+        text = read(cfg, String)
+        @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              Set(["parent", "host1"])
+        @test occursin("allowed = [", text)
+        @test occursin("\"host1\"", text)
+        @test occursin("[env]", text)
+        @test occursin("# DistSSHKitQueue", text)
+        @test occursin("DISTRIBUTED_SSH_OPTS", text)
+        @test !occursin("# allowed", text)
+        DistSSHKitQueue.add_allowed_names!(cfg, ["host1"])
+        @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              Set(["parent", "host1"])
+        DistSSHKitQueue.remove_allowed_names!(cfg, ["parent"])
+        @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              Set(["host1"])
+        DistSSHKitQueue.remove_allowed_names!(cfg, ["host1"])
+        @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              Set{String}()
+        @test occursin("allowed = []", read(cfg, String))
+        @test_throws ArgumentError DistSSHKitQueue.remove_allowed_names!(cfg, ["host1"])
+        missing = joinpath(d, "none.toml")
+        DistSSHKitQueue.add_allowed_names!(missing, ["host1"])
+        @test isfile(missing)
+        @test DistSSHKitQueue.config_allowed_names(DistSSHKitQueue.load_config(; path=missing)) ==
+              Set(["host1"])
+        @test_throws ArgumentError DistSSHKitQueue.add_allowed_names!(cfg, String[])
+        @test DistSSHKitQueue.replace_or_insert_allowed_line("store = \"x\"\n", "allowed = []") ==
+              "store = \"x\"\nallowed = []\n"
+    end
 end
 
 @testset "setup writes config, not a dskq shim" begin

@@ -39,7 +39,7 @@ A **client** is a **dev machine**. It does not run the queue. You point it at **
        │                                   table    ~/.distsshkitqueue
        │  julia -m DistSSHKitQueue         serve    now, this terminal
        │    qhost:NAME                     enable   again after reboot
-       │    submit | status | watch | …
+       │    submit | status | add-host | list-host | watch | …
        └────────────────────────────────►  then DistSSHKit go/drive
                                            → workers (Kit tokens)
 ```
@@ -47,7 +47,7 @@ A **client** is a **dev machine**. It does not run the queue. You point it at **
 `qhost:NAME` is the SSH name of that box (same idea as Kit `child:NAME`, but it names the queue host, not a worker). Already logged in there? Omit it.
 
 ```bash
-julia --project=. -m DistSSHKitQueue qhost:mini submit go child:gpu:4 SCRIPT.jl
+julia --project=. -m DistSSHKitQueue qhost:mini submit go child:host1:4 SCRIPT.jl
 ```
 
 - **Queue host** — the always-on machine that holds the table and runs the Kit master for the current job (macOS or Linux; a VM is fine). One waiter, one table. A sleeping laptop is not this box.
@@ -63,6 +63,9 @@ Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up,
 | Command | What it does | When you need it |
 | --- | --- | --- |
 | `submit` | Enqueue a Kit `go` / `drive`. Starts a waiter if none is running. | Always (this is the product) |
+| `list-host` | Read-only Kit names and host tokens (`parent` / `child:NAME`) plus `ssh -G` Host / HostName / User / Port. Not Kit `--hosts`. | See which host token to pass to `submit` |
+| `add-host` | Write a Kit SSH name into config `allowed` (`parent` or `host1` / `child:host1`). First add creates the list (submit is no longer allow-all). | Lab inventory |
+| `remove-host` | Drop a name from that list. Last name left is `allowed = []` (submit accepts none). | Lab inventory |
 | `serve` | Run the waiter **in this terminal, now**. Ctrl-C stops this waiter. | Watching the queue live on the queue host, or running without autoserve |
 | `enable` | Tell the OS: after reboot / login, start `serve` again (LaunchAgent / systemd). | A dedicated queue host that should come back by itself |
 | `setup` | Write `~/.distsshkitqueue/config.toml` if missing (`--force` rewrites). | Optional. Defaults work without it. Use it for `store=` or `[env]`. |
@@ -74,7 +77,26 @@ Day to day you only **submit** from a client (`qhost:HOST`). If no waiter is up,
 
 ## Queue host (always-on)
 
-Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). DistSSHKit **0.4.1+** comes from General with it. The table lives at `~/.distsshkitqueue/jobs.toml`. Optional `allowed = ["parent", "gpu"]` in `config.toml` is the lab's Kit SSH names (`parent` and `child` NAMEs; `child:gpu` means `gpu`). Omit the key to allow any name. CLI `submit` reads that file; library `submit!` needs `Queue(; allowed=…)` and does not load `config.toml`. `allowed` lists the names and `ssh -G` Host / HostName / User / Port (not keys); same verb via `qhost:HOST`.
+Install once in the **default** env (`pkg> add DistSSHKitQueue`; pre-General: `pkg> develop` a clone). DistSSHKit **0.4.1+** comes from General with it. The table lives at `~/.distsshkitqueue/jobs.toml`. Kit SSH names live in `config.toml` as `allowed`. Prefer CLI `add-host` / `remove-host` / `list-host` (hand-edit still works). Omit the key to allow any name. CLI `submit` reads that file; library `submit!` needs `Queue(; allowed=…)` and does not load `config.toml`.
+
+### `add-host` / `remove-host` / `list-host`
+
+Not DistSSHKit `--hosts` (that still names workers on `go` / `drive`). These verbs only touch the lab inventory and how SSH would connect. They do not enqueue. `list-host` does not print private keys or IdentityFile.
+
+On the queue host:
+
+```bash
+julia -m DistSSHKitQueue add-host parent host1
+julia -m DistSSHKitQueue list-host
+julia -m DistSSHKitQueue remove-host host1
+```
+
+From a **client** the verbs are forwarded, like `status`. `ssh -G` still runs on the queue host, not on the client:
+
+```bash
+julia -m DistSSHKitQueue qhost:mini add-host host1
+julia -m DistSSHKitQueue qhost:mini list-host
+```
 
 A dedicated always-on box (Mac mini, Linux VM):
 
@@ -107,6 +129,8 @@ Ctrl-C on `serve` or `watch` only stops that process — the waiter (or the live
 Run from the job directory with `julia --project=.`; Queue must be loadable from that env. Nothing is written on the laptop (no `~/.distsshkitqueue` there). `qhost:HOST` picks the queue host (same token style as Kit `child:NAME`). `--hosts` stays Kit's (workers). Pass `qhost:` every time if you work with several clusters:
 
 ```bash
+julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts add-host host1
+julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts list-host
 julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts submit go child:host:2 SCRIPT.jl
 julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts status
 julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts watch
@@ -114,7 +138,7 @@ julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts cancel <id>
 julia --project=. -m DistSSHKitQueue qhost:m4-mini-ts teardown -y
 ```
 
-Remote Julia on the hop is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). Kit `--julia` stays on `submit go` / `submit drive`. `SCRIPT.jl` and placement tokens are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `qhost:HOST` it uses `ssh -t` so the remote TTY can clear the screen. Both print `qhost`: the token plus this machine's hostname (or `local (hostname)` when you omitted it). Job `HOSTS` stays DistSSHKit `parent[:N]` / `child:NAME[:N]`.
+Remote Julia on the queue host is detected the same way DistSSHKit does (`--remote-julia` / `JULIA_DISTRIBUTED_EXE` to override). Kit `--julia` stays on `submit go` / `submit drive`. `SCRIPT.jl` and placement tokens are interpreted **on the queue host**, not on the client. `submit` auto-starts the waiter there if none is running. `watch` redraws `status` until Ctrl-C without stopping the waiter; with `qhost:HOST` it uses `ssh -t` so the remote TTY can clear the screen. Both print `qhost`: the token plus this machine's hostname (or `local (hostname)` when you omitted it). Job `HOSTS` stays DistSSHKit `parent[:N]` / `child:NAME[:N]`.
 
 ## Job record
 
