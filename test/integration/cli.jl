@@ -106,7 +106,7 @@ end
                     @test isfile(joinpath(jobdir, "hello.ran"))
                     out = read(addenv(qcli(["status"]), env...), String)
                     @test occursin(id, out)
-                    wout = read(addenv(qcli(["watch", "--ticks", "1", "--interval", "0.05"]), env...), String)
+                    wout = read(addenv(qcli(["watch", "--interval", "0.05"]), env..., "DISTSSHKITQUEUE_WATCH_TICKS" => "1"), String)
                     @test occursin("DistSSHKitQueue watch", wout)
                     @test occursin(id, wout)
                     @test occursin("done", wout)
@@ -189,7 +189,6 @@ end
                     "qhost:qbox",
                     "--remote-julia", JULIA,
                     "watch",
-                    "--ticks", "1",
                 ]) == 0
                 @test DistSSHKitQueue.main([
                     "qhost:qbox",

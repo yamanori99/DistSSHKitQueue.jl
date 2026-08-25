@@ -499,6 +499,7 @@ end
                     "DISTSSHKITQUEUE_STORE" => store,
                     "DISTSSHKIT_YES" => "1",
                     "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
+                    "DISTSSHKITQUEUE_WATCH_TICKS" => "1",
                     "DISTRIBUTED_SSH_OPTS" => "-F $(SSH_CONFIG)",
                     # Job tree is the example job, not the CLI's cwd. Over `qhost:`
                     # the ssh command lands in the login HOME, so `job_project()`
@@ -543,7 +544,7 @@ end
                         end
                         @test occursin(id, listed)
                         @test occursin("  done  ", listed)
-                        wout = read_cli(addenv(qcmd(["watch", "--ticks", "1", "--interval", "0.05"]), env...))
+                        wout = read_cli(addenv(qcmd(["watch", "--interval", "0.05"]), env...))
                         @test occursin("DistSSHKitQueue watch", wout)
                         @test occursin(id, wout)
                     finally
@@ -587,6 +588,7 @@ end
                         wrapper = write_remote_julia(joinpath(d, "remote-julia"), remote_env)
                         client_env = Dict{String,String}(
                             "DISTSSHKIT_YES" => "1",
+                            "DISTSSHKITQUEUE_WATCH_TICKS" => "1",
                             "DISTRIBUTED_SSH_OPTS" => "-F $ssh_cfg",
                         )
                         qh(rest) = qcmd(["qhost:dskq-qh", "--remote-julia", wrapper, rest...])
@@ -605,7 +607,7 @@ end
                         end
                         @test occursin(id1, listed)
                         @test occursin("  done  ", listed)
-                        wout = read_cli(addenv(qh(["watch", "--ticks", "1", "--interval", "0.05"]), client_env...))
+                        wout = read_cli(addenv(qh(["watch", "--interval", "0.05"]), client_env...))
                         @test occursin(id1, wout)
 
                         # Occupy the waiter on this box (`parent:1`); a worker

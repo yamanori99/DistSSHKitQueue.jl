@@ -776,7 +776,7 @@ end
     @test occursin("Does not enqueue", out)
 end
 
-@testset "watch reprints status then exits on --ticks" begin
+@testset "watch reprints status then exits on DISTSSHKITQUEUE_WATCH_TICKS" begin
     mktempdir() do d
         p = joinpath(d, "jobs.toml")
         jobdir = joinpath(d, "jobtree")
@@ -787,10 +787,11 @@ end
             "DISTSSHKITQUEUE_CONFIG" => joinpath(d, "missing.toml"),
             "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1",
             "DISTRIBUTED_PROJECT_ROOT" => nothing,
+            "DISTSSHKITQUEUE_WATCH_TICKS" => "1",
         ) do
             cd(jobdir) do
                 code, out, _ = capture_stdio() do
-                    DistSSHKitQueue.main(["watch", "--ticks", "1", "--interval", "0.01"])
+                    DistSSHKitQueue.main(["watch", "--interval", "0.01"])
                 end
                 @test code == 0
                 @test occursin("DistSSHKitQueue watch", out)
@@ -803,16 +804,23 @@ end
                     DistSSHKitQueue.main(["submit", "go", "parent:1", "a.jl"])
                 end
                 @test code_go == 0
-                code2, out2, _ = capture_stdio() do
-                    DistSSHKitQueue.main(["watch", "--ticks", "2", "--interval", "0.01"])
+                withenv("DISTSSHKITQUEUE_WATCH_TICKS" => "2") do
+                    code2, out2, _ = capture_stdio() do
+                        DistSSHKitQueue.main(["watch", "--interval", "0.01"])
+                    end
+                    @test code2 == 0
+                    @test occursin("queued", out2)
                 end
-                @test code2 == 0
-                @test occursin("queued", out2)
                 errc, _, err = capture_stdio() do
                     DistSSHKitQueue.main(["watch", "--bogus"])
                 end
                 @test errc == 1
                 @test occursin("unknown watch option", err)
+                errt, _, err_ticks = capture_stdio() do
+                    DistSSHKitQueue.main(["watch", "--ticks", "1"])
+                end
+                @test errt == 1
+                @test occursin("unknown watch option", err_ticks)
             end
         end
     end

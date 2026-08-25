@@ -22,6 +22,9 @@ end
 """SSH name shown on `status` / `watch`. Set by the client hop; not a CLI flag."""
 const QHOST_DISPLAY_ENV = "DISTSSHKITQUEUE_QHOST"
 
+"""Harness only: finite `watch` frames. Not a product flag (tests / E2E)."""
+const WATCH_TICKS_ENV = "DISTSSHKITQUEUE_WATCH_TICKS"
+
 function qhost_display_from_env()::Union{Nothing,String}
     v = strip(get(ENV, QHOST_DISPLAY_ENV, ""))
     return isempty(v) ? nothing : String(v)
@@ -116,10 +119,18 @@ function remote_dispatch(
     qhost_display::Union{Nothing,AbstractString}=nothing,
 )::Cint
     label = qhost_display === nothing ? nothing : strip(String(qhost_display))
+    assigns = String[]
     if label !== nothing && !isempty(label)
+        push!(assigns, "ENV[$(repr(QHOST_DISPLAY_ENV))] = $(repr(label))")
+    end
+    ticks = strip(get(ENV, WATCH_TICKS_ENV, ""))
+    if !isempty(ticks)
+        push!(assigns, "ENV[$(repr(WATCH_TICKS_ENV))] = $(repr(ticks))")
+    end
+    if !isempty(assigns)
         args = String[String(sub)]
         append!(args, String[String(a) for a in payload])
-        expr = "ENV[$(repr(QHOST_DISPLAY_ENV))] = $(repr(label)); exit(Int(DistSSHKitQueue.main($(repr(args)))))"
+        expr = join(assigns, "; ") * "; exit(Int(DistSSHKitQueue.main($(repr(args)))))"
         argv = String["-e", "using DistSSHKitQueue; " * expr]
     else
         argv = String["-m", "DistSSHKitQueue", String(sub)]
