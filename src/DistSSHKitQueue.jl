@@ -56,6 +56,10 @@ function main(args::Vector{String}=copy(ARGS))::Cint
         show_usage()
         return 0
     end
+    if length(after) == 1 && after[1] in ("--version", "-v", "-V")
+        println_queue_version()
+        return 0
+    end
     sub, rest = String(after[1]), String[String(a) for a in after[2:end]]
     try
         reject_qhost_on_local(sub, qhost)

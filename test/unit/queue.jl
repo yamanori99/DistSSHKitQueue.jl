@@ -468,6 +468,7 @@ end
                 @test occursin("IdentityFile", help)
                 @test occursin("Bare go / drive alias", help)
                 @test occursin("no Queue verb is go", help)
+                @test occursin("submit go -v is Kit only", help)
                 @test !occursin("--hosts HOST", help)
                 @test occursin("watch", help)
                 @test occursin("enable", help)
@@ -479,6 +480,23 @@ end
                 end
                 @test code_h == 0
                 @test occursin("Usage", out_h)
+                qv = string(pkgversion(DistSSHKitQueue))
+                kv = string(DistSSHKit.dist_ssh_kit_version())
+                for flag in ("--version", "-v", "-V")
+                    code_v, out_v, _ = capture_stdio() do
+                        DistSSHKitQueue.main([flag])
+                    end
+                    @test code_v == 0
+                    lines = split(strip(out_v), '\n')
+                    @test length(lines) >= 2
+                    @test lines[1] == "DistSSHKitQueue $(qv)"
+                    @test lines[2] == "DistSSHKit $(kv)"
+                end
+                code_qv, out_qv, _ = capture_stdio() do
+                    DistSSHKitQueue.main(["qhost:no-such-host", "--version"])
+                end
+                @test code_qv == 0
+                @test startswith(strip(out_qv), "DistSSHKitQueue $(qv)")
                 code_st, out_st, _ = capture_stdio() do
                     DistSSHKitQueue.main(["status"])
                 end

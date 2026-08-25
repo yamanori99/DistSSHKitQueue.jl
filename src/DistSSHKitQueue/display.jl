@@ -41,11 +41,18 @@ function _q_state_color(state::Symbol)
     return :light_black
 end
 
+function println_queue_version(io::IO=stdout)
+    println(io, "DistSSHKitQueue $(pkgversion(DistSSHKitQueue))")
+    DistSSHKit.println_kit_version(io)
+    return nothing
+end
+
 function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_chrome("DistSSHKitQueue"; io=io)
     DistSSHKit.print_help_section("Usage"; io=io)
     DistSSHKit.print_help_lines(io,
         "  julia -m DistSSHKitQueue [qhost:HOST] <command> [args...]",
+        "  julia -m DistSSHKitQueue --version",
     )
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Client"; io=io)
@@ -94,6 +101,7 @@ function print_queue_usage(io::IO=stdout)
         "  stop latches it off; only an explicit serve resumes (submit will not).",
         "  Bare go / drive alias submit go / submit drive. Kit go argv with a .jl",
         "  and no Queue verb is go (`--hosts child:NAME:N SCRIPT.jl`).",
+        "  --version / -v print DistSSHKitQueue then DistSSHKit. submit go -v is Kit only.",
         "  Ctrl-C on serve stops the waiter. A DistSSHKit job already running is not killed.",
         "  Ctrl-C on watch stops the live view only.",
         "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
