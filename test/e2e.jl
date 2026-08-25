@@ -228,7 +228,8 @@ function write_loopback_sshd(dir::AbstractString, port::Int, controller_key::Abs
         "KbdInteractiveAuthentication no",
         "ChallengeResponseAuthentication no",
         "StrictModes no",
-        "PermitRootLogin no",
+        # Hosted Ubuntu is `runner`; Vampire/setup-wsl is often `root`.
+        ssh_login_user() == "root" ? "PermitRootLogin prohibit-password" : "PermitRootLogin no",
         "PrintMotd no",
         "LoginGraceTime 10",
     ]
@@ -586,8 +587,13 @@ end
                             joinpath(d, "ssh_config"), port, ssh_login_user(),
                             SSH_CONFIG, controller_key,
                         )
-                        probe = run(pipeline(ignorestatus(`ssh -F $ssh_cfg -o ConnectTimeout=5 -o LogLevel=ERROR dskq-qh true`); stdout=devnull, stderr=devnull))
-                        probe.exitcode == 0 || error("loopback ssh to dskq-qh failed: $(read(joinpath(sshd_dir, "sshd.log"), String))")
+                        probe_err = IOBuffer()
+                        probe = run(pipeline(ignorestatus(`ssh -F $ssh_cfg -o ConnectTimeout=5 -o LogLevel=ERROR dskq-qh true`); stdout=devnull, stderr=probe_err))
+                        if probe.exitcode != 0
+                            client = String(take!(probe_err))
+                            server = read(joinpath(sshd_dir, "sshd.log"), String)
+                            error("loopback ssh to dskq-qh failed: $client$server")
+                        end
                         remote_env = Dict{String,String}(
                             "HOME" => e2e_home,
                             "JULIA_DEPOT_PATH" => julia_depot_path_env(),
