@@ -1,4 +1,4 @@
-"""Client `status` / `watch`. Table lives on the queue host (after ssh if `--qhost`)."""
+"""Client `status` / `watch`. Table lives on the queue host (after ssh if `qhost:HOST`)."""
 
 function show_status(
     store::AbstractString;

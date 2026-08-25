@@ -45,7 +45,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_chrome("DistSSHKitQueue"; io=io)
     DistSSHKit.print_help_section("Usage"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  julia -m DistSSHKitQueue [--qhost HOST] <command> [args...]",
+        "  julia -m DistSSHKitQueue [qhost:HOST] <command> [args...]",
     )
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Client"; io=io)
@@ -71,11 +71,11 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Notes"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  Day to day: --qhost HOST from a client. Logged into the queue host: omit it.",
-        "  status / watch print qhost (--qhost token, or local plus hostname).",
+        "  Day to day: qhost:HOST from a client (like Kit child:NAME). On the queue host: omit it.",
+        "  status / watch print qhost (that token, or local plus hostname).",
         "  A sleeping laptop is not a queue host.",
-        "  Do not pass --qhost to setup / serve / enable / disable.",
-        "  Remote Julia: Kit auto-detect; --remote-julia / JULIA_DISTRIBUTED_EXE override.",
+        "  Do not pass qhost:HOST to setup / serve / enable / disable.",
+        "  --hosts / --julia belong to Kit go/drive. Hop Julia: --remote-julia / JULIA_DISTRIBUTED_EXE.",
         "  teardown -y: waiter, OS unit, ~/.distsshkitqueue (not a git clone).",
         "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
         "  stop latches it off; only an explicit serve resumes (submit will not).",

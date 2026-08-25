@@ -6,8 +6,8 @@
 # (same as CLI `submit go` / `submit drive`). The waiter runs
 # DistSSHKit `execute!(…; detached=true)`.
 #
-# Also: `julia -m DistSSHKitQueue` on the queue host (omit `--qhost`) and as a
-# client (`--qhost` over loopback OpenSSH). Kit slots on docker-ssh (`child:dskq-w1:1`).
+# Also: `julia -m DistSSHKitQueue` on the queue host (omit `qhost:HOST`) and as a
+# client (`qhost:HOST` over loopback OpenSSH). Kit slots on docker-ssh (`child:dskq-w1:1`).
 # Not a laptop + `parent:N` topology. `enable` / `disable` / `teardown` use
 # `--write-only` (no user systemd / launchctl).
 #
@@ -182,7 +182,7 @@ function find_sshd()
     for p in ("/usr/sbin/sshd", "/usr/libexec/sshd")
         isfile(p) && return p
     end
-    error("sshd not found; --qhost E2E needs OpenSSH server")
+    error("sshd not found; qhost: E2E needs OpenSSH server")
 end
 
 function free_loopback_port()
@@ -480,7 +480,7 @@ end
         controller_key = joinpath(DOCKER_SSH, ".generated", "controller")
         qcmd(args) = e2e_qcmd(test_project, args)
 
-        @testset "CLI (queue host + --qhost)" verbose = true begin
+        @testset "CLI (queue host + qhost:)" verbose = true begin
             mktempdir() do d
                 e2e_home = joinpath(d, "home")
                 mkpath(e2e_home)
@@ -498,14 +498,14 @@ end
                     "DISTSSHKIT_YES" => "1",
                     "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
                     "DISTRIBUTED_SSH_OPTS" => "-F $(SSH_CONFIG)",
-                    # Job tree is the example job, not the CLI's cwd. Over `--qhost`
+                    # Job tree is the example job, not the CLI's cwd. Over `qhost:`
                     # the ssh command lands in the login HOME, so `job_project()`
                     # cannot infer it; pin it like the API tests pass `project=`.
                     "DISTRIBUTED_PROJECT_ROOT" => JOB_PROJECT,
                     "DISTRIBUTED_REMOTE_PROJECT_ROOT" => REMOTE_ROOT,
                 )
 
-                @testset "queue-host verbs (logged in; omit --qhost)" begin
+                @testset "queue-host verbs (logged in; omit qhost:)" begin
                     env = merge(host_env, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
                     @test run_cli(addenv(qcmd(["setup"]), env...)).exitcode == 0
                     @test isfile(cfg)
@@ -545,7 +545,7 @@ end
                     @test run_cli(addenv(qcmd(["stop"]), env...)).exitcode == 0
                 end
 
-                @testset "client --qhost (real ssh to loopback queue host)" begin
+                @testset "client qhost: (real ssh to loopback queue host)" begin
                     sshd_dir = joinpath(d, "sshd")
                     mkpath(sshd_dir)
                     port = free_loopback_port()
@@ -567,7 +567,7 @@ end
                             "DISTSSHKIT_YES" => "1",
                             "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
                             "DISTRIBUTED_SSH_OPTS" => "-F $(SSH_CONFIG)",
-                            # `--qhost` submit runs in the login HOME; pin the job
+                            # `qhost:` submit runs in the login HOME; pin the job
                             # tree so `job_project()` does not fall back to it.
                             "DISTRIBUTED_PROJECT_ROOT" => JOB_PROJECT,
                             "DISTRIBUTED_REMOTE_PROJECT_ROOT" => REMOTE_ROOT,
@@ -577,12 +577,12 @@ end
                             "DISTSSHKIT_YES" => "1",
                             "DISTRIBUTED_SSH_OPTS" => "-F $ssh_cfg",
                         )
-                        qh(rest) = qcmd(["--qhost", "dskq-qh", "--remote-julia", wrapper, rest...])
+                        qh(rest) = qcmd(["qhost:dskq-qh", "--remote-julia", wrapper, rest...])
 
                         reject_err = IOBuffer()
                         rejected = run(pipeline(ignorestatus(addenv(qh(["setup"]), client_env...)); stdout=devnull, stderr=reject_err))
                         @test rejected.exitcode != 0
-                        @test occursin("client flag", String(take!(reject_err)))
+                        @test occursin("client token", String(take!(reject_err)))
 
                         outdir = joinpath(JOB_PROJECT, "e2e_kit_out", "qhost")
                         isdir(outdir) && rm(outdir; recursive=true)

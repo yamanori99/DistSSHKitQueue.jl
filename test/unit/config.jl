@@ -215,32 +215,46 @@ end
 
 @testset "extract_remote_opts" begin
     withenv("JULIA_DISTRIBUTED_EXE" => nothing) do
-        host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "status"])
+        host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["qhost:m4", "status"])
         @test host == "m4"
         @test rjulia === nothing
         @test payload == ["status"]
         dest, spec = DistSSHKitQueue.coalesce_remote(host, rjulia, nothing, nothing)
         @test dest == "m4"
         @test spec == "auto"
+        h2, j2, p2 = DistSSHKitQueue.extract_remote_opts(["--hosts", "m4", "status"])
+        @test h2 === nothing
+        @test j2 === nothing
+        @test p2 == ["--hosts", "m4", "status"]
+        h3, _, p3 = DistSSHKitQueue.extract_remote_opts(["go", "--hosts", "child:w:2", "S.jl"])
+        @test h3 === nothing
+        @test p3 == ["go", "--hosts", "child:w:2", "S.jl"]
+        h4, j4, p4 = DistSSHKitQueue.extract_remote_opts(["go", "--julia", "/opt/julia", "S.jl"])
+        @test h4 === nothing
+        @test j4 === nothing
+        @test p4 == ["go", "--julia", "/opt/julia", "S.jl"]
     end
     withenv("JULIA_DISTRIBUTED_EXE" => "/opt/from-env/julia") do
-        h, j, p = DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "status"])
+        h, j, p = DistSSHKitQueue.extract_remote_opts(["qhost:m4", "status"])
         _, spec = DistSSHKitQueue.coalesce_remote(h, j, nothing, nothing)
         @test spec == "/opt/from-env/julia"
         @test p == ["status"]
     end
 
     host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts([
-        "--qhost", "m4", "--remote-julia", "/opt/julia", "go", "parent:1", "S.jl",
+        "qhost:m4", "--remote-julia", "/opt/julia", "go", "parent:1", "S.jl",
     ])
     @test host2 == "m4"
     @test rjulia2 == "/opt/julia"
     @test payload2 == ["go", "parent:1", "S.jl"]
+    @test_throws ArgumentError DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "status"])
+    @test DistSSHKitQueue.parse_qhost_token("qhost:user@box") == "user@box"
+    @test_throws ArgumentError DistSSHKitQueue.parse_qhost_token("child:w:2")
 
-    host3, j3, payload3 = DistSSHKitQueue.extract_remote_opts(["go", "child:w1:2", "S.jl"])
-    @test host3 === nothing
-    @test j3 === nothing
-    @test payload3 == ["go", "child:w1:2", "S.jl"]
+    host_go, julia_go, payload_go = DistSSHKitQueue.extract_remote_opts(["go", "child:w1:2", "S.jl"])
+    @test host_go === nothing
+    @test julia_go === nothing
+    @test payload_go == ["go", "child:w1:2", "S.jl"]
 
     @test_throws ArgumentError DistSSHKitQueue.coalesce_remote("a", nothing, "b", nothing)
     @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("setup", "m4")

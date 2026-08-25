@@ -1,6 +1,7 @@
-"""Client `--qhost` / `--remote-julia`: peel flags and `run_on_host` to the queue host.
+"""Client `qhost:NAME` / `--remote-julia`: peel flags and `run_on_host` to the queue host.
 
-`setup` / `serve` / `enable` / `disable` are not forwarded. Not a Kit placement token.
+Kit `--hosts` / `--julia` stay on `go` / `drive`. `setup` / `serve` /
+`enable` / `disable` are not forwarded. Not a Kit placement token.
 """
 
 function default_remote_julia()::String
@@ -8,16 +9,35 @@ function default_remote_julia()::String
     return isempty(envj) ? "auto" : envj
 end
 
-"""Peel leading `--qhost HOST` / `--remote-julia PATH`. `rjulia` is `nothing` if omitted."""
+"""SSH name from a `qhost:NAME` token."""
+function parse_qhost_token(raw::AbstractString)::String
+    s = strip(String(raw))
+    startswith(s, "qhost:") || throw(ArgumentError("queue host is `qhost:NAME`, not $(repr(s))"))
+    name = strip(chopprefix(s, "qhost:"))
+    isempty(name) && throw(ArgumentError("`qhost:` needs an SSH name"))
+    return String(name)
+end
+
+function _set_qhost(cur::Union{Nothing,String}, next::AbstractString)::String
+    n = String(next)
+    if cur !== nothing && cur != n
+        throw(ArgumentError("queue host given twice ($cur and $n)"))
+    end
+    return n
+end
+
+"""Peel leading `qhost:NAME` / `--remote-julia PATH`. `rjulia` is `nothing` if omitted."""
 function extract_remote_opts(args::Vector{String})
     host = nothing
     rjulia = nothing
     i = 1
     while i <= length(args)
         a = args[i]
-        if a == "--qhost" && i < length(args)
-            host = args[i+1]
-            i += 2
+        if a == "--qhost"
+            throw(ArgumentError("use `qhost:NAME`, not `--qhost`"))
+        elseif startswith(a, "qhost:")
+            host = _set_qhost(host, parse_qhost_token(a))
+            i += 1
         elseif a == "--remote-julia" && i < length(args)
             rjulia = args[i+1]
             i += 2
@@ -35,7 +55,7 @@ function coalesce_remote(
     bjulia::Union{Nothing,AbstractString},
 )
     if ahost !== nothing && bhost !== nothing && String(ahost) != String(bhost)
-        throw(ArgumentError("`--qhost` given twice ($(ahost) and $(bhost))"))
+        throw(ArgumentError("queue host given twice ($(ahost) and $(bhost))"))
     end
     host = ahost !== nothing ? String(ahost) : (bhost === nothing ? nothing : String(bhost))
     spec = ajulia !== nothing ? String(ajulia) :
@@ -49,8 +69,8 @@ function reject_qhost_on_local(sub::AbstractString, host::Union{Nothing,Abstract
     host === nothing && return nothing
     sub in QHOST_LOCAL_VERBS || return nothing
     throw(ArgumentError(
-        "`--qhost` is a client flag; `$sub` runs on the queue host. " *
-        "Log in there and run it, or omit `--qhost` if this machine is the queue host.",
+        "`qhost:NAME` is a client token; `$sub` runs on the queue host. " *
+        "Log in there and run it, or omit `qhost:` if this machine is the queue host.",
     ))
 end
 
@@ -82,7 +102,7 @@ function remote_dispatch(
     return Cint(code)
 end
 
-"""If `--qhost` is set, ssh `sub` + `rest` and return the exit code; else `nothing`.
+"""If a queue host is set, ssh `sub` + `rest` and return the exit code; else `nothing`.
 
 `forward_via`: prepend `--via dest` so remote `status` / `watch` can print the
 client token (not a Kit placement token). Other verbs must not set this.

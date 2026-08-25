@@ -304,7 +304,8 @@ end
                 proj = DistSSHKit.canonical_local_path(pwd())
                 help = sprint(DistSSHKitQueue.print_queue_usage)
                 @test occursin("Usage", help)
-                @test occursin("--qhost HOST", help)
+                @test occursin("qhost:HOST", help)
+                @test !occursin("--hosts HOST", help)
                 @test occursin("watch", help)
                 @test occursin("enable", help)
                 @test occursin("disable", help)
@@ -457,7 +458,7 @@ end
                 @test occursin("cannot be cancelled", err3)
 
                 code4, _, err4 = capture_stdio() do
-                    DistSSHKitQueue.main(["--qhost", "h", "serve"])
+                    DistSSHKitQueue.main(["qhost:h", "serve"])
                 end
                 @test code4 == 1
                 @test occursin("Error:", err4)
