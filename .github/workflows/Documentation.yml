@@ -4,7 +4,10 @@ on:
   push:
     branches:
       - main
+    tags:
+      - v*
   pull_request:
+  # Manual rebuild (e.g. `gh workflow run Docs --ref v0.0.1`) if a tag skipped Docs.
   workflow_dispatch:
 
 concurrency:
@@ -13,27 +16,35 @@ concurrency:
 
 jobs:
   build:
-    name: Documenter - 1.12 - ubuntu-latest
+    name: Documenter - min - ubuntu-latest
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       # Documenter hosting template: push docs + report documenter/deploy status.
       contents: write
       statuses: write
+      actions: write
       pull-requests: read
     steps:
       - uses: actions/checkout@v7
-      - uses: julia-actions/setup-julia@v3
+      - uses: ./.github/actions/ci-heavy
+        id: detect
+      - uses: ./.github/actions/julia-slot
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
         with:
-          version: "1.12"
+          slot: min
       - uses: julia-actions/cache@v3
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
       - name: Install docs dependencies
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
         run: |
           julia --project=docs -e '
             using Pkg
+            Pkg.Registry.add("General")
             Pkg.instantiate()
           '
       - name: Doctests
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
         run: |
           julia --project=docs -e '
             using Documenter, DistSSHKitQueue, Test
@@ -41,6 +52,7 @@ jobs:
             doctest(DistSSHKitQueue)
           '
       - name: Build and deploy
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
         env:
           # Deploy via HTTPS + contents:write (no DOCUMENTER_KEY SSH secret required).
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

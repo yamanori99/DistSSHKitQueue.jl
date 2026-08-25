@@ -10,6 +10,7 @@ using Test
 using DistSSHKitQueue
 
 include(joinpath(@__DIR__, "support.jl"))
+install_serve_reaper!()
 
 @testset "DistSSHKitQueue" verbose=true begin
     @testset "unit" verbose=true begin

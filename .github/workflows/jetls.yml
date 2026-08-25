@@ -13,27 +13,57 @@ concurrency:
 
 permissions:
   contents: read
-  actions: write # julia-actions/cache delete-old-caches
 
 jobs:
-  # Queue CI is Julia 1.12 only (Project.toml). Kit also runs JETLS on
-  # JULIA_SLOT_JETLS_MAX (~1.13); that slot machinery stays in DistSSHKit.
-  jetls:
-    name: JETLS - 1.12 - ubuntu-latest
+  # Literal names: skipped matrix jobs leave ${{ matrix.* }} unexpanded.
+  # Ceiling is JULIA_SLOT_JETLS_MAX (JETLS 1.12.2–1.13), not slot max/tip.
+  jetls-min:
+    name: JETLS - min - ubuntu-latest
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      - uses: julia-actions/setup-julia@v3
+      - uses: ./.github/actions/ci-heavy
+        id: detect
+      - id: files
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+        run: echo "list=$(./.github/jetls-check.sh --print-files)" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/julia-slot
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+        id: julia
         with:
-          version: "1.12"
-      - uses: julia-actions/cache@v3
-      # JETLS's check@release still pins setup-julia@v2 (Node 20). Install locally.
-      - name: Install jetls
-        run: |
-          julia --startup-file=no -e '
-            using Pkg
-            Pkg.Apps.add(; url="https://github.com/aviatesk/JETLS.jl", rev="release")'
-          echo "$HOME/.julia/bin" >> "$GITHUB_PATH"
-      - name: JETLS
-        run: ./.github/jetls-check.sh --progress=none
+          slot: min
+          setup: "false"
+      # Official check action: https://aviatesk.github.io/JETLS.jl/dev/cli-check/#cli-check/github-actions
+      - uses: aviatesk/JETLS.jl/.github/actions/check@release
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+        with:
+          files: ${{ steps.files.outputs.list }}
+          julia-version: ${{ steps.julia.outputs.version }}
+          exit-severity: hint
+          progress: none
+
+  jetls-max:
+    name: JETLS - max - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/ci-heavy
+        id: detect
+      - id: files
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+        run: echo "list=$(./.github/jetls-check.sh --print-files)" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/julia-slot
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+        id: julia
+        with:
+          slot: jetls-max
+          setup: "false"
+      - uses: aviatesk/JETLS.jl/.github/actions/check@release
+        if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
+        with:
+          files: ${{ steps.files.outputs.list }}
+          julia-version: ${{ steps.julia.outputs.version }}
+          exit-severity: hint
+          progress: none

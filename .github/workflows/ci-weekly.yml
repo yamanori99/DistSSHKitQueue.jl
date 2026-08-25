@@ -1,0 +1,173 @@
+name: CI weekly
+
+# Not on pull_request: insurance for max / tip / Aqua / JETLS @release drift
+# when no PR ran that week. PR / main push stay the gate.
+# tip jobs are continue-on-error and omitted from notify.
+on:
+  workflow_dispatch:
+  # Sunday 10:00 JST (UTC 01:00). Misses E2E daily (UTC 19:00).
+  schedule:
+    - cron: "0 1 * * 0"
+
+concurrency:
+  group: ci-weekly-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write # julia-actions/cache delete-old-caches
+
+jobs:
+  test-min:
+    name: Pkg.test - min - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/julia-slot
+        with:
+          slot: min
+      - uses: julia-actions/cache@v3
+      - uses: ./.github/actions/pkg-test
+
+  test-max:
+    name: Pkg.test - max - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/julia-slot
+        with:
+          slot: max
+      - uses: julia-actions/cache@v3
+      - uses: ./.github/actions/pkg-test
+
+  test-tip:
+    name: Pkg.test - tip - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/julia-slot
+        with:
+          slot: tip
+      - uses: julia-actions/cache@v3
+      - uses: ./.github/actions/pkg-test
+
+  jetls-min:
+    name: JETLS - min - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - id: files
+        run: echo "list=$(./.github/jetls-check.sh --print-files)" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/julia-slot
+        id: julia
+        with:
+          slot: min
+          setup: "false"
+      - uses: aviatesk/JETLS.jl/.github/actions/check@release
+        with:
+          files: ${{ steps.files.outputs.list }}
+          julia-version: ${{ steps.julia.outputs.version }}
+          exit-severity: hint
+          progress: none
+
+  jetls-max:
+    name: JETLS - max - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - id: files
+        run: echo "list=$(./.github/jetls-check.sh --print-files)" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/julia-slot
+        id: julia
+        with:
+          slot: jetls-max
+          setup: "false"
+      - uses: aviatesk/JETLS.jl/.github/actions/check@release
+        with:
+          files: ${{ steps.files.outputs.list }}
+          julia-version: ${{ steps.julia.outputs.version }}
+          exit-severity: hint
+          progress: none
+
+  aqua-min:
+    name: Aqua - min - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/julia-slot
+        with:
+          slot: min
+      - uses: julia-actions/cache@v3
+      - name: Aqua.test_all (latest Aqua)
+        run: ./.github/aqua-check.sh
+
+  aqua-max:
+    name: Aqua - max - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/julia-slot
+        with:
+          slot: max
+      - uses: julia-actions/cache@v3
+      - name: Aqua.test_all (latest Aqua)
+        run: ./.github/aqua-check.sh
+
+  aqua-tip:
+    name: Aqua - tip - ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/julia-slot
+        with:
+          slot: tip
+      - uses: julia-actions/cache@v3
+      - name: Aqua.test_all (latest Aqua)
+        run: ./.github/aqua-check.sh
+
+  notify:
+    needs:
+      - test-min
+      - test-max
+      - jetls-min
+      - jetls-max
+      - aqua-min
+      - aqua-max
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    name: notify
+    permissions:
+      issues: write
+    steps:
+      - name: Open or close tracking issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FAILED: ${{ contains(join(needs.*.result, ','), 'failure') }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title='CI weekly failed'
+          gh label create ci --description "CI tracking" --color "ededed" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label ci --search "in:title $title" --json number --jq '.[0].number // empty')"
+          if [ "$FAILED" = "true" ]; then
+            body="Latest run: $RUN_URL
+
+          Not a PR check. Re-run **CI weekly** after a fix."
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+            else
+              gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label ci --body "$body"
+            fi
+          elif [ -n "$existing" ]; then
+            gh issue close "$existing" --repo "$GITHUB_REPOSITORY" --reason completed --comment "Latest run succeeded: $RUN_URL"
+          fi

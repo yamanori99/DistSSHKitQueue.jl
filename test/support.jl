@@ -1,10 +1,9 @@
-"""Capture CLI stdio the way DistSSHKit tests do.
-
-Julia 1.12 `redirect_stdout` does not accept `IOBuffer`. Kit uses `mktemp`
-(`test/unit/DistSSHKit/main_dispatch.jl`). Redirecting also makes
-`DistSSHKit.use_colors()` false (`stdout isa TTY`), so ANSI does not leak
-into `Pkg.test()` output.
-"""
+# Capture CLI stdio the way DistSSHKit tests do.
+#
+# Julia 1.12 `redirect_stdout` does not accept `IOBuffer`. Kit uses `mktemp`
+# (`test/unit/DistSSHKit/main_dispatch.jl`). Redirecting also makes
+# `DistSSHKit.use_colors()` false (`stdout isa TTY`), so ANSI does not leak
+# into `Pkg.test()` output.
 function capture_stdio(f)
     mktemp() do out_path, out_io
         mktemp() do err_path, err_io
@@ -18,4 +17,40 @@ function capture_stdio(f)
             return value, read(out_path, String), read(err_path, String)
         end
     end
+end
+
+# Tag autoserve waiters for this Pkg.test process. nohup outlives submit
+# (product); atexit / parent-death SIGTERM must still find them.
+function install_serve_reaper!()
+    Sys.iswindows() && return nothing
+    tag = "dskq-$(getpid())-$(time_ns())"
+    ENV["DISTSSHKITQUEUE_SERVE_TAG"] = tag
+    pids = tempname()
+    ENV["DISTSSHKITQUEUE_TEST_PIDS"] = pids
+    write(pids, "")
+    reaped = Ref(false)
+    function reap()
+        reaped[] && return nothing
+        reaped[] = true
+        DistSSHKitQueue.reap_serve_tag!(tag)
+        return nothing
+    end
+    atexit(reap)
+    @async begin
+        had_parent = false
+        try
+            while true
+                pp = ccall(:getppid, Cint, ())
+                if pp != 1
+                    had_parent = true
+                elseif had_parent
+                    reap()
+                    exit(1)
+                end
+                sleep(0.5)
+            end
+        catch
+        end
+    end
+    return nothing
 end

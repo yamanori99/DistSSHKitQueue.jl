@@ -5,14 +5,16 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- DistSSHKit **0.4.1+** ([release](https://github.com/yamanori99/DistSSHKit.jl/releases/tag/v0.4.1)): queued `go` with `job_id` actually runs the slot script (`-L` mark file). 0.4.0 skipped the script because of `--eval`.
+- SSH E2E (controller + worker image) is Julia slot **max** (today 1.13), same pair as DistSSHKit. Compat floor stays 1.12.
+- DistSSHKit **0.4.1+**: `execute_detached_accepts` / `execute_kwargs_from_parsed` / `host_tokens`, `kit_pid_file_running`, `kit_result_from_dir` on waiter restart, `terminate_run!` for `:running` cancel, `--qhost` via `run_on_host`. Go/drive tokens are `parent[:N]` and `child:NAME[:N]` (`parenthost` / bare `host:N` are gone).
 - `status` / `watch` print `qhost`: the client `--qhost` token (forwarded as `--via`) plus the queue host's hostname, or `local (hostname)` when omitted. Not the job `HOSTS` column.
-- DistSSHKit **0.3.3+**: `execute!(...; detached=true, job_id=)` (progress `job=`), empty/`--local` tokens stored as `parenthost` / `parenthost:N`, and waiter restart uses Kit's `kit.pid` so a live child is not overlapped by the next FIFO job. Adopted rows finish `:failed` when that pid exits (exit code is gone with `KitProcess`).
-- Autoserve: spawn `serve` via `sh -c … &` so `submit` can exit. Client `--qhost submit` was hanging after `Started waiter` because `run(...; wait=false)` kept a libuv handle on the waiter.
-- README / `--help`: the product path is a dedicated queue host plus client `--qhost`. Omit `--qhost` only when you are already on that box. Kit `submit go` argv is `host:N SCRIPT.jl` (DistSSHKit order).
+- Autoserve: spawn `serve` via `sh -c … &` so `submit` can exit. Client `--qhost submit` was hanging after `Started waiter` because `run(...; wait=false)` kept a libuv handle on the waiter. Tests set `DISTSSHKITQUEUE_SERVE_TAG` / `DISTSSHKITQUEUE_TEST_PIDS` so an interrupted `Pkg.test` still SIGTERMs those waiters; production leaves both unset.
+- README / `--help`: the product path is a dedicated queue host plus client `--qhost`. Omit `--qhost` only when you are already on that box. Kit `submit go` argv is DistSSHKit order (`parent[:N]` / `child:NAME[:N]` then `SCRIPT.jl`).
 - SSH E2E covers those CLI verbs over real OpenSSH (`--qhost` to a loopback queue host) and DistSSHKit docker-ssh workers. `enable` / `disable` / `teardown` use `--write-only` so CI does not touch the runner’s user systemd / LaunchAgent.
 - `watch` reprints the job table until Ctrl-C (`--interval`, default 0.5s). Same verb on the queue host and via `--qhost` (`ssh -t` when the local stdout is a TTY). Does not stop the waiter.
 - Drop the `dskq` PATH shim and Pkg Apps entry. Use `julia -m DistSSHKitQueue`. `setup` writes `config.toml` only; `teardown` still removes a leftover `~/.local/bin/dskq`.
-- CLI errors (`ArgumentError`) print as `Error: ...` on stderr, not a Julia stacktrace. `submit go/drive` checks the script exists before enqueuing (was silently queued, then failed). `cancel` reports an unknown id the same as `is not queued`. `status` shows an `ERROR` column when a job has failed.
+- CLI errors (`ArgumentError`) print as `Error: ...` on stderr, not a Julia stacktrace. `submit go/drive` checks the script exists before enqueuing (was silently queued, then failed). `cancel` prints `cannot be cancelled` for an unknown id, a finished row, or `:running` without a known output dir. `status` shows an `ERROR` column when a job has failed.
 - `stop` halts the waiter but keeps config / store / OS unit. It latches (`jobs.toml.stopped`) so `submit` will not auto-start; only an explicit `serve` resumes. Runs locally or via `--qhost HOST`.
 - CLI chrome matches DistSSHKit (`--help` sections, `~` paths, colored `status` table). Job ids stay a bare stdout line.
 - `~/.distsshkitqueue/config.toml` (`store` + `[env]`; ENV wins). CLI `setup` (re-run is a no-op unless `--force`). OS unit: `enable` / `disable` (was `service install` / `uninstall`).
@@ -20,8 +22,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 - `--qhost HOST` before the verb (`--qhost HOST status` / `submit` / `cancel`) picks the queue host. Remote Julia uses Kit auto-detect; `--remote-julia` / `JULIA_DISTRIBUTED_EXE` override. The client stays stateless.
 - `teardown -y` stops the waiter and removes the OS unit and `~/.distsshkitqueue` (not a git clone or `Pkg.rm`).
 - Client vs queue-host verbs: `--qhost` is client-only; `setup` / `serve` / `enable` / `disable` refuse it. Source: `src/client/` and `src/qhost/`.
-- Waiter runs DistSSHKit `execute!(kind; detached=true)` (`KitRunResult`). CLI `cancel <id>` (`:queued` only). Optional `enable` (LaunchAgent / systemd user). DistSSHKit **0.3.3+**.
-- CI: schedule-only **E2E daily** (Linux / macOS Intel / WSL), GHCR worker image. Not a PR check.
-- Design: waiter is `serve`; clients use Kit `go` / `drive` argv. FIFO one table job. No Queue slot ceiling.
+- Waiter runs DistSSHKit `execute!(kind; detached=true)` (`KitRunResult`). CLI `cancel <id>` (`:queued`, or `:running` via `terminate_run!`). Optional `enable` (LaunchAgent / systemd user). DistSSHKit **0.4.1+**.
+- CI: Kit-shaped Julia slots (`min` / `max` / `tip`). JETLS min plus `JULIA_SLOT_JETLS_MAX` (~1.13). Codecov `pkgtest` on main push (max slot); E2E `e2e` on cut PRs and **E2E daily** Linux. Docs-only PRs skip heavy steps (`ci-heavy`). **CI weekly** (Sunday) is not a PR check. GHCR worker image. Not registered.
+- Design: waiter is `serve`; clients use Kit `go` / `drive` argv. FIFO one table job.
 - Names: `Queue`, `Job`, `submit!` / CLI `submit`, `cancel` / `cancel!`, `job` / `jobs`, `serve!` (`--interval`).
   Not registered.

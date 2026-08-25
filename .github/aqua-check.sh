@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Latest registered Aqua in a temp env (not test/Project.toml). Same as a later CI job.
+# Latest registered Aqua in a temp env (not test/Project.toml). Same as CI.
 #
 #   ./.github/aqua-check.sh
 set -euo pipefail

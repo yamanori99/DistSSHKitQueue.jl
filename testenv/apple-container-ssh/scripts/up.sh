@@ -110,10 +110,10 @@ container system start
 
 "${DOCKER_ROOT}/scripts/gen-keys.sh"
 
-if ! container image ls | grep -q "local/dskq-linux-ssh-worker"; then
-  echo "Building ${LOCAL_IMAGE} from docker-ssh/Dockerfile..."
-  (cd "${DOCKER_ROOT}" && container build -t "${LOCAL_IMAGE}" .)
-fi
+# Always build so Dockerfile pin changes (e.g. Julia 1.12 → 1.13) take effect.
+# Layer cache keeps this cheap when the file is unchanged.
+echo "Building ${LOCAL_IMAGE} from docker-ssh/Dockerfile..."
+(cd "${DOCKER_ROOT}" && container build -t "${LOCAL_IMAGE}" .)
 
 "${APPLE_ROOT}/scripts/down.sh"
 # Recreated sshd host keys / IPs must not fight BatchMode + a stale known_hosts.

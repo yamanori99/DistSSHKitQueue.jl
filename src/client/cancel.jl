@@ -1,4 +1,4 @@
-"""Client `cancel <id>`. `:queued` only; runs on the queue host after ssh."""
+"""Client `cancel <id>`. `:queued`, or `:running` when Kit `output_dir` is known."""
 
 function cancel_cli(args::Vector{String})::Cint
     isempty(args) && throw(ArgumentError("cancel: need a job id"))
@@ -10,12 +10,12 @@ function cancel_cli(args::Vector{String})::Cint
         cancel!(q, id)
     catch e
         e isa ArgumentError || rethrow()
-        false # unknown id reads the same as "not queued" to the caller
+        false
     end
     if cancelled
         println(id)
         return 0
     end
-    DistSSHKit.print_cli_error("job $(repr(id)) is not queued")
+    DistSSHKit.print_cli_error("job $(repr(id)) cannot be cancelled")
     return 1
 end

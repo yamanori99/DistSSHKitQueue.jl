@@ -65,6 +65,32 @@ end
     end
 end
 
+@testset "detached serve script carries test tag" begin
+    withenv("DISTSSHKITQUEUE_SERVE_TAG" => nothing) do
+        script = DistSSHKitQueue.detached_serve_script("/julia", "/proj", "/tmp/q.log")
+        @test occursin("nohup", script)
+        @test !occursin("DISTSSHKITQUEUE_SERVE_TAG=", script)
+    end
+    withenv("DISTSSHKITQUEUE_SERVE_TAG" => "dskq-test-tag") do
+        tagged = DistSSHKitQueue.detached_serve_script("/julia", "/proj", "/tmp/q.log")
+        @test occursin("DISTSSHKITQUEUE_SERVE_TAG='dskq-test-tag'", tagged)
+        @test occursin("nohup", tagged)
+    end
+end
+
+@testset "write_pid_file appends DISTSSHKITQUEUE_TEST_PIDS" begin
+    mktempdir() do d
+        store = joinpath(d, "jobs.toml")
+        list = joinpath(d, "pids")
+        write(list, "")
+        withenv("DISTSSHKITQUEUE_TEST_PIDS" => list) do
+            DistSSHKitQueue.write_pid_file(store)
+        end
+        @test occursin(string(getpid()), read(list, String))
+        DistSSHKitQueue.remove_pid_file(store)
+    end
+end
+
 @testset "ensure_waiter! skips when alive or opted out" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")

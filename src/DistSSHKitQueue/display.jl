@@ -53,9 +53,9 @@ function print_queue_usage(io::IO=stdout)
         "  (--project=. is the job tree; no files written on the laptop.)",
         "  status                         List jobs on the queue host",
         "  watch [--interval S]           Live status; Ctrl-C leaves the waiter",
-        "  submit go [Kit go argv]        Enqueue DistSSHKit go (parenthost:N / host:N)",
+        "  submit go [Kit go argv]        Enqueue DistSSHKit go (parent[:N] / child:NAME[:N])",
         "  submit drive [Kit drive argv]  Enqueue DistSSHKit drive",
-        "  cancel <id>                    Drop a :queued row",
+        "  cancel <id>                    Drop a :queued row, or stop :running",
         "  teardown -y                    Stop waiter and remove queue-host files",
     )
     DistSSHKit.print_help_blank(io)
@@ -89,21 +89,21 @@ function print_queue_usage(io::IO=stdout)
 end
 
 function print_wrote(path::AbstractString; io::IO=stdout)
-    DistSSHKit._print_colored(io, "Wrote  ", :green, false)
+    DistSSHKit.print_colored(io, "Wrote  ", :green, false)
     println(io, _q_short(path))
     return nothing
 end
 
 function print_removed(path::AbstractString; io::IO=stdout)
-    DistSSHKit._print_colored(io, "Removed  ", :green, false)
+    DistSSHKit.print_colored(io, "Removed  ", :green, false)
     println(io, _q_short(path))
     return nothing
 end
 
 function print_present(path::AbstractString; io::IO=stdout)
-    DistSSHKit._print_colored(io, "Present  ", :light_black, false)
+    DistSSHKit.print_colored(io, "Present  ", :light_black, false)
     print(io, _q_short(path))
-    DistSSHKit._print_colored(io, "  (unchanged; --force to rewrite)", :light_black, false)
+    DistSSHKit.print_colored(io, "  (unchanged; --force to rewrite)", :light_black, false)
     println(io)
     return nothing
 end
@@ -125,12 +125,12 @@ end
 
 function print_serve_live_line(frame::Char, j::Union{Nothing,Job}; io::IO=stdout)
     print(io, '\r', "  ")
-    DistSSHKit._print_colored(io, string(frame), :light_black, false)
+    DistSSHKit.print_colored(io, string(frame), :light_black, false)
     print(io, "  ")
     if j === nothing
-        DistSSHKit._print_colored(io, "idle", :light_black, false)
+        DistSSHKit.print_colored(io, "idle", :light_black, false)
     else
-        DistSSHKit._print_colored(io, "running", :cyan, false)
+        DistSSHKit.print_colored(io, "running", :cyan, false)
         print(io, "  ", j.id, "  ", j.kind, "  ", _q_short(j.script))
     end
     print(io, "\e[K")
@@ -144,7 +144,7 @@ function print_serve_idle_note(; io::IO=stdout)
 end
 
 function print_waiter_gone(store::AbstractString; io::IO=stdout)
-    DistSSHKit._print_colored(io, "Waiter stopping", :yellow, false)
+    DistSSHKit.print_colored(io, "Waiter stopping", :yellow, false)
     println(io)
     DistSSHKit.print_help_lines(io,
         "  store  $(_q_short(store)) (pidfile gone; removed or taken over)",
@@ -155,7 +155,7 @@ end
 
 function print_serve_already(pid::Integer, store::AbstractString; io::IO=stdout)
     DistSSHKit.print_help_chrome("DistSSHKitQueue serve"; io=io)
-    DistSSHKit._print_colored(io, "Already running", :cyan, false)
+    DistSSHKit.print_colored(io, "Already running", :cyan, false)
     println(io)
     DistSSHKit.print_help_lines(io,
         "  pid    $pid",
@@ -166,14 +166,14 @@ function print_serve_already(pid::Integer, store::AbstractString; io::IO=stdout)
 end
 
 function print_waiter_started(log::AbstractString; io::IO=stderr)
-    DistSSHKit._print_colored(io, "Started waiter", :cyan, false)
+    DistSSHKit.print_colored(io, "Started waiter", :cyan, false)
     println(io)
     DistSSHKit.print_help_lines(io, "  log  $(_q_short(log))")
     return nothing
 end
 
 function print_waiter_stopped(store::AbstractString, was_running::Bool; io::IO=stdout)
-    DistSSHKit._print_colored(io, "Stopped waiter", :yellow, false)
+    DistSSHKit.print_colored(io, "Stopped waiter", :yellow, false)
     println(io)
     DistSSHKit.print_help_lines(io,
         "  store  $(_q_short(store))",
@@ -201,7 +201,7 @@ end
 function print_jobs_table(rows::Vector{Job}; io::IO=stdout)
     DistSSHKit.print_help_section("Jobs"; io=io)
     if isempty(rows)
-        DistSSHKit._print_colored(io, "  (empty)", :light_black, false)
+        DistSSHKit.print_colored(io, "  (empty)", :light_black, false)
         println(io)
         return nothing
     end
@@ -241,11 +241,11 @@ function print_jobs_table(rows::Vector{Job}; io::IO=stdout)
     end
 
     head = join((_q_cell(headers[i], widths[i]) for i in eachindex(headers)), "  ")
-    DistSSHKit._print_colored(io, "  " * head, :light_black, false)
+    DistSSHKit.print_colored(io, "  " * head, :light_black, false)
     println(io)
     for (i, j) in enumerate(rows)
         print(io, "  ", _q_cell(ids[i], w_id), "  ")
-        DistSSHKit._print_colored(io, _q_cell(states[i], w_st), _q_state_color(j.state), false)
+        DistSSHKit.print_colored(io, _q_cell(states[i], w_st), _q_state_color(j.state), false)
         print(io, "  ", _q_cell(kinds[i], w_k), "  ", _q_cell(hosts[i], w_h), "  ", _q_cell(scripts[i], w_sc))
         for (_, vals, w) in optional
             print(io, "  ", _q_cell(vals[i], w))

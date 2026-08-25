@@ -1,6 +1,6 @@
 """Client `--qhost` / `--remote-julia`: peel flags and ssh to the queue host.
 
-`setup` / `serve` / `enable` / `disable` are not forwarded. Not Kit `host:N`.
+`setup` / `serve` / `enable` / `disable` are not forwarded. Not a Kit placement token.
 """
 
 function default_remote_julia()::String
@@ -70,8 +70,8 @@ function remote_command(
 )::Cmd
     inner = remote_inner(rjulia, sub, payload)
     ssh = String["ssh"]
+    append!(ssh, DistSSHKit.ssh_opts(; request_tty=tty))
     tty && push!(ssh, "-t")
-    append!(ssh, DistSSHKit.ssh_opts())
     push!(ssh, String(host), inner)
     return Cmd(ssh)
 end
@@ -92,15 +92,31 @@ function remote_dispatch(
     payload::Vector{String};
     tty::Bool=false,
 )::Cint
-    jl = resolve_on_julia(host, rjulia)
-    proc = run(ignorestatus(remote_command(host, jl, sub, payload; tty=tty)))
-    return Cint(proc.exitcode)
+    argv = String["-m", "DistSSHKitQueue", String(sub)]
+    append!(argv, payload)
+    spec = strip(String(rjulia))
+    auto = isempty(spec) || spec == "auto"
+    proc = DistSSHKit.run_on_host(
+        host,
+        argv;
+        julia=auto ? nothing : spec,
+        detect=auto,
+        tty=tty,
+    )
+    code = Int(something(proc.exitcode, 1))
+    if code == 127
+        throw(ArgumentError(
+            "no Julia on $(host) (ssh PATH is often empty; Kit tries juliaup then Homebrew). " *
+            "Pass --remote-julia PATH or set JULIA_DISTRIBUTED_EXE, like Kit --julia.",
+        ))
+    end
+    return Cint(code)
 end
 
 """If `--qhost` is set, ssh `sub` + `rest` and return the exit code; else `nothing`.
 
 `forward_via`: prepend `--via dest` so remote `status` / `watch` can print the
-client token (not Kit `host:N`). Other verbs must not set this.
+client token (not a Kit placement token). Other verbs must not set this.
 """
 function maybe_remote(
     qhost::Union{Nothing,AbstractString},

@@ -2,7 +2,9 @@
 
 Internals of this repo. Users: [README.md](README.md), [NEWS.md](NEWS.md).
 
-This is a **separate** package from DistSSHKit. Do not copy Kit Julia slots. SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parenthost:1` or `local:1`; Codecov), JETLS, path-gated PR SSH E2E on Julia 1.12 (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, and schedule-only **E2E daily** (Linux / macOS Intel / WSL).
+This is a **separate** package from DistSSHKit: a FIFO waiter in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
+
+Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **max** (`test/e2e.jl`: waiter API, queue-host CLI, `--qhost` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
 
 ## Requirements
 
@@ -11,7 +13,7 @@ macOS, Linux, or WSL2 Ubuntu. Not native Windows (the kit shells out to `ssh` / 
 | What | Need |
 | --- | --- |
 | Library, `Pkg.test()`, docs | Julia **1.12+** |
-| DistSSHKit | **0.3.3+** (hard dependency; `execute!`, `job_id`, `kit.pid`) |
+| DistSSHKit | **0.4.1+** (hard dependency; `execute!`, `job_id`, `kit.pid` / `kit.result`) |
 
 Prefer [juliaup](https://github.com/JuliaLang/juliaup).
 
@@ -33,6 +35,11 @@ julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test()'
+```
+
+Run this on slot **min** and **max** (and **tip** if you have nightly). Layout: [test/README.md](test/README.md).
+
+```bash
 ./.github/jetls-check.sh    # hint+; same files as CI
 ./.github/aqua-check.sh     # latest registry Aqua; not part of Pkg.test()
 ./testenv/docker-ssh/scripts/up.sh --e2e
@@ -41,30 +48,59 @@ julia --project=docs --color=yes docs/make.jl
 gitleaks detect --source .
 ```
 
-Layout: [test/README.md](test/README.md).
+JETLS CI uses `aviatesk/JETLS.jl/.github/actions/check@release` (moving tag). After a bump, re-read [cli-check](https://aviatesk.github.io/JETLS.jl/dev/cli-check/) and keep failing on hint+.
 
-JETLS is the type gate (`./.github/jetls-check.sh`, hint+). Do not commit `.vscode/settings.json` to silence the Language Server.
+JETLS is the type gate. Do not commit `.vscode/settings.json` to silence the Language Server.
 
 [Fatou](https://fatou.dev) is local only. Do not add `fatou.toml` or Fatou to `.vscode/extensions.json`. After a Fatou bump, check it did not rewrite files you did not mean to touch.
 
+### Julia slots
+
+Exactly three pins, in [`.github/julia-slots.env`](.github/julia-slots.env). Do not add a fourth version job. Slide the pin; keep job names `min` / `max` / `tip`.
+
+| Slot | Role | Required |
+| --- | --- | --- |
+| **min** | `Project.toml` julia floor. Pkg.test (no coverage), Aqua, JETLS, Documenter | yes |
+| **max** | Newest tagged or prerelease (`versions.json`). Pkg.test, Aqua, PR / daily E2E, GHCR worker. Codecov `pkgtest` on **main push** only | yes |
+| **tip** | Next-minor nightly. Pkg.test, Aqua. `continue-on-error` | no |
+
+JETLS is min plus `JULIA_SLOT_JETLS_MAX` (job name still `JETLS - max`). That pin lags when `max` / `tip` move past what JETLS lists (today 1.12.2–1.13). Raise it only after JETLS supports that runtime. No JETLS **tip**.
+
+When a new RC lands, change `JULIA_SLOT_MAX` only. If that RC is a new **major.minor**, bump the worker Dockerfile / WSL `--default-channel` in the same PR (E2E pair). When bumping compat, raise `JULIA_SLOT_MIN` only.
+
 ### PR CI
 
-Ubuntu: `Pkg.test` (unit + integration; Codecov `pkgtest`), JETLS, and path-gated SSH E2E (Codecov `e2e`) on **1.12**, Gitleaks. **E2E daily** (`ssh-e2e-daily.yml`) is not a PR check: cron 04:00 JST plus `workflow_dispatch`, GHCR image `dskq-linux-ssh-worker`, Linux / `macos-15-intel` (Colima) / WSL2. Failure opens issue `E2E daily failed` (`ci`). No slots, no Documenter deploy yet. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`).
+Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed.
 
-CI E2E (`DSKQ_CODE_COVERAGE=1`) writes `.cov` and uploads to Codecov (merged with `Pkg.test`). Daily E2E does not upload coverage. Local coverage:
+These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
+
+`README.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`.
+
+A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. macOS / WSL stay on `E2E daily`, not the PR.
+
+CI uploads Codecov on **main push** only (`Pkg.test` max slot, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E daily** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DSKQ_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
-Required to merge (ruleset `main` uses these names). A skipped E2E still leaves the job green. E2E daily is not required.
+Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. A skipped E2E still leaves the job green. E2E daily and CI weekly are not required.
 
-- `Pkg.test - 1.12 - ubuntu-latest`
-- `JETLS - 1.12 - ubuntu-latest`
-- `Documenter - 1.12 - ubuntu-latest`
+- `Pkg.test - min - ubuntu-latest`
+- `Pkg.test - max - ubuntu-latest`
+- `JETLS - min - ubuntu-latest`
+- `JETLS - max - ubuntu-latest`
+- `Aqua - min - ubuntu-latest`
+- `Aqua - max - ubuntu-latest`
+- `Documenter - min - ubuntu-latest`
 - `Gitleaks`
 - `ubuntu-latest → ubuntu-24.04`
+
+| When | Workflow | What |
+| --- | --- | --- |
+| 04:00 JST, or Run workflow | `E2E daily` | `ubuntu-latest`, `macos-15-intel`, WSL2 → `ubuntu-24.04`. Linux job uploads E2E Codecov. Not a PR check. Failure opens (or comments on) Issue `E2E daily failed`; a later green run closes it. After a `cut` merge, dispatch this on that commit and wait for green before register. |
+| Sunday 10:00 JST, or Run workflow | `CI weekly` | Same `Pkg.test` / JETLS / Aqua slots as a PR (no coverage). Not a PR check. Catches max / Aqua / JETLS `@release` drift when nothing merged that week. Failure of min/max jobs opens Issue `CI weekly failed` (`ci`); tip is omitted from that notify. |
 
 ## Pull requests
 
@@ -85,7 +121,7 @@ On a breaking line bump `x` in `0.x.y`; otherwise bump `y`. Do not ship an empty
 
 Queue work does not, by itself, trigger a DistSSHKit General patch. Develop against `dev` / git. Docs, opt-in flags, and CI on the kit wait.
 
-If Queue cannot implement something without a kit hook, open a DistSSHKit Enhancement, land the small PR, then cut DistSSHKit (`0.3.y`) so Queue can pin General. Kit freeze and cut rules: [DistSSHKit CONTRIBUTING.md](https://github.com/yamanori99/DistSSHKit.jl/blob/main/CONTRIBUTING.md#when-to-cut).
+If Queue cannot implement something without a kit hook, open a DistSSHKit Enhancement, land the small PR, then cut DistSSHKit (`0.4.y`) so Queue can pin General. Kit freeze and cut rules: [DistSSHKit CONTRIBUTING.md](https://github.com/yamanori99/DistSSHKit.jl/blob/main/CONTRIBUTING.md#when-to-cut).
 
 ### When to cut
 
@@ -106,6 +142,14 @@ If Queue cannot implement something without a kit hook, open a DistSSHKit Enhanc
 ## Issues
 
 **Issues** (Bug / Enhancement forms only): `bug` or `enhancement`. Usage questions can wait until Discussions are on. Security: [SECURITY.md](SECURITY.md).
+
+A Queue failure is not automatically a Queue bug. Decide the repo first:
+
+- Queue lagged Kit's contract (demo argv, translating `terminate_run!` wait into `:cancelled`, collect under a gitignored path): fix Queue. Do not open DistSSHKit.
+- Queue cannot land the feature without a Kit hook: DistSSHKit Enhancement, Kit PR, Kit cut, then pin here ([DistSSHKit cuts](#distsshkit-cuts)).
+- Reproduced Kit defect (`execute!` `ok` with empty collect, wait/cancel that contradicts Kit docs): open a [DistSSHKit issue](https://github.com/yamanori99/DistSSHKit.jl/issues) with the Kit log / `kit.result` / `failed_step`. Link it from the Queue issue or PR. A Queue-only workaround is temporary and must say so.
+
+Do not file DistSSHKit on speculation. Reproduce against Kit (or this E2E with Kit artifacts) first.
 
 Every PR needs one type label (`bug` / `enhancement` / `chore`) when labels exist.
 

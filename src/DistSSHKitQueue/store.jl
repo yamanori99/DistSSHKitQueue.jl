@@ -140,6 +140,24 @@ waiter_alive(store::AbstractString)::Bool = waiter_pid(store) !== nothing
 function write_pid_file(store::AbstractString)
     mkpath(dirname(store))
     write(store_pid_path(store), string(getpid()))
+    record_test_waiter_pid!(getpid())
+    return nothing
+end
+
+"""If tests set `DISTSSHKITQUEUE_TEST_PIDS`, append this waiter's pid.
+
+Harness `atexit` / parent-death reaper reads that list. Production leaves the
+env unset, so this is a no-op.
+"""
+function record_test_waiter_pid!(pid::Integer)
+    path = String(get(ENV, "DISTSSHKITQUEUE_TEST_PIDS", ""))
+    isempty(path) && return nothing
+    try
+        open(path, "a") do io
+            println(io, Int(pid))
+        end
+    catch
+    end
     return nothing
 end
 
@@ -187,9 +205,7 @@ function fail_stale_running!(jobs::Vector{Job})
     for j in jobs
         j.state === :running || continue
         kit_child_alive(j) && continue
-        j.state = :failed
-        j.finished_at = now(UTC)
-        j.error = "serve restarted; running job marked failed"
+        settle_lost_kit_child!(j)
     end
     return jobs
 end

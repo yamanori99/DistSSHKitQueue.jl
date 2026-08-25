@@ -17,8 +17,9 @@ for arg in "$@"; do
     -h|--help)
       echo "usage: $0 [--e2e]"
       echo "  DSKQ_WORKER_IMAGE  pull this tag (skip compose build)"
-      echo "  DSKQ_WORKER_PULL_RETRIES  pull attempts (default 1; daily CI uses 40)"
+      echo "  DSKQ_WORKER_PULL_RETRIES  pull attempts (default 1; daily CI uses 8)"
       echo "  DSKQ_PUSH_IMAGE  after local build, tag and push this name"
+      echo "  DSKQ_SKIP_UP=1     skip compose up (push-only)"
       echo "  DSKQ_CODE_COVERAGE=1  e2e with --code-coverage=user"
       exit 0
       ;;
@@ -67,9 +68,13 @@ else
   # Build a single service so logs are not interleaved (both share the image).
   "${COMPOSE[@]}" -f compose.yml build worker-1
   if [[ -n "${DSKQ_PUSH_IMAGE:-}" ]]; then
-    docker tag "$LOCAL_IMAGE" "$DSKQ_PUSH_IMAGE"
-    docker push "$DSKQ_PUSH_IMAGE"
+    DSKQ_LOCAL_IMAGE="$LOCAL_IMAGE" ./scripts/push-image.sh "$DSKQ_PUSH_IMAGE"
   fi
+fi
+
+if [[ "${DSKQ_SKIP_UP:-}" == "1" ]]; then
+  echo "DSKQ_SKIP_UP=1: image ready, not starting workers"
+  exit 0
 fi
 
 ./scripts/down.sh

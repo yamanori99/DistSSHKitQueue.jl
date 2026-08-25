@@ -7,14 +7,15 @@
 # DistSSHKit `execute!(…; detached=true)`.
 #
 # Also: `julia -m DistSSHKitQueue` on the queue host (omit `--qhost`) and as a
-# client (`--qhost` over loopback OpenSSH). Kit slots on docker-ssh (`dskq-w1:1`).
+# client (`--qhost` over loopback OpenSSH). Kit slots on docker-ssh (`child:dskq-w1:1`).
 # Not a laptop + `local:N` topology. `enable` / `disable` / `teardown` use
 # `--write-only` (no user systemd / launchctl).
 #
 # Table jobs are the four *file*/*echo* demos. `pipeline_pi.jl` /
 # `pipeline_square.jl` call `go!` / `pipeline!` themselves — not Queue rows.
 #
-# Also: FIFO one-at-a-time, cancel-queued (skip that row, run the next).
+# Also: FIFO one-at-a-time, cancel queued (skip that row), cancel running
+# (`terminate_run!`, then the next queued row).
 #
 #   testenv/docker-ssh/scripts/up.sh --e2e
 #   testenv/apple-container-ssh/scripts/up.sh --e2e   # macOS Apple silicon, not CI
@@ -39,6 +40,9 @@ if !_e2e_enabled()
     exit(0)
 end
 
+include(joinpath(@__DIR__, "support.jl"))
+install_serve_reaper!()
+
 const SSH_CONFIG = joinpath(DOCKER_SSH, ".generated", "ssh_config")
 const HOSTS_FILE = joinpath(DOCKER_SSH, ".generated", "hosts")
 
@@ -58,6 +62,10 @@ end
 
 const HOSTS = read_hosts(HOSTS_FILE)
 length(HOSTS) >= 1 || error("no hosts in $HOSTS_FILE")
+
+# DistSSHKit demos reject a bare number (`parent:N`). Same flags as Kit E2E.
+const GO_N = ["--n", "64"]
+const DRIVE_N = ["--n", "3"]
 
 const SSH_ENV = Dict(
     "DISTSSHKIT_YES" => "1",
@@ -89,7 +97,7 @@ function stage_kit_demos!(proj::AbstractString)
     return nothing
 end
 
-"""Poll until `id` is terminal. Does not start a later queued job once `id` is done."""
+# Poll until `id` is terminal. Does not start a later queued job once `id` is done.
 function drive_until_terminal!(q, id; tries = 600, sleep_s = 0.2)
     terminal = (:done, :failed, :cancelled)
     for _ = 1:tries
@@ -133,10 +141,12 @@ function julia_depot_path_env()::String
 end
 
 function e2e_qcmd(test_project::AbstractString, args)
-    return Cmd(String[
-        E2E_JULIA, "--startup-file=no", "--project=$test_project",
-        "-m", "DistSSHKitQueue", String[string(a) for a in args]...,
-    ])
+    return DistSSHKitQueue.with_serve_tag(
+        Cmd(String[
+            E2E_JULIA, "--startup-file=no", "--project=$test_project",
+            "-m", "DistSSHKitQueue", String[string(a) for a in args]...,
+        ]),
+    )
 end
 
 function wait_status(pred, cmd::Cmd; tries=600, sleep_s=0.2)
@@ -149,9 +159,8 @@ function wait_status(pred, cmd::Cmd; tries=600, sleep_s=0.2)
     return out
 end
 
-"""CLI for assertions. Product chrome (`Wrote`, `Started waiter`, expected
-`Error:`) stays off the test log; stdout is still returned when captured.
-"""
+# CLI for assertions. Product chrome (`Wrote`, `Started waiter`, expected
+# `Error:`) stays off the test log; stdout is still returned when captured.
 function run_cli(cmd::Cmd)
     return run(pipeline(ignorestatus(cmd); stdout=devnull, stderr=devnull))
 end
@@ -305,7 +314,7 @@ end
         @testset "setup! deploys example job (Kit demos + DistSSHKit)" begin
             session = KitSession(
                 project = JOB_PROJECT,
-                workers = HOSTS,
+                workers = ["child:$(h)" for h in HOSTS],
                 remote = REMOTE_ROOT,
                 yes = true,
                 quiet = true,
@@ -318,7 +327,7 @@ end
 
         mktempdir() do d
             host = HOSTS[1]
-            token = "$(host):1"
+            token = "child:$(host):1"
 
             @testset "Kit go/drive demos through the waiter" begin
                 cases = (
@@ -326,7 +335,7 @@ end
                         :go,
                         joinpath(JOB_PROJECT, "demos", "without_kit", "pi_file.jl"),
                         "pi_file",
-                        ["64"],
+                        GO_N,
                         "pi_results.txt",
                         "pi=",
                     ),
@@ -334,7 +343,7 @@ end
                         :go,
                         joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl"),
                         "pi_echo",
-                        ["64"],
+                        GO_N,
                         nothing,
                         nothing,
                     ),
@@ -342,7 +351,7 @@ end
                         :drive,
                         joinpath(JOB_PROJECT, "demos", "with_kit", "square_file.jl"),
                         "square_file",
-                        ["3"],
+                        DRIVE_N,
                         "square_results.csv",
                         "param,result",
                     ),
@@ -350,7 +359,7 @@ end
                         :drive,
                         joinpath(JOB_PROJECT, "demos", "with_kit", "square_echo.jl"),
                         "square_echo",
-                        ["3"],
+                        DRIVE_N,
                         nothing,
                         nothing,
                     ),
@@ -358,7 +367,7 @@ end
                 for (kind, script, label, args, artifact, needle) in cases
                     @testset "$label" begin
                         case_store = joinpath(d, "store_$label.toml")
-                        out = joinpath(JOB_PROJECT, "go_out", label)
+                        out = joinpath(JOB_PROJECT, "e2e_kit_out", label)
                         isdir(out) && rm(out; recursive = true)
                         q = Queue(; store = case_store)
                         id = enqueue_kit!(q, kind, script, token; out = out, args = args)
@@ -385,12 +394,12 @@ end
                 store_fifo = joinpath(d, "fifo.toml")
                 echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
                 q = Queue(; store = store_fifo)
-                out_a = joinpath(JOB_PROJECT, "go_out", "fifo_a")
-                out_b = joinpath(JOB_PROJECT, "go_out", "fifo_b")
+                out_a = joinpath(JOB_PROJECT, "e2e_kit_out", "fifo_a")
+                out_b = joinpath(JOB_PROJECT, "e2e_kit_out", "fifo_b")
                 isdir(out_a) && rm(out_a; recursive = true)
                 isdir(out_b) && rm(out_b; recursive = true)
-                a = enqueue_kit!(q, :go, echo, token; out = out_a, args = ["64"])
-                b = enqueue_kit!(q, :go, echo, token; out = out_b, args = ["64"])
+                a = enqueue_kit!(q, :go, echo, token; out = out_a, args = GO_N)
+                b = enqueue_kit!(q, :go, echo, token; out = out_b, args = GO_N)
                 @test step!(q) == 1
                 @test job(q, a).state === :running
                 @test job(q, b).state === :queued
@@ -407,23 +416,62 @@ end
                 store_c = joinpath(d, "cancel.toml")
                 echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
                 h = Queue(; store = store_c)
-                outs = [joinpath(JOB_PROJECT, "go_out", "skip_$i") for i = 1:3]
+                outs = [joinpath(JOB_PROJECT, "e2e_kit_out", "skip_$i") for i = 1:3]
                 for o in outs
                     isdir(o) && rm(o; recursive = true)
                 end
-                a = enqueue_kit!(h, :go, echo, token; out = outs[1], args = ["64"])
-                b = enqueue_kit!(h, :go, echo, token; out = outs[2], args = ["64"])
-                c = enqueue_kit!(h, :go, echo, token; out = outs[3], args = ["64"])
+                a = enqueue_kit!(h, :go, echo, token; out = outs[1], args = GO_N)
+                b = enqueue_kit!(h, :go, echo, token; out = outs[2], args = GO_N)
+                c = enqueue_kit!(h, :go, echo, token; out = outs[3], args = GO_N)
                 @test cancel!(h, b)
                 @test job(h, b).state === :cancelled
                 @test step!(h) == 1
                 @test job(h, a).state === :running
-                @test !cancel!(h, a)
                 @test drive_until_terminal!(h, a) === :done
                 @test step!(h) == 1
                 @test job(h, c).state === :running
                 @test drive_until_terminal!(h, c) === :done
                 @test job(h, b).state === :cancelled
+                @test step!(h) == 0
+            end
+
+            @testset "cancel running then the next queued row" begin
+                store_r = joinpath(d, "cancel-running.toml")
+                echo = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
+                hold = joinpath(d, "hold_cancel.jl")
+                write(hold, "while true; sleep(1); end\n")
+                h = Queue(; store = store_r)
+                out_a = joinpath(JOB_PROJECT, "e2e_kit_out", "cancel_run_a")
+                out_b = joinpath(JOB_PROJECT, "e2e_kit_out", "cancel_run_b")
+                for o in (out_a, out_b)
+                    isdir(o) && rm(o; recursive = true)
+                end
+                a = submit!(
+                    h,
+                    hold,
+                    String["parent:1"];
+                    kind = :go,
+                    project = JOB_PROJECT,
+                    output_dir = out_a,
+                    julia = "auto",
+                    args = String[],
+                    yes = true,
+                    quiet = true,
+                )
+                b = enqueue_kit!(h, :go, echo, token; out = out_b, args = GO_N)
+                @test step!(h) == 1
+                @test job(h, a).state === :running
+                t0 = time()
+                while !DistSSHKitQueue.kit_child_alive(job(h, a)) && (time() - t0) < 60
+                    sleep(0.05)
+                end
+                @test DistSSHKitQueue.kit_child_alive(job(h, a))
+                @test cancel!(h, a)
+                @test job(h, a).state === :cancelled
+                @test step!(h) == 1
+                @test job(h, b).state === :running
+                @test drive_until_terminal!(h, b) === :done
+                @test job(h, a).state === :cancelled
                 @test step!(h) == 0
             end
         end
@@ -438,7 +486,7 @@ end
                 mkpath(e2e_home)
                 cfg = joinpath(e2e_home, ".distsshkitqueue", "config.toml")
                 store = joinpath(e2e_home, ".distsshkitqueue", "jobs.toml")
-                token = "$(HOSTS[1]):1"
+                token = "child:$(HOSTS[1]):1"
                 script = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
                 @test isfile(script)
 
@@ -474,9 +522,9 @@ end
 
                     serve_proc = run(pipeline(addenv(qcmd(["serve", "--interval", "0.2"]), env...); stdout=devnull, stderr=devnull); wait=false)
                     try
-                        outdir = joinpath(JOB_PROJECT, "go_out", "cli_on_host")
+                        outdir = joinpath(JOB_PROJECT, "e2e_kit_out", "cli_on_host")
                         isdir(outdir) && rm(outdir; recursive=true)
-                        id = read_cli(addenv(qcmd(["submit", "go", token, "--output-dir", outdir, script, "64"]), env...))
+                        id = read_cli(addenv(qcmd(["submit", "go", token, "--output-dir", outdir, script, GO_N...]), env...))
                         @test !isempty(id)
                         listed = wait_status(addenv(qcmd(["status"]), env...)) do out
                             occursin(id, out) && occursin("  done  ", out) && !occursin("  running  ", out)
@@ -536,9 +584,9 @@ end
                         @test rejected.exitcode != 0
                         @test occursin("client flag", String(take!(reject_err)))
 
-                        outdir = joinpath(JOB_PROJECT, "go_out", "qhost")
+                        outdir = joinpath(JOB_PROJECT, "e2e_kit_out", "qhost")
                         isdir(outdir) && rm(outdir; recursive=true)
-                        id1 = read_cli(addenv(qh(["submit", "go", token, "--output-dir", outdir, script, "64"]), client_env...))
+                        id1 = read_cli(addenv(qh(["submit", "go", token, "--output-dir", outdir, script, GO_N...]), client_env...))
                         @test !isempty(id1)
                         listed = wait_status(addenv(qh(["status"]), client_env...)) do out
                             occursin(id1, out) && occursin("  done  ", out) && !occursin("  running  ", out)
@@ -548,15 +596,22 @@ end
                         wout = read_cli(addenv(qh(["watch", "--ticks", "1", "--interval", "0.05"]), client_env...))
                         @test occursin(id1, wout)
 
-                        # Occupy the waiter on this box (`local:1`); a worker
+                        # Occupy the waiter on this box (`parent:1`); a worker
                         # `pi_echo` finishes before cancel. Submit the queued row
                         # immediately (same pattern as test/integration/cli.jl).
                         hold = joinpath(d, "hold.jl")
-                        write(hold, "sleep(30)\n")
-                        cancel_out = joinpath(JOB_PROJECT, "go_out", "qhost_cancel")
+                        write(hold, "while true; sleep(1); end\n")
+                        cancel_out = joinpath(JOB_PROJECT, "e2e_kit_out", "qhost_cancel")
                         isdir(cancel_out) && rm(cancel_out; recursive=true)
-                        id2 = read_cli(addenv(qh(["submit", "go", "local:1", "--output-dir", cancel_out, hold]), client_env...))
-                        id3 = read_cli(addenv(qh(["submit", "go", token, script, "64"]), client_env...))
+                        id2 = read_cli(addenv(qh(["submit", "go", "parent:1", "--output-dir", cancel_out, hold]), client_env...))
+                        wait_status(addenv(qh(["status"]), client_env...)) do out
+                            occursin(id2, out) && occursin("  running  ", out)
+                        end
+                        isfile(joinpath(cancel_out, "kit.pid")) || sleep(0.5)
+                        id3 = read_cli(addenv(qh(["submit", "go", token, script, GO_N...]), client_env...))
+                        wait_status(addenv(qh(["status"]), client_env...)) do out
+                            occursin(id3, out) && occursin("queued", out)
+                        end
                         cancelled = read_cli(addenv(qh(["cancel", id3]), client_env...))
                         @test cancelled == id3
                         after = wait_status(addenv(qh(["status"]), client_env...)) do out
