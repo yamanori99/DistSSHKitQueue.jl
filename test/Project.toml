@@ -1,6 +1,6 @@
 [deps]
 DistSSHKit = "ceec0504-c968-4be5-b215-667cae0e8f81"
-DistSSHKitQueue = "914ce1ba-5242-41bd-bc99-388259144065"
+DistSSHKitQueue = "ddddfce7-695b-401e-b38f-5c0cd1044d3d"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]

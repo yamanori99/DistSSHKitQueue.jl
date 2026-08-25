@@ -14,7 +14,7 @@ refuse `qhost:` — log in to the queue host and run them there.
 Once, in the default env:
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl
+pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1
 ```
 
 That pulls DistSSHKit **0.4.1+** from General.

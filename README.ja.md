@@ -1,8 +1,5 @@
 # DistSSHKitQueue.jl
 
-> [!WARNING]
-> **Under construction.** 使わないこと。
-
 [English](README.md) · [日本語](README.ja.md)
 
 [![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/CI.yml?branch=main&label=Test)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/CI.yml)
@@ -29,16 +26,16 @@ General にはまだ無い。Julia **1.12+**、DistSSHKit **0.4.1+**。
 Julia REPL で `]` を押して Pkg モードに入り、次を実行する。
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl
+pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1
 ```
 
 同じことを `Pkg` API で書くと次のとおり。
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl", rev="v0.1.0-beta.1")
 ```
 
-General にはまだ無いので、URL で入れる。DistSSHKit **0.4.1+** は General から付いてくる。
+General にはまだ無いので、beta タグを URL で入れる。DistSSHKit **0.4.1+** は General から付いてくる。
 通常の Queue 作業で Kit を `Pkg.develop` しない。
 
 キューホストには **`ssh`**、**`rsync`**、および (git デプロイを使うときだけ) **`git`** も必要。

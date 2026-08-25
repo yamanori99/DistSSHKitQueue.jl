@@ -1,7 +1,7 @@
 name = "DistSSHKitQueue"
-uuid = "914ce1ba-5242-41bd-bc99-388259144065"
+uuid = "ddddfce7-695b-401e-b38f-5c0cd1044d3d"
 license = "MIT"
-version = "0.0.1"
+version = "0.1.0-beta.1"
 authors = ["Yamamoto, Takanori <takanori.yamamoto.99@gmail.com>", "Ampuku, Honoka <ampk.hono@gmail.com>"]
 
 [workspace]
