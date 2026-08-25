@@ -40,7 +40,7 @@ function config_store_path(cfg::AbstractDict)::Union{Nothing,String}
     return isempty(s) ? nothing : String(expanduser(s))
 end
 
-"""Kit SSH name: `parent[:N]` / `child:NAME[:N]` → `name`, else the stripped string (`gpu`)."""
+"""Kit SSH name: `parent[:N]` / `child:NAME[:N]` → `name`, else the stripped string (`host1`)."""
 function kit_ssh_name(raw::AbstractString)::String
     s = strip(String(raw))
     isempty(s) && return ""
@@ -52,22 +52,109 @@ function kit_ssh_name(raw::AbstractString)::String
     end
 end
 
-"""Kit SSH names (`parent`, `child` NAME). Missing key: allow all. Empty array: allow none.
+"""Kit SSH names (`parent`, `child` NAME). Missing `hosts`: allow all. Empty array: allow none.
 
-Entries may be inventory names or placement tokens (`child:gpu` → `gpu`).
+Entries may be inventory names or placement tokens (`child:host1` → `host1`).
+A leftover `allowed` key is read the same way until `add-host` rewrites it to `hosts`.
 """
-function config_allowed_names(cfg::AbstractDict)::Union{Nothing,Set{String}}
-    raw = get(cfg, "allowed", nothing)
+function config_host_names(cfg::AbstractDict)::Union{Nothing,Set{String}}
+    has_hosts = haskey(cfg, "hosts")
+    has_old = haskey(cfg, "allowed")
+    has_hosts && has_old && throw(ArgumentError("use `hosts`, not both `hosts` and `allowed`"))
+    raw = has_hosts ? cfg["hosts"] : get(cfg, "allowed", nothing)
     raw === nothing && return nothing
-    raw isa AbstractVector || throw(ArgumentError("`allowed` must be an array of Kit SSH names"))
+    key = has_hosts ? "hosts" : "allowed"
+    raw isa AbstractVector || throw(ArgumentError("`$(key)` must be an array of Kit SSH names"))
     return Set{String}(filter(!isempty, String[kit_ssh_name(String(x)) for x in raw]))
+end
+
+function sorted_kit_ssh_names(names::Set{String})::Vector{String}
+    v = collect(names)
+    sort!(v; by=n -> (DistSSHKit.is_parent_host_name(n) ? 0 : 1, n))
+    return v
+end
+
+function toml_string_array(xs::AbstractVector{<:AbstractString})::String
+    return "[" * join((repr(String(x)) for x in xs), ", ") * "]"
+end
+
+function hosts_toml_line(names::Set{String})::String
+    return "hosts = " * toml_string_array(sorted_kit_ssh_names(names))
+end
+
+function _is_host_list_toml_line(row::String)::Bool
+    t = lstrip(row)
+    if !isempty(t) && t[1] == '#'
+        t = lstrip(SubString(t, nextind(t, firstindex(t))))
+    end
+    for key in ("hosts", "allowed")
+        startswith(t, key) || continue
+        rest = lstrip(chopprefix(t, key))
+        startswith(rest, "=") && return true
+    end
+    return false
+end
+
+function replace_or_insert_hosts_line(text::String, line::String)::String
+    s = String(text)
+    ln = String(line)
+    rows = String[String(r) for r in split(s, '\n'; keepempty=true)]
+    idx = findfirst(_is_host_list_toml_line, rows)
+    if idx isa Int
+        rows[idx] = ln
+        return join(rows, '\n')
+    end
+    env = findfirst(r -> startswith(lstrip(r), "[env]"), rows)
+    if env isa Int
+        insert!(rows, env, ln)
+        return join(rows, '\n')
+    end
+    return rstrip(s) * "\n" * ln * "\n"
+end
+
+function write_host_names!(path::AbstractString, names::Set{String})
+    p = String(path)
+    isfile(p) || write_config_template(p)
+    write(p, replace_or_insert_hosts_line(read(p, String), hosts_toml_line(names)))
+    return names
+end
+
+function parse_kit_ssh_names(raws)::Vector{String}
+    out = String[]
+    for r in raws
+        n = kit_ssh_name(String(r))
+        isempty(n) && throw(ArgumentError("Kit SSH name is empty"))
+        push!(out, n)
+    end
+    return out
+end
+
+"""First `add-host` creates `hosts` (submit is no longer allow-all)."""
+function add_host_names!(path::AbstractString, raws)
+    extra = Set{String}(parse_kit_ssh_names(raws))
+    isempty(extra) && throw(ArgumentError("add-host needs a Kit SSH name"))
+    cur = isfile(path) ? config_host_names(load_config(; path=path)) : nothing
+    names = cur === nothing ? extra : union(cur, extra)
+    return write_host_names!(path, names)
+end
+
+function remove_host_names!(path::AbstractString, raws)
+    extra = Set{String}(parse_kit_ssh_names(raws))
+    isempty(extra) && throw(ArgumentError("remove-host needs a Kit SSH name"))
+    isfile(path) || throw(ArgumentError("no config.toml; add-host first"))
+    cur = config_host_names(load_config(; path=path))
+    cur === nothing && throw(ArgumentError("no hosts= in config; submit accepts any Kit name"))
+    for n in extra
+        n in cur || throw(ArgumentError("Kit name $(repr(n)) is not on hosts"))
+    end
+    return write_host_names!(path, setdiff(cur, extra))
 end
 
 function default_config_body(; store::AbstractString=default_store_path())::String
     return """
 # DistSSHKitQueue. Override with DISTSSHKITQUEUE_CONFIG / DISTSSHKITQUEUE_STORE.
 store = $(repr(String(store)))
-# allowed = ["parent", "gpu"]   # or child:gpu
+# hosts = ["parent", "host1"]   # or child:host1
 
 [env]
 # DISTRIBUTED_SSH_OPTS = "-F /path/to/ssh_config"

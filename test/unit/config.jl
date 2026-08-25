@@ -215,17 +215,17 @@ end
 
 @testset "extract_remote_opts" begin
     withenv("JULIA_DISTRIBUTED_EXE" => nothing) do
-        host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["qhost:m4", "status"])
-        @test host == "m4"
+        host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["qhost:qbox", "status"])
+        @test host == "qbox"
         @test rjulia === nothing
         @test payload == ["status"]
         dest, spec = DistSSHKitQueue.coalesce_remote(host, rjulia, nothing, nothing)
-        @test dest == "m4"
+        @test dest == "qbox"
         @test spec == "auto"
-        h2, j2, p2 = DistSSHKitQueue.extract_remote_opts(["--hosts", "m4", "status"])
+        h2, j2, p2 = DistSSHKitQueue.extract_remote_opts(["--hosts", "other", "status"])
         @test h2 === nothing
         @test j2 === nothing
-        @test p2 == ["--hosts", "m4", "status"]
+        @test p2 == ["--hosts", "other", "status"]
         h3, _, p3 = DistSSHKitQueue.extract_remote_opts(["go", "--hosts", "child:w:2", "S.jl"])
         @test h3 === nothing
         @test p3 == ["go", "--hosts", "child:w:2", "S.jl"]
@@ -235,19 +235,19 @@ end
         @test p4 == ["go", "--julia", "/opt/julia", "S.jl"]
     end
     withenv("JULIA_DISTRIBUTED_EXE" => "/opt/from-env/julia") do
-        h, j, p = DistSSHKitQueue.extract_remote_opts(["qhost:m4", "status"])
+        h, j, p = DistSSHKitQueue.extract_remote_opts(["qhost:qbox", "status"])
         _, spec = DistSSHKitQueue.coalesce_remote(h, j, nothing, nothing)
         @test spec == "/opt/from-env/julia"
         @test p == ["status"]
     end
 
     host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts([
-        "qhost:m4", "--remote-julia", "/opt/julia", "go", "parent:1", "S.jl",
+        "qhost:qbox", "--remote-julia", "/opt/julia", "go", "parent:1", "S.jl",
     ])
-    @test host2 == "m4"
+    @test host2 == "qbox"
     @test rjulia2 == "/opt/julia"
     @test payload2 == ["go", "parent:1", "S.jl"]
-    @test_throws ArgumentError DistSSHKitQueue.extract_remote_opts(["--qhost", "m4", "status"])
+    @test_throws ArgumentError DistSSHKitQueue.extract_remote_opts(["--qhost", "qbox", "status"])
     @test DistSSHKitQueue.parse_qhost_token("qhost:user@box") == "user@box"
     @test_throws ArgumentError DistSSHKitQueue.parse_qhost_token("child:w:2")
 
@@ -257,27 +257,89 @@ end
     @test payload_go == ["go", "child:w1:2", "S.jl"]
 
     @test_throws ArgumentError DistSSHKitQueue.coalesce_remote("a", nothing, "b", nothing)
-    @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("setup", "m4")
-    @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("enable", "m4")
-    DistSSHKitQueue.reject_qhost_on_local("status", "m4")
+    @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("setup", "qbox")
+    @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("enable", "qbox")
+    @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("add-host", "qbox")
+    @test_throws ArgumentError DistSSHKitQueue.reject_qhost_on_local("remove-host", "qbox")
+    DistSSHKitQueue.reject_qhost_on_local("status", "qbox")
+    DistSSHKitQueue.reject_qhost_on_local("list-host", "qbox")
     DistSSHKitQueue.reject_qhost_on_local("setup", nothing)
+    code, _, err = capture_stdio() do
+        DistSSHKitQueue.main(["qhost:qbox", "add-host", "host1"])
+    end
+    @test code == 1
+    @test occursin("runs on the queue host", err)
+    code2, _, err2 = capture_stdio() do
+        DistSSHKitQueue.main(["qhost:qbox", "remove-host", "host1"])
+    end
+    @test code2 == 1
+    @test occursin("runs on the queue host", err2)
 
     host4, _, payload4 = DistSSHKitQueue.extract_remote_opts(String[])
     @test host4 === nothing
     @test payload4 == String[]
 end
 
-@testset "config allowed names" begin
-    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}()) === nothing
-    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("store" => "x")) === nothing
-    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => [" parent ", "gpu"])) ==
-          Set(["parent", "gpu"])
-    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => ["child:gpu", "parent:2"])) ==
-          Set(["gpu", "parent"])
-    @test DistSSHKitQueue.kit_ssh_name("child:gpu:4") == "gpu"
-    @test DistSSHKitQueue.kit_ssh_name("gpu") == "gpu"
-    @test DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => Any[])) == Set{String}()
-    @test_throws ArgumentError DistSSHKitQueue.config_allowed_names(Dict{String,Any}("allowed" => "parent"))
+@testset "config host names" begin
+    @test DistSSHKitQueue.config_host_names(Dict{String,Any}()) === nothing
+    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("store" => "x")) === nothing
+    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => [" parent ", "host1"])) ==
+          Set(["parent", "host1"])
+    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => ["child:host1", "parent:2"])) ==
+          Set(["host1", "parent"])
+    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("allowed" => ["child:host1", "parent:2"])) ==
+          Set(["host1", "parent"])
+    @test DistSSHKitQueue.kit_ssh_name("child:host1:4") == "host1"
+    @test DistSSHKitQueue.kit_ssh_name("host1") == "host1"
+    @test DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => Any[])) == Set{String}()
+    @test_throws ArgumentError DistSSHKitQueue.config_host_names(Dict{String,Any}("hosts" => "parent"))
+    @test_throws ArgumentError DistSSHKitQueue.config_host_names(
+        Dict{String,Any}("hosts" => ["parent"], "allowed" => ["host1"]),
+    )
+end
+
+@testset "add-host / remove-host write hosts" begin
+    mktempdir() do d
+        cfg = joinpath(d, "config.toml")
+        DistSSHKitQueue.write_config_template(cfg)
+        DistSSHKitQueue.add_host_names!(cfg, ["parent", "child:host1"])
+        text = read(cfg, String)
+        @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              Set(["parent", "host1"])
+        @test occursin("hosts = [", text)
+        @test occursin("\"host1\"", text)
+        @test occursin("[env]", text)
+        @test occursin("# DistSSHKitQueue", text)
+        @test occursin("DISTRIBUTED_SSH_OPTS", text)
+        @test !occursin("# hosts", text)
+        DistSSHKitQueue.add_host_names!(cfg, ["host1"])
+        @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              Set(["parent", "host1"])
+        DistSSHKitQueue.remove_host_names!(cfg, ["parent"])
+        @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              Set(["host1"])
+        DistSSHKitQueue.remove_host_names!(cfg, ["host1"])
+        @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==
+              Set{String}()
+        @test occursin("hosts = []", read(cfg, String))
+        @test_throws ArgumentError DistSSHKitQueue.remove_host_names!(cfg, ["host1"])
+        missing = joinpath(d, "none.toml")
+        DistSSHKitQueue.add_host_names!(missing, ["host1"])
+        @test isfile(missing)
+        @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=missing)) ==
+              Set(["host1"])
+        @test_throws ArgumentError DistSSHKitQueue.add_host_names!(cfg, String[])
+        @test DistSSHKitQueue.replace_or_insert_hosts_line("store = \"x\"\n", "hosts = []") ==
+              "store = \"x\"\nhosts = []\n"
+        old = joinpath(d, "old.toml")
+        write(old, "store = \"x\"\nallowed = [\"parent\"]\n")
+        DistSSHKitQueue.add_host_names!(old, ["host1"])
+        migrated = read(old, String)
+        @test occursin("hosts = [", migrated)
+        @test !occursin("allowed =", migrated)
+        @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=old)) ==
+              Set(["parent", "host1"])
+    end
 end
 
 @testset "setup writes config, not a dskq shim" begin
@@ -296,7 +358,7 @@ end
         @test !isfile(joinpath(bindir, "dskq"))
         @test isfile(cfg)
         @test occursin("[env]", read(cfg, String))
-        @test occursin("# allowed", read(cfg, String))
+        @test occursin("# hosts", read(cfg, String))
         @test DistSSHKitQueue.write_config_template(other) === false
         @test read(other, String) == "store = \"x\"\n"
     end

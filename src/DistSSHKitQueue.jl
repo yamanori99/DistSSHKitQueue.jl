@@ -37,6 +37,8 @@ include("DistSSHKitQueue/queue.jl")
 include("client/qhost.jl")
 include("client/submit.jl")
 include("client/status.jl")
+include("client/list_host.jl")
+include("client/edit_hosts.jl")
 include("client/cancel.jl")
 include("qhost/service.jl")
 include("qhost/setup.jl")
@@ -68,6 +70,15 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             r === nothing || return r
             _, _, payload = extract_remote_opts(rest)
             return status_cli(payload)
+        elseif sub == "list-host"
+            r = maybe_remote(qhost, gjulia, "list-host", rest)
+            r === nothing || return r
+            _, _, payload = extract_remote_opts(rest)
+            return list_host_cli(payload)
+        elseif sub == "add-host"
+            return add_host_cli(rest)
+        elseif sub == "remove-host"
+            return remove_host_cli(rest)
         elseif sub == "watch"
             r = maybe_remote(qhost, gjulia, "watch", rest; tty=stdout isa Base.TTY, forward_via=true)
             r === nothing || return r

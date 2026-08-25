@@ -1,7 +1,8 @@
 """Client `qhost:NAME` / `--remote-julia`: peel flags and `run_on_host` to the queue host.
 
 Kit `--hosts` / `--julia` stay on `go` / `drive`. `setup` / `serve` /
-`enable` / `disable` are not forwarded. Not a Kit placement token.
+`enable` / `disable` / `add-host` / `remove-host` are not forwarded.
+Not a Kit placement token.
 """
 
 function default_remote_julia()::String
@@ -63,7 +64,7 @@ function coalesce_remote(
     return host, spec
 end
 
-const QHOST_LOCAL_VERBS = ("setup", "serve", "enable", "disable", "service")
+const QHOST_LOCAL_VERBS = ("setup", "serve", "enable", "disable", "service", "add-host", "remove-host")
 
 function reject_qhost_on_local(sub::AbstractString, host::Union{Nothing,AbstractString})
     host === nothing && return nothing
