@@ -214,6 +214,7 @@ end
 end
 
 @testset "extract_remote_opts" begin
+    withenv("DISTSSHKITQUEUE_HOST" => nothing) do
     withenv("JULIA_DISTRIBUTED_EXE" => nothing) do
         host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["qhost:qbox", "status"])
         @test host == "qbox"
@@ -287,6 +288,18 @@ end
     @test !DistSSHKitQueue.looks_like_kit_go_argv(["enable", "--julia", "/opt/julia"])
     @test !DistSSHKitQueue.looks_like_kit_go_argv(["status"])
     @test !DistSSHKitQueue.looks_like_kit_go_argv(["--hosts", "child:w:2"])
+    withenv("DISTSSHKITQUEUE_HOST" => "qbox") do
+        hd, _, pd = DistSSHKitQueue.extract_remote_opts(["status"])
+        @test hd == "qbox"
+        @test pd == ["status"]
+        ht, _, _ = DistSSHKitQueue.extract_remote_opts(["qhost:other", "status"])
+        @test ht == "other"
+    end
+    withenv("DISTSSHKITQUEUE_HOST" => "qhost:qbox") do
+        hp, _, _ = DistSSHKitQueue.extract_remote_opts(["status"])
+        @test hp == "qbox"
+    end
+    end
 end
 
 @testset "config host names" begin

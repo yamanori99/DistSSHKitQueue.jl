@@ -83,6 +83,7 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_section("Notes"; io=io)
     DistSSHKit.print_help_lines(io,
         "  Day to day: qhost:HOST from a client (like Kit child:NAME). On the queue host: omit it.",
+        "  DISTSSHKITQUEUE_HOST is the default SSH name when qhost: is omitted (client only).",
         "  status / watch print qhost (client token via DISTSSHKITQUEUE_QHOST, or local plus hostname).",
         "  A sleeping laptop is not a queue host.",
         "  Do not pass qhost:HOST to setup / serve / enable / disable / add-host / remove-host.",
@@ -109,6 +110,7 @@ function print_queue_usage(io::IO=stdout)
         "  status / watch -q hide chrome (Kit --quiet / DISTSSHKIT_QUIET). --progress / --verbose stay chrome.",
         "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
         "  Store:  $(_q_short(default_store_path()))   DISTSSHKITQUEUE_STORE / config store=",
+        "  Default qhost: DISTSSHKITQUEUE_HOST (not DISTSSHKIT_HOSTS).",
     )
     return nothing
 end

@@ -22,8 +22,22 @@ end
 """SSH name shown on `status` / `watch`. Set by the client hop; not a CLI flag."""
 const QHOST_DISPLAY_ENV = "DISTSSHKITQUEUE_QHOST"
 
+"""Client default queue host (SSH name). Not `DISTSSHKIT_HOSTS` (workers).
+
+Not forwarded on the hop (`DISTSSHKITQUEUE_QHOST` is display only). Set on the
+client; do not put this in the queue host `config.toml` `[env]`.
+"""
+const QHOST_DEFAULT_ENV = "DISTSSHKITQUEUE_HOST"
+
 """Harness only: finite `watch` frames. Not a product flag (tests / E2E)."""
 const WATCH_TICKS_ENV = "DISTSSHKITQUEUE_WATCH_TICKS"
+
+function qhost_default_from_env()::Union{Nothing,String}
+    v = strip(get(ENV, QHOST_DEFAULT_ENV, ""))
+    isempty(v) && return nothing
+    startswith(v, "qhost:") && return parse_qhost_token(v)
+    return String(v)
+end
 
 function qhost_display_from_env()::Union{Nothing,String}
     v = strip(get(ENV, QHOST_DISPLAY_ENV, ""))
@@ -57,6 +71,7 @@ function extract_remote_opts(args::Vector{String})
             break
         end
     end
+    host === nothing && (host = qhost_default_from_env())
     return host, rjulia, args[i:end]
 end
 
