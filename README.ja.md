@@ -21,25 +21,25 @@ DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に�
 対応は **macOS、Linux、WSL2 Ubuntu** (ネイティブ Windows は対象外)。
 
 小さな研究室や個人でも、常時起動のマシンを 1 台置き、SSH接続したマシンとまとめて小さな計算ノードとして使うことが出来る。
-General にはまだ無い。Julia **1.12+**、DistSSHKit **0.4.1+**。
+General にはまだ無い。Julia **1.12+**、DistSSHKit **0.4.2+**。
 
 ## インストール
 
 Julia REPL で `]` を押して Pkg モードに入り、次を実行する。
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHQueue.jl
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1
 ```
 
 同じことを `Pkg` API で書くと次のとおり。
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.1")
 ```
 
-General にはまだ無い。DistSSHKit **0.4.1+** は General から付いてくる。
-通常の Queue 作業で Kit を `Pkg.develop` しない。git タグ `v0.1.0-beta.1` は
-旧 DistSSHKitQueue (旧 UUID) なので、DistSSHQueue には使わない。
+General にはまだ無い。DistSSHKit **0.4.2+** は General から付いてくる。
+通常の Queue 作業で Kit を `Pkg.develop` しない。ピンは `v0.2.0-beta.1`。
+git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わない。
 
 キューホストには **`ssh`**、**`rsync`**、および (git デプロイを使うときだけ) **`git`** も必要。
 `pkg> add` では入らない。詳細な利用条件については以下:

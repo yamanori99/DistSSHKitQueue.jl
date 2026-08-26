@@ -63,6 +63,14 @@ end
         submit!(q2, joinpath(a, "x.jl"), "parent:1"; project=a, remote="/r/one")
         @test_throws ArgumentError submit!(q2, joinpath(b, "x.jl"), "parent:1"; project=b, remote="/r/one")
         submit!(q2, joinpath(b, "x.jl"), "parent:1"; project=b, remote="/r/two")
+        @test DistSSHQueue.kit_worker_root(a, Dict{String,Any}("remote" => "~/jobs/x")) == "~/jobs/x"
+        @test DistSSHQueue.kit_worker_root(a, Dict{String,Any}("remote" => "~/jobs/x")) !=
+              DistSSHKit.canonical_local_path("~/jobs/x")
+        @test DistSSHQueue.kit_worker_root(a, Dict{String,Any}("remote" => "/r/one")) ==
+              DistSSHKit.remote_env_project_root("/r/one")
+        q3 = Queue(; runner=_ -> nothing)
+        submit!(q3, joinpath(a, "x.jl"), "parent:1"; project=a, remote="~/jobs/x")
+        submit!(q3, joinpath(b, "x.jl"), "parent:1"; project=b, remote=DistSSHKit.canonical_local_path("~/jobs/x"))
     end
 end
 
