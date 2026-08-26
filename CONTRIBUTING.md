@@ -72,7 +72,7 @@ When a new RC lands, change `JULIA_SLOT_MAX` only. If that RC is a new **major.m
 
 ### PR CI
 
-Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed.
+Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed; otherwise that job is skipped.
 
 These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
 
@@ -87,7 +87,7 @@ julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DSKQ_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
-Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. A skipped E2E still leaves the job green. E2E daily and CI weekly are not required.
+Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. Path-gated E2E skips the job `ubuntu-latest → ubuntu-24.04` (Actions: Skipped; GitHub still treats a skipped required check as pass). E2E daily and CI weekly are not required.
 
 - `Pkg.test - min - ubuntu-latest`
 - `Pkg.test - max - ubuntu-latest`
@@ -196,7 +196,7 @@ CI infers, in order:
 
 `fix/` plus `Fixes` an enhancement issue gets `enhancement`. `breaking` may sit next to the type label. After merge a human registers; TagBot tags (once on General).
 
-Repo Settings → Branches → ruleset `main`: add required check `PR label`. Type labels (`bug` / `enhancement` / `breaking` / `chore` / `cut`) and each `area:*` must exist (`gh label create` if missing).
+Ruleset `main` requires check `PR label` (workflow `Type`). Type labels (`bug` / `enhancement` / `breaking` / `chore` / `cut`) and each `area:*` must exist (`gh label create` if missing).
 
 ## Language
 
