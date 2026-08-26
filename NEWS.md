@@ -5,6 +5,13 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+## 0.2.0 (2026-08-27)
+
+First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
+**0.4.2+**). Git tag `v0.2.0-beta.2` stays a prerelease; do not register it.
+`pkg> add DistSSHQueue` is this version. Tag `v0.1.0-beta.1` is DistSSHKitQueue
+(old UUID); do not use it.
+
 ## 0.2.0-beta.2 (2026-08-27)
 
 ### Client `fetch`

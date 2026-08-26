@@ -11,8 +11,9 @@
 [![E2E weekly](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/ssh-e2e-weekly.yml?branch=main&label=E2E%20weekly)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/ssh-e2e-weekly.yml)
 [![CI weekly](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/ci-weekly.yml?branch=main&label=CI%20weekly)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/ci-weekly.yml)
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
-[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/)
+[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に走らせるものである。
@@ -21,31 +22,32 @@ DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に�
 対応は **macOS、Linux、WSL2 Ubuntu** (ネイティブ Windows は対象外)。
 
 小さな研究室や個人でも、常時起動のマシンを 1 台置き、SSH接続したマシンとまとめて小さな計算ノードとして使うことが出来る。
-General にはまだ無い。Julia **1.12+**、DistSSHKit **0.4.2+**。
+Julia **1.12+**、DistSSHKit **0.4.2+**。
 
 ## インストール
 
 Julia REPL で `]` を押して Pkg モードに入り、次を実行する。
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2
+pkg> add DistSSHQueue
 ```
 
 同じことを `Pkg` API で書くと次のとおり。
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.2")
+julia> import Pkg; Pkg.add("DistSSHQueue")
 ```
 
-General にはまだ無い。DistSSHKit **0.4.2+** は General から付いてくる。
-通常の Queue 作業で Kit を `Pkg.develop` しない。ピンは `v0.2.0-beta.2`。
+DistSSHKit **0.4.2+** は General から付いてくる。
+通常の Queue 作業で Kit を `Pkg.develop` しない。
 git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わない。
+General 前のピン `v0.2.0-beta.2` は prerelease のまま。
 
 キューホストには **`ssh`**、**`rsync`**、および (git デプロイを使うときだけ) **`git`** も必要。
 `pkg> add` では入らない。詳細な利用条件については以下:
-[Requirements](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/)。
+[Requirements](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)。
 
-パッケージの詳細は **[ドキュメント](https://yamanori99.github.io/DistSSHQueue.jl/dev/)** を参照。
+パッケージの詳細は **[ドキュメント](https://yamanori99.github.io/DistSSHQueue.jl/stable/)** を参照。
 
 公式ドキュメント本体は英語である。
 
@@ -177,16 +179,16 @@ julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
 
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` は
 `qhost:` を受け付けない。コマンド参照:
-[User Guide](https://yamanori99.github.io/DistSSHQueue.jl/dev/manual/)。
+[User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/)。
 
 ## ドキュメント
 
 | | |
 | --- | --- |
-| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/dev/) |
-| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/) |
-| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/dev/manual/) |
-| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/dev/api/) |
+| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/stable/) |
+| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/) |
+| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/) |
+| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/stable/api/) |
 | News | [NEWS.md](NEWS.md) |
 
 ## 貢献

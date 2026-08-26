@@ -11,8 +11,9 @@
 [![E2E weekly](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/ssh-e2e-weekly.yml?branch=main&label=E2E%20weekly)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/ssh-e2e-weekly.yml)
 [![CI weekly](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/ci-weekly.yml?branch=main&label=CI%20weekly)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/ci-weekly.yml)
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
-[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/)
+[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 DistSSHQueue runs jobs one after another on machines that several
@@ -22,33 +23,33 @@ leaf, and cancel.
 Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
 Even small labs and individuals can keep one always-on machine, add
-SSH hosts, and use them together as a small set of compute nodes. Not
-on General yet. Julia **1.12+**, DistSSHKit **0.4.2+**.
+SSH hosts, and use them together as a small set of compute nodes.
+Julia **1.12+**, DistSSHKit **0.4.2+**.
 
 ## Install
 
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2
+pkg> add DistSSHQueue
 ```
 
 Or, equivalently, via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.2")
+julia> import Pkg; Pkg.add("DistSSHQueue")
 ```
 
-Not on General yet. DistSSHKit **0.4.2+** comes from General with it.
-Do not `Pkg.develop` Kit for ordinary Queue work. Pin `v0.2.0-beta.2`.
-Git tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
+DistSSHKit **0.4.2+** comes from General with it. Do not `Pkg.develop` Kit
+for ordinary Queue work. Git tag `v0.1.0-beta.1` is DistSSHKitQueue (old
+UUID); do not use it. Pre-General pin `v0.2.0-beta.2` remains a prerelease.
 
 The queue host also needs **`ssh`**, **`rsync`**, and (only for git
 deploys) **`git`** — `pkg> add` does not install them. Full requirements:
-[Requirements](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/).
+[Requirements](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/).
 
 For everything else, see the
-**[Documentation](https://yamanori99.github.io/DistSSHQueue.jl/dev/)**.
+**[Documentation](https://yamanori99.github.io/DistSSHQueue.jl/stable/)**.
 
 ## Usage
 
@@ -179,16 +180,16 @@ julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
 ```
 
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` refuse
-`qhost:`. Command reference: [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/dev/manual/).
+`qhost:`. Command reference: [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/).
 
 ## Documentation
 
 | | |
 | --- | --- |
-| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/dev/) |
-| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/) |
-| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/dev/manual/) |
-| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/dev/api/) |
+| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/stable/) |
+| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/) |
+| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/) |
+| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/stable/api/) |
 | News | [NEWS.md](NEWS.md) |
 
 ## Contributing

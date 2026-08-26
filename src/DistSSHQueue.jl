@@ -7,7 +7,7 @@ FIFO: `src/DistSSHQueue/`. Client CLI: `src/client/`. Queue host CLI: `src/qhost
 `--project=<queue-env>` loads this package; the Kit project is `job_project()`.
 Config: `~/.distsshqueue/config.toml`.
 
-Concept: [docs](https://yamanori99.github.io/DistSSHQueue.jl/dev/).
+Concept: [docs](https://yamanori99.github.io/DistSSHQueue.jl/stable/).
 """
 module DistSSHQueue
 
