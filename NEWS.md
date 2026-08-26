@@ -13,9 +13,10 @@ Julia **1.12+**. `julia -m DistSSHKitQueue` (no `dskq` shim;
 
 ### Jobs
 
-- FIFO one table job. Waiter is DistSSHKit `execute!(kind; detached=true)`.
+- FIFO one table job. `serve` is DistSSHKit `execute!(kind; detached=true)`.
+  Chrome says `Started serve` / `Stopped serve`.
 - `submit` starts `serve` if none is watching (`DISTSSHKITQUEUE_NO_AUTOSERVE=1`
-  to opt out). `stop` latches (`jobs.toml.stopped`); only an explicit `serve`
+  to opt out). `stop` writes `jobs.toml.stopped`; only an explicit `serve`
   resumes. `stop` keeps config / store / OS unit.
 - `submit go` / `submit drive` check the script exists first. A Kit-shaped
   line with a `.jl` and no Queue verb is `go`. `--hosts` / `--julia` stay on
@@ -27,31 +28,31 @@ Julia **1.12+**. `julia -m DistSSHKitQueue` (no `dskq` shim;
   `cannot be cancelled` for an unknown id, a finished row, or `:running`
   without a known output dir. `status` has an `ERROR` column on failure.
 - `watch` reprints until Ctrl-C (`--interval`, default 0.5s). Does not stop
-  the waiter. Kit `-q` / `--quiet` / `DISTSSHKIT_QUIET`: table only.
+  `serve`. Kit `-q` / `--quiet` / `DISTSSHKIT_QUIET`: table only.
 
-### Client hop
+### Client `qhost:`
 
 - Token is `qhost:NAME` (like Kit `child:NAME`). `--qhost` and `--via` are
   refused. `setup` / `serve` / `enable` / `disable` refuse `qhost:` (log in
   on the queue host).
-- Hop is `julia --startup-file=no --project=~/.distsshkitqueue/env` (not the
+- `qhost:` runs `julia --startup-file=no --project=~/.distsshkitqueue/env` (not the
   client's `--project=.`, not remote cwd `.`). `--queue-env DIR` /
-  `DISTSSHKITQUEUE_QUEUE_ENV`; `@` is the remote default env. `--project` on
-  the hop is refused.
+  `DISTSSHKITQUEUE_QUEUE_ENV`; `@` is the remote default env. `--project` after
+  `qhost:` is refused.
 - Omitted `qhost:` uses `DISTSSHKITQUEUE_HOST` (SSH name). Token wins. Not
-  `DISTSSHKIT_HOSTS`. Not forwarded on the hop.
-- `status` / `watch` print `qhost` from `DISTSSHKITQUEUE_QHOST` (set on the
-  hop), or `local (hostname)` when omitted. Not the job `HOSTS` column.
+  `DISTSSHKIT_HOSTS`. Not forwarded on `qhost:`.
+- `status` / `watch` print `qhost` from `DISTSSHKITQUEUE_QHOST` (set on
+  `qhost:`), or `local (hostname)` when omitted. Not the job `HOSTS` column.
 
 ### Queue host
 
 - Store is `~/.distsshkitqueue` (`config.toml`: `store` + `[env]`; ENV wins).
   `setup` writes config only.
-- `enable --queue-env DIR` is the unit's Queue env (`--project` refused).
-  Job tree stays cwd / `DISTRIBUTED_PROJECT_ROOT`. One Kit clone per job
+- `enable --queue-env DIR` is `julia --project=` in the OS unit (`--project` refused).
+  Project stays cwd / `DISTRIBUTED_PROJECT_ROOT`. One Kit clone per job
   on the queue host (`~/org/Repo.jl`); not a Queue job name. Do not pin
   `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`. Kit worker
-  path is `~/parent/Repo.jl`. `submit` refuses a second tree that Kit
+  path is `~/parent/Repo.jl`. `submit` refuses a second project that Kit
   would deploy to the same worker path (no rename, no `setup --delete`).
   `enable --julia` is the unit binary.
   Queue-host Julia for jobs is `--remote-julia` /

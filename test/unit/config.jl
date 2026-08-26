@@ -52,16 +52,16 @@ end
     end
 end
 
-@testset "waiter pidfile" begin
+@testset "serve pidfile" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
-        @test !DistSSHKitQueue.waiter_alive(store)
+        @test !DistSSHKitQueue.serve_alive(store)
         DistSSHKitQueue.write_pid_file(store)
-        @test DistSSHKitQueue.waiter_alive(store)
+        @test DistSSHKitQueue.serve_alive(store)
         DistSSHKitQueue.remove_pid_file(store)
-        @test !DistSSHKitQueue.waiter_alive(store)
+        @test !DistSSHKitQueue.serve_alive(store)
         write(DistSSHKitQueue.store_pid_path(store), "999999999")
-        @test !DistSSHKitQueue.waiter_alive(store)
+        @test !DistSSHKitQueue.serve_alive(store)
     end
 end
 
@@ -91,15 +91,15 @@ end
     end
 end
 
-@testset "ensure_waiter! skips when alive or opted out" begin
+@testset "ensure_serve! skips when alive or opted out" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
         withenv("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1") do
-            @test !DistSSHKitQueue.ensure_waiter!(store)
+            @test !DistSSHKitQueue.ensure_serve!(store)
         end
         DistSSHKitQueue.write_pid_file(store)
         withenv("DISTSSHKITQUEUE_NO_AUTOSERVE" => nothing) do
-            @test !DistSSHKitQueue.ensure_waiter!(store) # already alive (this test's own pid)
+            @test !DistSSHKitQueue.ensure_serve!(store) # already alive (this test's own pid)
         end
         DistSSHKitQueue.remove_pid_file(store)
     end
@@ -108,15 +108,15 @@ end
 @testset "stop latch holds off auto-serve until serve clears it" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
-        @test !DistSSHKitQueue.waiter_stopped(store)
+        @test !DistSSHKitQueue.serve_stopped(store)
         DistSSHKitQueue.set_stopped!(store)
-        @test DistSSHKitQueue.waiter_stopped(store)
+        @test DistSSHKitQueue.serve_stopped(store)
         @test isfile(DistSSHKitQueue.store_stop_path(store))
         withenv("DISTSSHKITQUEUE_NO_AUTOSERVE" => nothing) do
-            @test !DistSSHKitQueue.ensure_waiter!(store) # latched off, no spawn
+            @test !DistSSHKitQueue.ensure_serve!(store) # latched off, no spawn
         end
         DistSSHKitQueue.clear_stopped!(store)
-        @test !DistSSHKitQueue.waiter_stopped(store)
+        @test !DistSSHKitQueue.serve_stopped(store)
     end
 end
 
@@ -129,13 +129,13 @@ end
                 DistSSHKitQueue.stop_cli(String[])
             end
             @test code == 0
-            @test occursin("Stopped waiter", out)
+            @test occursin("Stopped serve", out)
         end
-        @test DistSSHKitQueue.waiter_stopped(store)
+        @test DistSSHKitQueue.serve_stopped(store)
     end
 end
 
-@testset "serve! refuses a second waiter" begin
+@testset "serve! refuses a second serve" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
         write(store, "jobs = []\n")
@@ -148,7 +148,7 @@ end
             end
             @test occursin("Already running", out)
             @test occursin("status or watch", out)
-            @test DistSSHKitQueue.waiter_pid(store) == getpid(holder)
+            @test DistSSHKitQueue.serve_pid(store) == getpid(holder)
         finally
             kill(holder)
             wait(holder)
@@ -164,7 +164,7 @@ end
         _, out, _ = capture_stdio() do
             t = @async DistSSHKitQueue.serve!(q; interval=0.02)
             for _ in 1:200
-                DistSSHKitQueue.waiter_pid(store) == getpid() && break
+                DistSSHKitQueue.serve_pid(store) == getpid() && break
                 sleep(0.02)
             end
             rm(d; force=true, recursive=true)
@@ -175,7 +175,7 @@ end
             @test istaskdone(t)
             wait(t)
         end
-        @test occursin("Waiter stopping", out)
+        @test occursin("Stopping serve", out)
         @test !isfile(store)
     end
 end
@@ -189,10 +189,10 @@ end
         capture_stdio() do
             t = @async DistSSHKitQueue.serve!(q; interval=0.02)
             for _ in 1:100
-                DistSSHKitQueue.waiter_stopped(store) || break
+                DistSSHKitQueue.serve_stopped(store) || break
                 sleep(0.02)
             end
-            @test !DistSSHKitQueue.waiter_stopped(store)
+            @test !DistSSHKitQueue.serve_stopped(store)
             schedule(t, InterruptException(); error=true)
             try
                 wait(t)

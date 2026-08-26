@@ -19,7 +19,7 @@ function capture_stdio(f)
     end
 end
 
-# Tag autoserve waiters for this Pkg.test process. nohup outlives submit
+# Tag autoserve `serve` for this Pkg.test process. nohup outlives submit
 # (product); atexit / parent-death SIGTERM must still find them.
 function install_serve_reaper!()
     Sys.iswindows() && return nothing

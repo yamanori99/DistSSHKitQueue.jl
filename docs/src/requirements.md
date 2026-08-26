@@ -33,7 +33,7 @@ machine.
 
 Install Queue in **`~/.distsshkitqueue/env`** (`julia --project=.` there;
 pre-General: `pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1`).
-Client hops use that path (`--queue-env`). The table lives at
+`qhost:` uses that path (`--queue-env`). The table lives at
 `~/.distsshkitqueue/jobs.toml`.
 
 Also install, as in DistSSHKit (the kit parent for each job is this
@@ -73,15 +73,15 @@ box**. Queue does not copy Kit trees. `teardown` removes
 
 One Kit clone per job on the queue host, with a unique path
 (`~/org/Repo.jl`, same layout DistSSHKit uses). Queue has no extra job
-name. Hop `SCRIPT.jl` is that tree on the queue host, not the laptop
+name. `SCRIPT.jl` is that clone on the queue host, not the laptop
 cwd. Do not pin `DISTRIBUTED_REMOTE_PROJECT_ROOT` in the shared
 `config.toml` `[env]`: Kit's default worker path is
-`~/basename(parent)/basename(job-tree)`. Same parent name plus same
+`~/basename(parent)/basename(project)`. Same parent name plus same
 repo name collide on workers even if the queue-host absolute paths
 differ. `submit` then errors (it does not rename or `setup --delete`).
-Same tree may be submitted again. Run leaves (`SCRIPT_<UTC>_<id>/`) are
-unique inside one tree. If Kit `setup` already filled that remote,
-`go` would run whatever is there; Queue refuses the second tree first.
+The same clone may be submitted again. Run leaves (`SCRIPT_<UTC>_<id>/`) are
+unique inside one project. If Kit `setup` already filled that remote,
+`go` would run whatever is there; Queue refuses the second project first.
 
 ### Client tree
 
@@ -97,7 +97,7 @@ CLI.
 
 ### Queue-host tree
 
-Queue state plus **one Kit clone per job** (not the Queue env). `enable` writes an OS
+Queue state plus **one Kit clone per job** (not `--queue-env`). `enable` writes an OS
 unit; skip that file if you only `serve` in a terminal.
 
 ```text
@@ -107,7 +107,7 @@ unit; skip that file if you only `serve` in a terminal.
   jobs.toml.log
   jobs.toml.pid         while serve is up
   jobs.toml.stopped     after stop, until serve
-  env/                  hop / enable default (--queue-env)
+  env/                  --queue-env / enable default
     Project.toml
     Manifest.toml
 

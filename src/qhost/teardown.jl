@@ -1,8 +1,8 @@
-"""Remove queue-host state: waiter, OS unit, store, `~/.distsshkitqueue`.
+"""Remove queue-host state: serve, OS unit, store, `~/.distsshkitqueue`.
 
 A leftover `dskq` shim from older `setup` is removed if present.
 
-Does not `Pkg.rm` or delete a git clone. Kit job trees (`.distsshkit/`) stay.
+Does not `Pkg.rm` or delete a git clone. Kit `.distsshkit/` next to a clone stays.
 Needs `-y` / `--yes` (or Kit `DISTSSHKIT_YES`, same values as DistSSHKit: `1` / `true` / `yes` / `on`).
 """
 
@@ -62,7 +62,7 @@ function teardown(;
         return 1
     end
     st = teardown_store(; home=home, config=config)
-    apply && stop_waiter!(st)
+    apply && stop_serve!(st)
     try
         service_uninstall(; apply=apply, home=home)
     catch

@@ -57,15 +57,15 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Client"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  (julia --project= loads Queue; the job tree is cwd / DISTRIBUTED_PROJECT_ROOT.)",
+        "  (julia --project= loads Queue; project is cwd / DISTRIBUTED_PROJECT_ROOT.)",
         "  status [-q]                    List jobs on the queue host",
         "  list-host                      Host tokens from config hosts; ssh -G Host / HostName / User / Port",
         "  size [Kit size argv]           DistSSHKit size on the queue host (does not enqueue)",
-        "  watch [-q] [--interval S]      Live status; Ctrl-C leaves the waiter",
+        "  watch [-q] [--interval S]      Live status; Ctrl-C leaves serve",
         "  submit go [Kit go argv]        Enqueue DistSSHKit go (parent[:N] / child:NAME[:N])",
         "  submit drive [Kit drive argv]  Enqueue DistSSHKit drive (stderr: queued count)",
         "  cancel <id>                    Drop a :queued row, or stop :running (Kit output dir)",
-        "  teardown -y                    Stop waiter and remove queue-host files",
+        "  teardown -y                    Stop serve and remove queue-host files",
     )
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Queue host"; io=io)
@@ -73,8 +73,8 @@ function print_queue_usage(io::IO=stdout)
         "  setup [--force]                Write config.toml (--force rewrites)",
         "  add-host TOKEN [TOKEN...]      Add Kit tokens (parent / child:NAME; optional :N max)",
         "  remove-host TOKEN [TOKEN...]   Drop those Kit tokens (no serve restart)",
-        "  serve                          Run the waiter in this terminal",
-        "  stop                           Stop that waiter, keep config / store",
+        "  serve                          Run serve in this terminal",
+        "  stop                           Stop serve, keep config / store",
         "  enable [--queue-env DIR]       After reboot, start serve (LaunchAgent / systemd)",
         "  disable                        Remove that OS registration",
         "  teardown -y                    Same as client teardown, locally",
@@ -88,7 +88,7 @@ function print_queue_usage(io::IO=stdout)
         "  A sleeping laptop is not a queue host.",
         "  Do not pass qhost:HOST to setup / serve / enable / disable / add-host / remove-host.",
         "  --hosts / --julia belong to Kit go/drive. Queue-host Julia: --remote-julia / JULIA_DISTRIBUTED_EXE.",
-        "  Hop Queue env: --queue-env DIR (default ~/.distsshkitqueue/env). Not the client's --project=.",
+        "  --queue-env DIR is julia --project= on the queue host (default ~/.distsshkitqueue/env). Not the client's --project=.",
         "  DISTSSHKITQUEUE_QUEUE_ENV overrides that default. --queue-env @ is the remote default env.",
         "  list-host is not Kit --hosts. On the queue host: list-host. From a client: qhost:HOST list-host.",
         "  size is Kit size (RAM/CPU / --probe). qhost:HOST size. Omit tokens to use config hosts. Not a submit gate.",
@@ -99,18 +99,18 @@ function print_queue_usage(io::IO=stdout)
         "  ssh -G for list-host runs on the queue host (its SSH config), not on the client.",
         "  list-host does not print private keys or IdentityFile.",
         "  config hosts = [\"parent\", \"child:host1:4\"]. Library submit! uses Queue(; allowed=…).",
-        "  teardown -y: waiter, OS unit, ~/.distsshkitqueue (not a git clone).",
+        "  teardown -y: serve, OS unit, ~/.distsshkitqueue (not a git clone).",
         "  teardown also honors DISTSSHKIT_YES (same as DistSSHKit).",
-        "  submit starts a waiter if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
-        "  stop latches it off; only an explicit serve resumes (submit will not).",
+        "  submit starts serve if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
+        "  stop: submit will not start serve; only an explicit serve resumes.",
         "  Bare go / drive alias submit go / submit drive. Kit go argv with a .jl",
         "  and no Queue verb is go (`--hosts child:NAME:N SCRIPT.jl`).",
         "  --version / -v print DistSSHKitQueue then DistSSHKit. submit go -v is Kit only.",
-        "  Ctrl-C on serve stops the waiter. A DistSSHKit job already running is not killed.",
-        "  enable --queue-env DIR is the Queue env in the OS unit (julia --project= there).",
-        "  The job tree is cwd / DISTRIBUTED_PROJECT_ROOT, not enable --queue-env.",
+        "  Ctrl-C on serve stops this process. A DistSSHKit job already running is not killed.",
+        "  enable --queue-env DIR is julia --project= in the OS unit.",
+        "  Project is cwd / DISTRIBUTED_PROJECT_ROOT, not enable --queue-env.",
         "  One Kit clone per job on the queue host (unique ~/org/Repo.jl); not a Queue job name.",
-        "  submit refuses two trees Kit would deploy to the same worker path (no rename, no --delete).",
+        "  submit refuses two projects Kit would deploy to the same worker path (no rename, no --delete).",
         "  Job ids are a bare stdout line. submit stderr is `Queued  N` (and running).",
         "  DISTSSHKIT_QUIET hides that stderr. status / watch -q hide chrome (Kit --quiet / DISTSSHKIT_QUIET). --progress / --verbose stay chrome.",
         "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
@@ -148,7 +148,7 @@ end
 
 _serve_can_draw(io::IO)::Bool = io isa Base.TTY && !haskey(ENV, "NO_COLOR")
 
-const _SERVE_CTRLC = "Ctrl-C stops the waiter. A DistSSHKit job already running is not killed."
+const _SERVE_CTRLC = "Ctrl-C stops serve. A DistSSHKit job already running is not killed."
 
 function _serve_live_text(frame::Char, j::Union{Nothing,Job})::String
     j === nothing && return "  $frame  idle"
@@ -175,8 +175,8 @@ function print_serve_idle_note(; io::IO=stdout)
     return nothing
 end
 
-function print_waiter_gone(store::AbstractString; io::IO=stdout)
-    DistSSHKit.print_colored(io, "Waiter stopping", :yellow, false)
+function print_serve_gone(store::AbstractString; io::IO=stdout)
+    DistSSHKit.print_colored(io, "Stopping serve", :yellow, false)
     println(io)
     DistSSHKit.print_help_lines(io,
         "  store  $(_q_short(store)) (pidfile gone; removed or taken over)",
@@ -197,27 +197,27 @@ function print_serve_already(pid::Integer, store::AbstractString; io::IO=stdout)
     return nothing
 end
 
-function print_waiter_started(log::AbstractString; io::IO=stderr)
-    DistSSHKit.print_colored(io, "Started waiter", :cyan, false)
+function print_serve_started(log::AbstractString; io::IO=stderr)
+    DistSSHKit.print_colored(io, "Started serve", :cyan, false)
     println(io)
     DistSSHKit.print_help_lines(io, "  log  $(_q_short(log))")
     return nothing
 end
 
-function print_waiter_stopped(store::AbstractString, was_running::Bool; io::IO=stdout)
-    DistSSHKit.print_colored(io, "Stopped waiter", :yellow, false)
+function print_serve_stopped(store::AbstractString, was_running::Bool; io::IO=stdout)
+    DistSSHKit.print_colored(io, "Stopped serve", :yellow, false)
     println(io)
     DistSSHKit.print_help_lines(io,
         "  store  $(_q_short(store))",
-        was_running ? "  waiter was running; sent SIGTERM" : "  no waiter was running",
+        was_running ? "  serve was running; sent SIGTERM" : "  no serve was running",
         "  submit will not auto-start; run serve to resume.",
     )
     return nothing
 end
 
-function _waiter_disp(store::AbstractString)::String
-    waiter_alive(store) && return "running"
-    waiter_stopped(store) && return "stopped"
+function _serve_disp(store::AbstractString)::String
+    serve_alive(store) && return "running"
+    serve_stopped(store) && return "stopped"
     return "none"
 end
 
@@ -317,7 +317,7 @@ function print_watch_frame(
         DistSSHKit.print_help_section("Process"; io=io)
         DistSSHKit.print_help_lines(io,
             "  store   $(_q_short(store))",
-            "  waiter  $(_waiter_disp(store))",
+            "  serve   $(_serve_disp(store))",
             "  qhost   $(_qhost_disp(qhost))",
         )
         DistSSHKit.print_help_blank(io)
@@ -325,7 +325,7 @@ function print_watch_frame(
     print_jobs_table(rows; io=io)
     if !quiet
         DistSSHKit.print_help_blank(io)
-        DistSSHKit.print_help_lines(io, "Ctrl-C stops watch; the waiter stays.")
+        DistSSHKit.print_help_lines(io, "Ctrl-C stops watch; serve stays.")
     end
     return nothing
 end

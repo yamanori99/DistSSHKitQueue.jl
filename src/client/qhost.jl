@@ -2,7 +2,7 @@
 
 Kit `--hosts` / `--julia` stay on `go` / `drive`. `setup` / `serve` /
 `enable` / `disable` / `add-host` / `remove-host` are not forwarded.
-Not a Kit placement token. Hop Julia is `julia --startup-file=no
+Not a Kit placement token. Queue-host Julia is `julia --startup-file=no
 --project=<queue-env> -m DistSSHKitQueue` (not the client's `--project=`).
 """
 
@@ -20,12 +20,12 @@ function parse_qhost_token(raw::AbstractString)::String
     return String(name)
 end
 
-"""SSH name shown on `status` / `watch`. Set by the client hop; not a CLI flag."""
+"""SSH name shown on `status` / `watch`. Set by `qhost:`; not a CLI flag."""
 const QHOST_DISPLAY_ENV = "DISTSSHKITQUEUE_QHOST"
 
 """Client default queue host (SSH name). Not `DISTSSHKIT_HOSTS` (workers).
 
-Not forwarded on the hop (`DISTSSHKITQUEUE_QHOST` is display only). Set on the
+Not forwarded on `qhost:` (`DISTSSHKITQUEUE_QHOST` is display only). Set on the
 client; do not put this in the queue host `config.toml` `[env]`.
 """
 const QHOST_DEFAULT_ENV = "DISTSSHKITQUEUE_HOST"
@@ -33,13 +33,13 @@ const QHOST_DEFAULT_ENV = "DISTSSHKITQUEUE_HOST"
 """Harness only: finite `watch` frames. Not a product flag (tests / E2E)."""
 const WATCH_TICKS_ENV = "DISTSSHKITQUEUE_WATCH_TICKS"
 
-"""Client default Queue env on the hop (`julia --project=` there). Not forwarded."""
+"""Client default `--queue-env` on `qhost:` (`julia --project=` there). Not forwarded."""
 const QUEUE_ENV_ENV = "DISTSSHKITQUEUE_QUEUE_ENV"
 
 """Usual dedicated env on the queue host (same as `enable --queue-env` default)."""
 const HOP_QUEUE_ENV_DEFAULT = "~/.distsshkitqueue/env"
 
-"""`--queue-env @`: hop uses the remote default Julia env (no `--project=`)."""
+"""`--queue-env @`: remote default Julia env (no `--project=`)."""
 const HOP_QUEUE_ENV_NONE = "@"
 
 function qhost_default_from_env()::Union{Nothing,String}
@@ -82,7 +82,7 @@ function extract_remote_opts(args::Vector{String})
             throw(ArgumentError("use `qhost:NAME`, not `--qhost`"))
         elseif a == "--project" || startswith(a, "--project=")
             throw(ArgumentError(
-                "hop Queue env is --queue-env DIR (julia --project= there). " *
+                "queue-host julia --project= is --queue-env DIR. " *
                 "Client julia --project= loads Queue locally; it is not forwarded.",
             ))
         elseif startswith(a, "qhost:")

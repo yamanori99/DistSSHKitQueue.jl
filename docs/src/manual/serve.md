@@ -1,6 +1,6 @@
-# [waiter](@id Manual-waiter)
+# [serve](@id Manual-serve)
 
-Run or register the FIFO process on the queue host.
+Run or register `serve` on the queue host.
 
 ```bash
 julia -m DistSSHKitQueue serve [--interval S]
@@ -10,10 +10,9 @@ julia -m DistSSHKitQueue disable
 ```
 
 Also: [Prepare](@ref Tutorial-Prepare), [submit](@ref Manual-submit),
-[setup](@ref Manual-setup). `qhost:` is refused (`enable` is not a
-client hop).
+[setup](@ref Manual-setup). `qhost:` is refused (log in on the queue host).
 
-`serve` is this terminal, now. Ctrl-C stops this waiter, not a Kit job
+`serve` is this terminal, now. Ctrl-C stops this process, not a Kit job
 that is already running. `enable` tells the OS to start `serve` after
 reboot / login (LaunchAgent / systemd).
 
@@ -22,12 +21,12 @@ reboot / login (LaunchAgent / systemd).
 | Flag | Meaning |
 | --- | --- |
 | `--interval S` | `serve` poll interval (default `0.2`) |
-| `--queue-env DIR` | `enable`: Queue env in the OS unit (`julia --project=` there) |
+| `--queue-env DIR` | `enable`: `julia --project=` in the OS unit |
 | `--julia PATH` | `enable`: Julia binary in that unit |
 | `--write-only` | `enable` / `disable`: write or remove the unit file without `launchctl` / `systemctl` |
 | `-h` / `--help` | Queue usage |
 
-`enable --project` is refused. The job tree stays cwd /
+`enable --project` is refused. Project stays cwd /
 `DISTRIBUTED_PROJECT_ROOT`.
 
 A dedicated env at `~/.distsshkitqueue/env`, if present, is the default
@@ -35,7 +34,7 @@ A dedicated env at `~/.distsshkitqueue/env`, if present, is the default
 
 ## stop
 
-Halts the waiter, keeps config / store / OS unit. Latches
+Halts `serve`, keeps config / store / OS unit. Writes
 (`jobs.toml.stopped`) so `submit` will not auto-start; only an explicit
 `serve` resumes. Clients can `qhost:HOST stop`.
 

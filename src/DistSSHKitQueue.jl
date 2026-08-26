@@ -1,10 +1,10 @@
 """
-DistSSHKitQueue — FIFO waiter for DistSSHKit (`go` / `drive`).
+DistSSHKitQueue — FIFO `serve` for DistSSHKit (`go` / `drive`).
 
 Package entry: exports, `include`s, `main` (`@main` on Julia 1.12+).
 FIFO: `src/DistSSHKitQueue/`. Client CLI: `src/client/`. Queue host CLI: `src/qhost/`.
-Waiter runs DistSSHKit `execute!(...; detached=true)`.
-`--project=<queue-env>` loads this package; the job tree is `job_project()`.
+`serve` runs DistSSHKit `execute!(...; detached=true)`.
+`--project=<queue-env>` loads this package; the Kit project is `job_project()`.
 Config: `~/.distsshkitqueue/config.toml`.
 
 Concept: [docs](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/).

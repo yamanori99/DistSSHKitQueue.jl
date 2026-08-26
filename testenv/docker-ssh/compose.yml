@@ -1,6 +1,6 @@
 # Linux SSH children for DistSSHKitQueue local Docker E2E.
 # These are DistSSHKit go/drive targets (`child:NAME[:N]`). The queue host and the
-# waiter run on the host, not here.
+# serve run on the host, not here.
 #
 # Project name is not the directory (`docker-ssh`): DistSSHKit uses the same
 # folder name, and sharing the Compose project recreates Kit's children too.

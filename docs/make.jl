@@ -25,7 +25,7 @@ makedocs(;
             "submit" => "manual/submit.md",
             "status" => "manual/status.md",
             "hosts" => "manual/hosts.md",
-            "waiter" => "manual/waiter.md",
+            "serve" => "manual/serve.md",
             "setup" => "manual/setup.md",
         ],
         "API" => "api.md",

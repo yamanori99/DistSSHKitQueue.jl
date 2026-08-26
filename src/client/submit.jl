@@ -40,7 +40,7 @@ function submit_cli(store::AbstractString, kind::Symbol, script::AbstractString,
             println(stderr, "Queued  $(nq)")
         end
     end
-    ensure_waiter!(store)
+    ensure_serve!(store)
     return 0
 end
 

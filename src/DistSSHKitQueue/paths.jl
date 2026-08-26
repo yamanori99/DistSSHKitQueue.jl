@@ -1,4 +1,4 @@
-"""Local paths shared by the waiter, `setup`, and `enable`.
+"""Local paths shared by `serve`, `setup`, and `enable`.
 
 Not CLI parsing. `queue_data_dir` lives in `config.jl`.
 """
@@ -7,7 +7,7 @@ function sh_single_quote(s::AbstractString)::String
     return string('\'', replace(String(s), "'" => "'\\''"), '\'')
 end
 
-"""The Julia the waiter unit (`enable` / autoserve `serve`) runs.
+"""The Julia the serve unit (`enable` / autoserve `serve`) runs.
 
 Delegates to DistSSHKit `resolve_controller_julia()` — the same controller-Julia
 detection the detached child uses — so the OS unit and the Kit child agree on the

@@ -39,7 +39,7 @@ end
     @test_throws ArgumentError Queue(; allowed=["parent"], follow_config=true)
 end
 
-@testset "submit! rejects two trees that share a worker path" begin
+@testset "submit! rejects two projects that share a worker path" begin
     mktempdir() do d
         a = joinpath(d, "a")
         b = joinpath(d, "b")
@@ -161,10 +161,10 @@ end
         write(script, "1\n")
         store = joinpath(d, "jobs.toml")
         ev = Base.Event()
-        waiter = Queue(; store, runner=_ -> wait(ev))
-        id = submit!(waiter, script, "parent:1"; project=d)
-        @test step!(waiter) == 1
-        dir = job(waiter, id).result_path
+        q = Queue(; store, runner=_ -> wait(ev))
+        id = submit!(q, script, "parent:1"; project=d)
+        @test step!(q) == 1
+        dir = job(q, id).result_path
         @test dir !== nothing
         write(joinpath(dir, "kit.pid"), string(getpid()))
         q2 = Queue(; store, runner=_ -> error("must not re-run"))
@@ -174,7 +174,7 @@ end
         @test DistSSHKitQueue.kit_child_alive(loaded)
         @test loaded.result_path == dir
         notify(ev)
-        _wait_state(waiter, id, :done)
+        _wait_state(q, id, :done)
     end
 end
 
@@ -221,45 +221,45 @@ end
     end
 end
 
-@testset "reload keeps waiter :running over a stale disk snapshot" begin
+@testset "reload keeps serve :running over a stale disk snapshot" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
         out = joinpath(d, "kit-out")
         mkpath(out)
-        waiter = Queue(; store, runner=_ -> wait(Base.Event()))
-        id = submit!(waiter, "a.jl", "parent:1"; output_dir=out)
-        @test step!(waiter) == 1
-        DistSSHKitQueue._set_running_result_path!(waiter, id, out)
+        q = Queue(; store, runner=_ -> wait(Base.Event()))
+        id = submit!(q, "a.jl", "parent:1"; output_dir=out)
+        @test step!(q) == 1
+        DistSSHKitQueue._set_running_result_path!(q, id, out)
         stale = DistSSHKitQueue.read_jobs(store)
         stale[1].result_path = nothing
         DistSSHKitQueue.save_jobs(store, stale)
-        DistSSHKitQueue.reload_keep_live!(waiter)
-        @test job(waiter, id).state === :running
-        @test job(waiter, id).result_path == out
-        @test waiter.live_id == id
+        DistSSHKitQueue.reload_keep_live!(q)
+        @test job(q, id).state === :running
+        @test job(q, id).result_path == out
+        @test q.live_id == id
     end
 end
 
-@testset "client cancel on disk wins over waiter :done" begin
+@testset "client cancel on disk wins over serve :done" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
         out = joinpath(d, "kit-out")
         mkpath(out)
         ev = Base.Event()
-        waiter = Queue(; store, runner=_ -> wait(ev))
-        id = submit!(waiter, "a.jl", "parent:1"; output_dir=out)
-        @test step!(waiter) == 1
-        @test waiter.live_id == id
+        q = Queue(; store, runner=_ -> wait(ev))
+        id = submit!(q, "a.jl", "parent:1"; output_dir=out)
+        @test step!(q) == 1
+        @test q.live_id == id
         client = Queue(; store, runner=_ -> error("client must not run"))
         @test cancel!(client, id)
         @test job(client, id).state === :cancelled
-        DistSSHKitQueue._finish!(waiter, id, :done, nothing; result_path=out)
-        @test job(waiter, id).state === :cancelled
-        @test waiter.live_id === nothing
+        DistSSHKitQueue._finish!(q, id, :done, nothing; result_path=out)
+        @test job(q, id).state === :cancelled
+        @test q.live_id === nothing
         @test DistSSHKitQueue.read_jobs(store)[1].state === :cancelled
         notify(ev)
         sleep(0.05)
-        @test job(waiter, id).state === :cancelled
+        @test job(q, id).state === :cancelled
     end
 end
 
@@ -503,10 +503,10 @@ end
                 @test occursin("status [-q]", help)
                 @test occursin("enable", help)
                 @test occursin("--queue-env", help)
-                @test occursin("The job tree is cwd", help)
+                @test occursin("Project is cwd", help)
                 @test occursin("One Kit clone per job", help)
                 @test occursin("same worker path", help)
-                @test occursin("Hop Queue env", help)
+                @test occursin("--queue-env DIR is julia --project=", help)
                 @test occursin("Not the client's --project=", help)
                 @test occursin("disable", help)
                 @test occursin("sleeping laptop", help)
@@ -699,7 +699,7 @@ end
         jobdir = mktempdir()
         write(joinpath(jobdir, "Project.toml"), "[deps]\n")
         write(joinpath(jobdir, "job.jl"), "1\n")
-        waiter = Queue(; store=p, runner=_ -> nothing)
+        q = Queue(; store=p, runner=_ -> nothing)
         withenv(
             "DISTSSHKITQUEUE_STORE" => p,
             "DISTSSHKITQUEUE_CONFIG" => cfg,
@@ -707,12 +707,12 @@ end
         ) do
             cd(jobdir) do
                 capture_stdio() do
-                    t = @async DistSSHKitQueue.serve!(waiter; interval=0.02)
+                    t = @async DistSSHKitQueue.serve!(q; interval=0.02)
                     for _ in 1:200
-                        DistSSHKitQueue.waiter_pid(p) == getpid() && break
+                        DistSSHKitQueue.serve_pid(p) == getpid() && break
                         sleep(0.02)
                     end
-                    @test DistSSHKitQueue.waiter_pid(p) == getpid()
+                    @test DistSSHKitQueue.serve_pid(p) == getpid()
                     code_bad, _, err = capture_stdio() do
                         DistSSHKitQueue.main(["submit", "go", "child:host1:1", "job.jl"])
                     end
@@ -868,7 +868,7 @@ end
                 end
                 @test code == 0
                 @test occursin("DistSSHKitQueue watch", out)
-                @test occursin("waiter", out)
+                @test occursin("serve", out)
                 @test occursin("qhost", out)
                 @test occursin("local ($(gethostname()))", out)
                 @test occursin("(empty)", out)
@@ -977,7 +977,7 @@ end
     buf2 = IOBuffer()
     DistSSHKitQueue.print_serve_idle_note(; io=buf2)
     note = String(take!(buf2))
-    @test occursin("Ctrl-C stops the waiter", note)
+    @test occursin("Ctrl-C stops serve", note)
     @test occursin("DistSSHKit job already running is not killed", note)
 end
 

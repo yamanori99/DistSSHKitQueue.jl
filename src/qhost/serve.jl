@@ -3,24 +3,24 @@ watching `store`, spawn one detached (log next to the store). Opt out with
 `DISTSSHKITQUEUE_NO_AUTOSERVE=1` (tests, or a harness that manages `serve` itself).
 A prior `stop` also holds it off until an explicit `serve` clears the latch.
 """
-function ensure_waiter!(store::AbstractString)::Bool
+function ensure_serve!(store::AbstractString)::Bool
     get(ENV, "DISTSSHKITQUEUE_NO_AUTOSERVE", "") == "1" && return false
-    waiter_stopped(store) && return false
-    waiter_alive(store) && return false
+    serve_stopped(store) && return false
+    serve_alive(store) && return false
     julia = default_julia_bin()
     project = default_queue_env()
     log = string(store, ".log")
     mkpath(dirname(log))
     spawn_detached_serve!(julia, project, log)
-    print_waiter_started(log)
+    print_serve_started(log)
     return true
 end
 
 """Start `serve` so this Julia process can still exit.
 
 `run(...; wait=false)` keeps a libuv handle. `submit` then never exits, so
-client `qhost:HOST` ssh hangs after `Started waiter`. A short-lived `sh -c ... &`
-lets the waiter outlive `submit` without that handle. Windows has no waiter
+client `qhost:HOST` ssh hangs after `Started serve`. A short-lived `sh -c ... &`
+lets serve outlive `submit` without that handle. Windows has no serve
 unit; keep the Julia spawn there.
 """
 function serve_tag()::String
@@ -117,7 +117,7 @@ function serve_cli(args::Vector{String})::Cint
     return 0
 end
 
-"""Stop the waiter and latch it off. Keeps config / store / OS unit.
+"""Stop serve and latch it off. Keeps config / store / OS unit.
 `submit` will not auto-serve until an explicit `serve` clears the latch."""
 function stop_cli(args::Vector{String})::Cint
     for a in args
@@ -125,8 +125,8 @@ function stop_cli(args::Vector{String})::Cint
         throw(ArgumentError("unknown stop option: $(a)"))
     end
     store = store_path()
-    was_running = stop_waiter!(store)
+    was_running = stop_serve!(store)
     set_stopped!(store)
-    print_waiter_stopped(store, was_running)
+    print_serve_stopped(store, was_running)
     return 0
 end

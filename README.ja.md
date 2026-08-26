@@ -50,12 +50,12 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
 
 ### 基本用語
 
-- **キューホスト** — `~/.distsshkitqueue` を持ち、ウェイターを動かす常時起動のマシン
+- **キューホスト** — `~/.distsshkitqueue` を持ち、`serve` を動かす常時起動のマシン
   (macOS または Linux。VM でよい)。スリープするラップトップはこれではない。
 - **クライアント** — 投入・一覧・監視・取消をする開発マシン。台数に上限はない。
   Kit のマスターになってはならない。
-- **ウェイター** — キューホスト上の `serve` プロセス。DistSSHKit
-  (`execute!(…; detached=true)`) を起動して待つ。止めても、既に走っている
+- **serve** — キューホスト上の FIFO プロセス。DistSSHKit
+  (`execute!(…; detached=true)`) を起動する。止めても、既に走っている
   Kit ジョブは取り消されない。
 - **ワーカー** — スクリプトが実際に走る先。DistSSHKit のトークン:
   キューホスト上は `parent[:N]`、SSH 先は `child:NAME[:N]`。
@@ -63,7 +63,7 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
 ```text
   clients = dev machines (no cap)          one queue host (always on)
   ───────────────────────────────          ──────────────────────────
-  yours / a colleague's / …                waiter   one Kit job at a time
+  yours / a colleague's / …                FIFO     one Kit job at a time
        │                                   table    ~/.distsshkitqueue
        │  julia -m DistSSHKitQueue         add-host / remove-host
        │    qhost:NAME                     serve    now, this terminal
@@ -99,9 +99,9 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
 #### キューホスト
 
 `~/.distsshkitqueue` と **ジョブごとに一つの Kit クローン** (パスは
-`~/org/Repo.jl` で一意)。Queue env とは別。hop の `SCRIPT.jl` はその木。
+`~/org/Repo.jl` で一意)。`--queue-env` とは別。`SCRIPT.jl` はそのクローン。
 共有 `config.toml` に `DISTRIBUTED_REMOTE_PROJECT_ROOT` は書かない。
-二本目の木が同じ worker パスなら `submit` はエラー。
+二本目のプロジェクトが同じ worker パスなら `submit` はエラー。
 
 ```text
 ~/.distsshkitqueue/
@@ -110,7 +110,7 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
   jobs.toml.log
   jobs.toml.pid         serve 中
   jobs.toml.stopped     stop 後、serve まで
-  env/                  hop / enable の既定
+  env/                  --queue-env / enable の既定
     Project.toml
     Manifest.toml
 
@@ -154,7 +154,7 @@ julia --project=. -m DistSSHKitQueue qhost:mini watch
 julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
 ```
 
-`submit` は、ウェイターが無ければキューホスト上で起動する。ジョブ id は
+`submit` は、`serve` が無ければキューホスト上で起動する。ジョブ id は
 stdout 1 行。stderr に `Queued  N` (`DISTSSHKIT_QUIET` で隠す)。
 
 **キューホスト** で一度だけ:

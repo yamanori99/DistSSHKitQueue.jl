@@ -13,7 +13,7 @@ on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**. Placement tokens
 
 ## What is DistSSHKitQueue?
 
-Day to day you **submit** from a client (`qhost:HOST`). If no waiter is up,
+Day to day you **submit** from a client (`qhost:HOST`). If no `serve` is up,
 `submit` starts one on the queue host. You do not need `setup`, `serve`, or
 `enable` for a job to run.
 
@@ -50,11 +50,11 @@ Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);
 ## Basic terms
 
 - **Queue host** — the always-on machine that holds `~/.distsshkitqueue`
-  and runs the waiter. A sleeping laptop is not this box.
+  and runs `serve`. A sleeping laptop is not this box.
 - **Client** — a dev machine that submits, lists, watches, or cancels. No
   cap. It must not become the Kit master.
-- **Waiter** — `serve` on the queue host. It starts DistSSHKit
-  (`execute!(…; detached=true)`) and waits. Stopping it does not cancel a
+- **serve** — FIFO process on the queue host. It starts DistSSHKit
+  (`execute!(…; detached=true)`). Stopping it does not cancel a
   Kit job that is already running.
 - **Workers** — where the script runs. DistSSHKit tokens: `parent[:N]` on
   the queue host, `child:NAME[:N]` on SSH machines.
@@ -64,7 +64,7 @@ Trees (client / queue host / workers): [Where files live](@ref Layout).
 ```text
   clients = dev machines (no cap)          one queue host (always on)
   ───────────────────────────────          ──────────────────────────
-  yours / a colleague's / …                waiter   one Kit job at a time
+  yours / a colleague's / …                FIFO     one Kit job at a time
        │                                   table    ~/.distsshkitqueue
        │  julia -m DistSSHKitQueue         add-host / remove-host
        │    qhost:NAME                     serve    now, this terminal

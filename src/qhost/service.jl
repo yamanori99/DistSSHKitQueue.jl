@@ -159,7 +159,7 @@ function enable_main(args::Vector{String})::Cint
         elseif args[i] == "--project"
             throw(ArgumentError(
                 "enable: use --queue-env DIR, not --project. " *
-                "Julia `--project=` loads DistSSHKitQueue; the job tree is cwd / DISTRIBUTED_PROJECT_ROOT.",
+                "Julia `--project=` loads DistSSHKitQueue; project is cwd / DISTRIBUTED_PROJECT_ROOT.",
             ))
         elseif args[i] == "--write-only"
             apply = false

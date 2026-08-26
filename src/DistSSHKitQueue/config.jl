@@ -197,7 +197,7 @@ store = $(repr(String(store)))
 # DISTSSHKIT_YES = "1"
 # Do not set DISTRIBUTED_REMOTE_PROJECT_ROOT here on a shared queue host:
 # every job would deploy to that one worker path. Kit default is
-# ~/basename(parent)/basename(job-tree) from the queue-host clone.
+# ~/basename(parent)/basename(project) from the queue-host clone.
 """
 end
 
