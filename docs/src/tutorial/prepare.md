@@ -1,7 +1,8 @@
 # [Prepare](@id Tutorial-Prepare)
 
 First-time **queue host** before a [First job](@ref Tutorial-Client).
-Clients can skip this page if someone already set that box up.
+This box is always-on **macOS or Linux**. Clients can skip this page if
+someone already set that box up.
 
 Also see [Requirements](@ref), [Where files live](@ref Layout),
 [User Guide · setup](@ref Manual-setup),

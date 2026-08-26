@@ -53,9 +53,9 @@ For everything else, see the
 
 ### Basic terms
 
-- **Queue host** — the always-on machine that holds `~/.distsshqueue` and
-  runs `serve` (macOS or Linux; a VM is fine). A sleeping laptop is not
-  this box.
+- **Queue host** — the always-on **macOS or Linux** box that holds
+  `~/.distsshqueue` and runs `serve` (a VM is fine). A sleeping laptop
+  is not this box. WSL2 is a client or worker, not this role.
 - **Client** — a dev machine that submits, lists, watches, or cancels. No
   cap. It must not become the Kit master.
 - **serve** — FIFO process on the queue host. It starts DistSSHKit

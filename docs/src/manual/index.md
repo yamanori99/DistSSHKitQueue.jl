@@ -34,8 +34,9 @@ not the client's `--project=.`. Default `qhost:`: `DISTSSHQUEUE_HOST` (not
 `status` / `watch` display).
 
 `serve` is “run the process”. `enable` is “register that process with
-the OS” (LaunchAgent / systemd). `enable` does not make a laptop a
-queue host. `disable` is the opposite of `enable`, not of `serve`.
+the OS” (LaunchAgent / systemd). The queue host is **macOS or Linux**.
+`enable` does not make a laptop or WSL2 the always-on box. `disable`
+is the opposite of `enable`, not of `serve`.
 
 ## Job record
 

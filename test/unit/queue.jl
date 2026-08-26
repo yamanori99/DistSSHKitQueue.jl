@@ -519,6 +519,7 @@ end
                 @test occursin("Not the client's --project=", help)
                 @test occursin("disable", help)
                 @test occursin("sleeping laptop", help)
+                @test occursin("always-on macOS or Linux", help)
                 @test !occursin("service install", help)
                 code_h, out_h, _ = capture_stdio() do
                     DistSSHQueue.main(["-h"])

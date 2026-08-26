@@ -94,3 +94,4 @@ Home is `~/.distsshqueue`, ENV is `DISTSSHQUEUE_*`, OS unit is
 - English README is the landing page. Japanese: `README.ja.md`. Documenter
   First Steps / User Guide cover Queue verbs; Kit `go` / `drive` stay in
   the kit docs. Requirements show client / queue-host / worker trees.
+  The always-on queue host is macOS or Linux (WSL2 is a client or worker).

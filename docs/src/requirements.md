@@ -38,8 +38,10 @@ WSL2 is Linux, with DistSSHKit's extra rules:
 
 ## Queue host
 
-Always-on box (Mac mini, Linux VM). A sleeping laptop is not this
-machine.
+The always-on **queue host** is **macOS or Linux** (Mac mini, Linux VM;
+`enable` is LaunchAgent / systemd). A sleeping laptop is not this
+machine. WSL2 is Linux for a **client** or a worker; do not use it as
+the always-on queue host.
 
 Install Queue in **`~/.distsshqueue/env`** (`julia --project=.` there;
 pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1`).
