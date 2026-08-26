@@ -111,6 +111,12 @@ retries). `DSKQ_SKIP_UP=1` skips compose up (image job: build+push only).
 
 ## CI
 
+| Controller | Worker | Where |
+| --- | --- | --- |
+| Linux (`ubuntu-latest`) | `ubuntu:24.04` ×2 | **CI** — PR / main (`E2E`) and weekly (`E2E weekly / ubuntu-latest → ubuntu-24.04`) |
+| macOS Intel (`macos-15-intel` + Colima) | same image | **E2E weekly** — `E2E weekly / macos-15-intel → ubuntu-24.04` |
+| WSL2 (`windows-latest`) | same image | **E2E weekly** — `E2E weekly / windows-latest (WSL2) → ubuntu-24.04` |
+
 [`.github/workflows/ssh-e2e.yml`](../../.github/workflows/ssh-e2e.yml) runs
 `./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
 `test` / `testenv` / `Project.toml`, and `workflow_dispatch`. Otherwise the
@@ -118,9 +124,9 @@ job `ubuntu-latest → ubuntu-24.04` is skipped (`e2e-gate` still runs). Ordinar
 PR E2E does not upload Codecov. A `cut` PR sets `DSKQ_CODE_COVERAGE=1` and
 uploads flag `e2e`. `Pkg.test()` still does not start Docker.
 
-[`.github/workflows/ssh-e2e-daily.yml`](../../.github/workflows/ssh-e2e-daily.yml)
-is **not** a PR check (schedule 04:00 JST + `workflow_dispatch`). It builds
+[`.github/workflows/ssh-e2e-weekly.yml`](../../.github/workflows/ssh-e2e-weekly.yml)
+is **not** a PR check (Sunday 04:00 JST + `workflow_dispatch`). It builds
 `ghcr.io/<owner>/dskq-linux-ssh-worker:<sha>` (`DSKQ_SKIP_UP=1`), then E2E on
 Ubuntu, `macos-15-intel` (Colima via [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh)),
-and WSL2, then tags `latest`. Linux daily uploads Codecov flag `e2e`. Make the
+and WSL2, then tags `latest`. Linux weekly uploads Codecov flag `e2e`. Make the
 GHCR package public after the first push so forks can pull if needed.
