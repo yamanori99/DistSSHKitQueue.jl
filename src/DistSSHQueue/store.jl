@@ -1,7 +1,7 @@
 using TOML
 
 function default_store_path(; home::AbstractString=homedir())::String
-    return joinpath(home, ".distsshkitqueue", "jobs.toml")
+    return joinpath(home, ".distsshqueue", "jobs.toml")
 end
 
 function with_store_lock(f, path::AbstractString)
@@ -144,13 +144,13 @@ function write_pid_file(store::AbstractString)
     return nothing
 end
 
-"""If tests set `DISTSSHKITQUEUE_TEST_PIDS`, append this serve pid.
+"""If tests set `DISTSSHQUEUE_TEST_PIDS`, append this serve pid.
 
 Harness `atexit` / parent-death reaper reads that list. Production leaves the
 env unset, so this is a no-op.
 """
 function record_test_serve_pid!(pid::Integer)
-    path = String(get(ENV, "DISTSSHKITQUEUE_TEST_PIDS", ""))
+    path = String(get(ENV, "DISTSSHQUEUE_TEST_PIDS", ""))
     isempty(path) && return nothing
     try
         open(path, "a") do io

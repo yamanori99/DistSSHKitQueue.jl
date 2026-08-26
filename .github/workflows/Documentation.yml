@@ -47,9 +47,9 @@ jobs:
         if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'
         run: |
           julia --project=docs -e '
-            using Documenter, DistSSHKitQueue, Test
-            DocMeta.setdocmeta!(DistSSHKitQueue, :DocTestSetup, :(using DistSSHKitQueue); recursive=true)
-            doctest(DistSSHKitQueue)
+            using Documenter, DistSSHQueue, Test
+            DocMeta.setdocmeta!(DistSSHQueue, :DocTestSetup, :(using DistSSHQueue); recursive=true)
+            doctest(DistSSHQueue)
           '
       - name: Build and deploy
         if: github.event_name != 'pull_request' || steps.detect.outputs.heavy == 'true'

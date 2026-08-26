@@ -5,23 +5,23 @@ Clients can skip this page if someone already set that box up.
 
 Also see [Requirements](@ref), [Where files live](@ref Layout),
 [User Guide · setup](@ref Manual-setup),
-[Introduction](@ref DistSSHKitQueue.jl).
+[Introduction](@ref DistSSHQueue.jl).
 
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host`
 refuse `qhost:` — log in to the queue host and run them there.
 
 ## Install Queue
 
-Once, in `~/.distsshkitqueue/env` (`qhost:` and `enable` default):
+Once, in `~/.distsshqueue/env` (`qhost:` and `enable` default):
 
 ```bash
-mkdir -p ~/.distsshkitqueue/env
-cd ~/.distsshkitqueue/env
+mkdir -p ~/.distsshqueue/env
+cd ~/.distsshqueue/env
 julia --project=.
 ```
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl
 ```
 
 That pulls DistSSHKit **0.4.1+** from General. `setup` does not create
@@ -32,13 +32,13 @@ the remote default Julia env (no `--project=`).
 ## Config and inventory
 
 ```bash
-cd ~/.distsshkitqueue/env
-julia --project=. -m DistSSHKitQueue setup
-julia --project=. -m DistSSHKitQueue add-host parent child:host1
-julia --project=. -m DistSSHKitQueue list-host
+cd ~/.distsshqueue/env
+julia --project=. -m DistSSHQueue setup
+julia --project=. -m DistSSHQueue add-host parent child:host1
+julia --project=. -m DistSSHQueue list-host
 ```
 
-`setup` writes `~/.distsshkitqueue/config.toml` if missing (`--force`
+`setup` writes `~/.distsshqueue/config.toml` if missing (`--force`
 rewrites). Defaults work without it. Use it for `store=` or `[env]`.
 
 `add-host` writes Kit tokens into config `hosts`
@@ -55,7 +55,7 @@ queue `config.toml` so Kit uses `~/parent/Repo.jl` per clone.
 ## Survive reboot (optional)
 
 ```bash
-julia --project=. -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
+julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
 ```
 
 `--queue-env` is the env that loads Queue in the OS unit, not Julia
@@ -65,7 +65,7 @@ not leave a `serve` terminal open.
 Foreground, this session only:
 
 ```bash
-julia --project=. -m DistSSHKitQueue serve
+julia --project=. -m DistSSHQueue serve
 ```
 
 Next: [First job](@ref Tutorial-Client).

@@ -3,10 +3,10 @@
 Run or register `serve` on the queue host.
 
 ```bash
-julia -m DistSSHKitQueue serve [--interval S]
-julia -m DistSSHKitQueue stop
-julia -m DistSSHKitQueue enable [--queue-env DIR]
-julia -m DistSSHKitQueue disable
+julia -m DistSSHQueue serve [--interval S]
+julia -m DistSSHQueue stop
+julia -m DistSSHQueue enable [--queue-env DIR]
+julia -m DistSSHQueue disable
 ```
 
 Also: [Prepare](@ref Tutorial-Prepare), [submit](@ref Manual-submit),
@@ -29,7 +29,7 @@ reboot / login (LaunchAgent / systemd).
 `enable --project` is refused. Project stays cwd /
 `DISTRIBUTED_PROJECT_ROOT`.
 
-A dedicated env at `~/.distsshkitqueue/env`, if present, is the default
+A dedicated env at `~/.distsshqueue/env`, if present, is the default
 `--queue-env`. Prefer that so a checkout can be deleted.
 
 ## stop

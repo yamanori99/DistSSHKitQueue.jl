@@ -4,15 +4,15 @@ Read the table, watch it live, or cancel a row. The table lives on the
 queue host.
 
 ```bash
-julia --project=. -m DistSSHKitQueue [qhost:HOST] status [-q]
-julia --project=. -m DistSSHKitQueue [qhost:HOST] watch [-q] [--interval S]
-julia --project=. -m DistSSHKitQueue [qhost:HOST] cancel <id>
+julia --project=. -m DistSSHQueue [qhost:HOST] status [-q]
+julia --project=. -m DistSSHQueue [qhost:HOST] watch [-q] [--interval S]
+julia --project=. -m DistSSHQueue [qhost:HOST] cancel <id>
 ```
 
 Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
 [User Guide](@ref Manual).
 
-`status` / `watch` print `qhost` from `DISTSSHKITQUEUE_QHOST` (set on
+`status` / `watch` print `qhost` from `DISTSSHQUEUE_QHOST` (set on
 the `qhost:` ssh), or `local (hostname)` when omitted. No `--via`. Not the
 job `HOSTS` column. `watch` with `qhost:HOST` uses `ssh -t` so the
 remote TTY can clear the screen.
@@ -28,7 +28,7 @@ remote TTY can clear the screen.
 | `--interval S` | `watch` only; default `0.5` |
 | `-h` / `--help` | Queue usage |
 
-`DISTSSHKITQUEUE_WATCH_TICKS` is a test harness (finite frames), not a
+`DISTSSHQUEUE_WATCH_TICKS` is a test harness (finite frames), not a
 product flag.
 
 ## cancel

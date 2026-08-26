@@ -1,10 +1,10 @@
 [deps]
 DistSSHKit = "ceec0504-c968-4be5-b215-667cae0e8f81"
-DistSSHKitQueue = "ddddfce7-695b-401e-b38f-5c0cd1044d3d"
+DistSSHQueue = "24254401-70d8-4a51-8ea4-cfab19f5bc73"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]
-DistSSHKitQueue = {path = ".."}
+DistSSHQueue = {path = ".."}
 
 [compat]
 DistSSHKit = "0.4.1"

@@ -1,12 +1,12 @@
 # Requirements
 
-Prerequisites for [Introduction](@ref DistSSHKitQueue.jl) and
+Prerequisites for [Introduction](@ref DistSSHQueue.jl) and
 [Prepare](@ref Tutorial-Prepare). DistSSHKit's own checks
 ([kit Requirements](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/))
 still apply to workers. This page is Queue: queue host vs client.
 
-`pkg> add DistSSHKitQueue` does not install **`ssh`**, **`rsync`**, or
-**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1`.)
+`pkg> add DistSSHQueue` does not install **`ssh`**, **`rsync`**, or
+**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl`.)
 
 ## All machines
 
@@ -31,10 +31,10 @@ keep the project on the Linux filesystem (`~/…`), not `/mnt/c/…`.
 Always-on box (Mac mini, Linux VM). A sleeping laptop is not this
 machine.
 
-Install Queue in **`~/.distsshkitqueue/env`** (`julia --project=.` there;
-pre-General: `pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1`).
+Install Queue in **`~/.distsshqueue/env`** (`julia --project=.` there;
+pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl`).
 `qhost:` uses that path (`--queue-env`). The table lives at
-`~/.distsshkitqueue/jobs.toml`.
+`~/.distsshqueue/jobs.toml`.
 
 Also install, as in DistSSHKit (the kit parent for each job is this
 machine):
@@ -43,12 +43,12 @@ machine):
 - **`rsync`** — collect / rsync deploy
 - **`git`** — git deploy path only
 
-Do not set `DISTSSHKITQUEUE_HOST` here (or in `config.toml` `[env]`).
+Do not set `DISTSSHQUEUE_HOST` here (or in `config.toml` `[env]`).
 That name is a **client** default for `qhost:`.
 
 ## Client
 
-A dev laptop. Nothing is written there (no `~/.distsshkitqueue` on the
+A dev laptop. Nothing is written there (no `~/.distsshqueue` on the
 client). Queue must be loadable from the job env (`julia --project=.`).
 
 - Passwordless SSH from the client to the **queue host** (`qhost:NAME`)
@@ -69,7 +69,7 @@ DistSSHKit hosts. Passwordless SSH **from the queue host**, Julia
 Typical paths. `qhost:` is the SSH name of the queue host, not a
 storage prefix. The table and Kit result dirs accumulate **on that
 box**. Queue does not copy Kit trees. `teardown` removes
-`~/.distsshkitqueue`, not a git clone or `.distsshkit/`.
+`~/.distsshqueue`, not a git clone or `.distsshkit/`.
 
 One Kit clone per job on the queue host, with a unique path
 (`~/org/Repo.jl`, same layout DistSSHKit uses). Queue has no extra job
@@ -85,12 +85,12 @@ unique inside one project. If Kit `setup` already filled that remote,
 
 ### Client tree
 
-No `~/.distsshkitqueue`. The job env only needs Queue loadable for the
+No `~/.distsshqueue`. The job env only needs Queue loadable for the
 CLI.
 
 ```text
 ~/my-job/
-  Project.toml          DistSSHKitQueue (CLI)
+  Project.toml          DistSSHQueue (CLI)
   Manifest.toml
   SCRIPT.jl             interpreted on the queue host
 ```
@@ -101,7 +101,7 @@ Queue state plus **one Kit clone per job** (not `--queue-env`). `enable` writes 
 unit; skip that file if you only `serve` in a terminal.
 
 ```text
-~/.distsshkitqueue/
+~/.distsshqueue/
   config.toml
   jobs.toml             every row (no prune)
   jobs.toml.log
@@ -121,10 +121,10 @@ unit; skip that file if you only `serve` in a terminal.
       kit.result
 ```
 
-`enable` unit (same `julia --project=<queue-env> -m DistSSHKitQueue serve`):
+`enable` unit (same `julia --project=<queue-env> -m DistSSHQueue serve`):
 
-- **macOS** — `~/Library/LaunchAgents/org.distsshkitqueue.serve.plist`
-- **Linux / WSL2** — `~/.config/systemd/user/distsshkitqueue.serve.service`
+- **macOS** — `~/Library/LaunchAgents/org.distsshqueue.serve.plist`
+- **Linux / WSL2** — `~/.config/systemd/user/distsshqueue.serve.service`
 
 Both are user units (no root). `disable` removes that file. The table
 and Kit dirs do not change.

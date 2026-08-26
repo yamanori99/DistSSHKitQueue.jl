@@ -24,15 +24,15 @@ end
 function install_serve_reaper!()
     Sys.iswindows() && return nothing
     tag = "dskq-$(getpid())-$(time_ns())"
-    ENV["DISTSSHKITQUEUE_SERVE_TAG"] = tag
+    ENV["DISTSSHQUEUE_SERVE_TAG"] = tag
     pids = tempname()
-    ENV["DISTSSHKITQUEUE_TEST_PIDS"] = pids
+    ENV["DISTSSHQUEUE_TEST_PIDS"] = pids
     write(pids, "")
     reaped = Ref(false)
     function reap()
         reaped[] && return nothing
         reaped[] = true
-        DistSSHKitQueue.reap_serve_tag!(tag)
+        DistSSHQueue.reap_serve_tag!(tag)
         return nothing
     end
     atexit(reap)

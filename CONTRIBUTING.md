@@ -1,6 +1,6 @@
 # Contributing
 
-Internals of this repo. Users: [README.md](README.md), [README.ja.md](README.ja.md), [NEWS.md](NEWS.md), [docs](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/) (`docs/`; [docs/README.md](docs/README.md)).
+Internals of this repo. Users: [README.md](README.md), [README.ja.md](README.ja.md), [NEWS.md](NEWS.md), [docs](https://yamanori99.github.io/DistSSHQueue.jl/dev/) (`docs/`; [docs/README.md](docs/README.md)).
 
 This is a **separate** package from DistSSHKit: FIFO `serve` in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
 
@@ -20,8 +20,8 @@ Prefer [juliaup](https://github.com/JuliaLang/juliaup).
 ## Setup
 
 ```bash
-git clone https://github.com/yamanori99/DistSSHKitQueue.jl.git
-cd DistSSHKitQueue.jl
+git clone https://github.com/yamanori99/DistSSHQueue.jl.git
+cd DistSSHQueue.jl
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ```
 
@@ -30,7 +30,7 @@ That pulls DistSSHKit from General. Do not add a `[sources]` path to a Kit check
 From another app:
 
 ```bash
-julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/DistSSHKitQueue.jl")'
+julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/DistSSHQueue.jl")'
 ```
 
 ## Test
@@ -169,7 +169,7 @@ Every tracked path must match some `area:*` glob (`gen-labeler.sh --check`). Glo
 | --- | --- |
 | `src/client/**` | `area:client` |
 | `src/qhost/**` | `area:qhost` |
-| Leftover queue (`src/DistSSHKitQueue.jl`, `src/DistSSHKitQueue/**`, matching unit tests, shared `test/integration/cli.jl`, package meta) | `area:queue` |
+| Leftover queue (`src/DistSSHQueue.jl`, `src/DistSSHQueue/**`, matching unit tests, shared `test/integration/cli.jl`, package meta) | `area:queue` |
 | Harness under `test/` (not `unit/` / `integration/`) and `testenv/**` | `area:test` |
 | `test/e2e.jl` | `area:client` and `area:qhost` as well |
 | `docs/**` | `area:docs` |

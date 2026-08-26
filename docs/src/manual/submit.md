@@ -4,8 +4,8 @@ Enqueue a DistSSHKit `go` or `drive`. Starts `serve` if none is
 running.
 
 ```bash
-julia --project=. -m DistSSHKitQueue [qhost:HOST] submit go [Kit go argv]
-julia --project=. -m DistSSHKitQueue [qhost:HOST] submit drive [Kit drive argv]
+julia --project=. -m DistSSHQueue [qhost:HOST] submit go [Kit go argv]
+julia --project=. -m DistSSHQueue [qhost:HOST] submit drive [Kit drive argv]
 ```
 
 Bare `go` / `drive` alias `submit go` / `submit drive`. A Kit-shaped
@@ -13,7 +13,7 @@ line with a `.jl` and no Queue verb is `go`
 (`--hosts child:NAME:N SCRIPT.jl`).
 
 Also: [First job](@ref Tutorial-Client), [hosts](@ref Manual-hosts),
-`julia -m DistSSHKitQueue --help`. Kit flags:
+`julia -m DistSSHQueue --help`. Kit flags:
 [go](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/go/),
 [drive](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/drive/).
 
@@ -42,7 +42,7 @@ flag set.
 | `-v` / `--version` | On `submit go` / `submit drive`: Kit only |
 | `-h` / `--help` | Kit help for that kind |
 
-Opt out of auto `serve`: `DISTSSHKITQUEUE_NO_AUTOSERVE=1`. A prior
+Opt out of auto `serve`: `DISTSSHQUEUE_NO_AUTOSERVE=1`. A prior
 [`stop`](@ref Manual-serve) also holds `serve` off until an
 explicit `serve`.
 

@@ -5,17 +5,20 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
-First snapshot. Not on General. Pin `v0.1.0-beta.1` when that tag exists.
+**DistSSHQueue** (new UUID). DistSSHKitQueue stopped at git tag `v0.1.0-beta.1`
+(old UUID / old module). Do not pin that tag for this package. Not on General.
 [DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) **0.4.1+** comes from General.
 Do not `Pkg.develop` Kit for ordinary Queue work.
-Julia **1.12+**. `julia -m DistSSHKitQueue` (no `dskq` shim;
-`teardown` still removes a leftover `~/.local/bin/dskq`).
+Julia **1.12+**. `julia -m DistSSHQueue` (no `dskq` shim).
+Home is `~/.distsshqueue`, ENV is `DISTSSHQUEUE_*`, OS unit is
+`org.distsshqueue.serve`. `teardown` still removes leftover
+`~/.distsshkitqueue`, old units, and `~/.local/bin/dskq`.
 
 ### Jobs
 
 - FIFO one table job. `serve` is DistSSHKit `execute!(kind; detached=true)`.
   Chrome says `Started serve` / `Stopped serve`.
-- `submit` starts `serve` if none is watching (`DISTSSHKITQUEUE_NO_AUTOSERVE=1`
+- `submit` starts `serve` if none is watching (`DISTSSHQUEUE_NO_AUTOSERVE=1`
   to opt out). `stop` writes `jobs.toml.stopped`; only an explicit `serve`
   resumes. `stop` keeps config / store / OS unit.
 - `submit go` / `submit drive` check the script exists first. A Kit-shaped
@@ -35,18 +38,18 @@ Julia **1.12+**. `julia -m DistSSHKitQueue` (no `dskq` shim;
 - Token is `qhost:NAME` (like Kit `child:NAME`). `--qhost` and `--via` are
   refused. `setup` / `serve` / `enable` / `disable` refuse `qhost:` (log in
   on the queue host).
-- `qhost:` runs `julia --startup-file=no --project=~/.distsshkitqueue/env` (not the
+- `qhost:` runs `julia --startup-file=no --project=~/.distsshqueue/env` (not the
   client's `--project=.`, not remote cwd `.`). `--queue-env DIR` /
-  `DISTSSHKITQUEUE_QUEUE_ENV`; `@` is the remote default env. `--project` after
+  `DISTSSHQUEUE_QUEUE_ENV`; `@` is the remote default env. `--project` after
   `qhost:` is refused.
-- Omitted `qhost:` uses `DISTSSHKITQUEUE_HOST` (SSH name). Token wins. Not
+- Omitted `qhost:` uses `DISTSSHQUEUE_HOST` (SSH name). Token wins. Not
   `DISTSSHKIT_HOSTS`. Not forwarded on `qhost:`.
-- `status` / `watch` print `qhost` from `DISTSSHKITQUEUE_QHOST` (set on
+- `status` / `watch` print `qhost` from `DISTSSHQUEUE_QHOST` (set on
   `qhost:`), or `local (hostname)` when omitted. Not the job `HOSTS` column.
 
 ### Queue host
 
-- Store is `~/.distsshkitqueue` (`config.toml`: `store` + `[env]`; ENV wins).
+- Store is `~/.distsshqueue` (`config.toml`: `store` + `[env]`; ENV wins).
   `setup` writes config only.
 - `enable --queue-env DIR` is `julia --project=` in the OS unit (`--project` refused).
   Project stays cwd / `DISTRIBUTED_PROJECT_ROOT`. One Kit clone per job

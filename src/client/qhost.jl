@@ -3,7 +3,7 @@
 Kit `--hosts` / `--julia` stay on `go` / `drive`. `setup` / `serve` /
 `enable` / `disable` / `add-host` / `remove-host` are not forwarded.
 Not a Kit placement token. Queue-host Julia is `julia --startup-file=no
---project=<queue-env> -m DistSSHKitQueue` (not the client's `--project=`).
+--project=<queue-env> -m DistSSHQueue` (not the client's `--project=`).
 """
 
 function default_remote_julia()::String
@@ -21,23 +21,23 @@ function parse_qhost_token(raw::AbstractString)::String
 end
 
 """SSH name shown on `status` / `watch`. Set by `qhost:`; not a CLI flag."""
-const QHOST_DISPLAY_ENV = "DISTSSHKITQUEUE_QHOST"
+const QHOST_DISPLAY_ENV = "DISTSSHQUEUE_QHOST"
 
 """Client default queue host (SSH name). Not `DISTSSHKIT_HOSTS` (workers).
 
-Not forwarded on `qhost:` (`DISTSSHKITQUEUE_QHOST` is display only). Set on the
+Not forwarded on `qhost:` (`DISTSSHQUEUE_QHOST` is display only). Set on the
 client; do not put this in the queue host `config.toml` `[env]`.
 """
-const QHOST_DEFAULT_ENV = "DISTSSHKITQUEUE_HOST"
+const QHOST_DEFAULT_ENV = "DISTSSHQUEUE_HOST"
 
 """Harness only: finite `watch` frames. Not a product flag (tests / E2E)."""
-const WATCH_TICKS_ENV = "DISTSSHKITQUEUE_WATCH_TICKS"
+const WATCH_TICKS_ENV = "DISTSSHQUEUE_WATCH_TICKS"
 
 """Client default `--queue-env` on `qhost:` (`julia --project=` there). Not forwarded."""
-const QUEUE_ENV_ENV = "DISTSSHKITQUEUE_QUEUE_ENV"
+const QUEUE_ENV_ENV = "DISTSSHQUEUE_QUEUE_ENV"
 
 """Usual dedicated env on the queue host (same as `enable --queue-env` default)."""
-const HOP_QUEUE_ENV_DEFAULT = "~/.distsshkitqueue/env"
+const HOP_QUEUE_ENV_DEFAULT = "~/.distsshqueue/env"
 
 """`--queue-env @`: remote default Julia env (no `--project=`)."""
 const HOP_QUEUE_ENV_NONE = "@"
@@ -117,7 +117,7 @@ function coalesce_remote(
     return host, spec
 end
 
-"""CLI `--queue-env` wins, then `DISTSSHKITQUEUE_QUEUE_ENV`, then the dedicated dir.
+"""CLI `--queue-env` wins, then `DISTSSHQUEUE_QUEUE_ENV`, then the dedicated dir.
 
 `@` means no `--project=` (remote default Julia env).
 """
@@ -207,10 +207,10 @@ function remote_dispatch(
     if !isempty(assigns)
         args = String[String(sub)]
         append!(args, String[String(a) for a in payload])
-        expr = join(assigns, "; ") * "; exit(Int(DistSSHKitQueue.main($(repr(args)))))"
-        core = String["-e", "using DistSSHKitQueue; " * expr]
+        expr = join(assigns, "; ") * "; exit(Int(DistSSHQueue.main($(repr(args)))))"
+        core = String["-e", "using DistSSHQueue; " * expr]
     else
-        core = String["-m", "DistSSHKitQueue", String(sub)]
+        core = String["-m", "DistSSHQueue", String(sub)]
         append!(core, payload)
     end
     argv = append!(hop_julia_prefix(queue_env), core)
@@ -236,7 +236,7 @@ end
 """If a queue host is set, ssh `sub` + `rest` and return the exit code; else `nothing`.
 
 `label_qhost`: remote `status` / `watch` print the client token via
-`DISTSSHKITQUEUE_QHOST` (not a CLI flag; re-passing `qhost:` would recurse).
+`DISTSSHQUEUE_QHOST` (not a CLI flag; re-passing `qhost:` would recurse).
 """
 function maybe_remote(
     qhost::Union{Nothing,AbstractString},

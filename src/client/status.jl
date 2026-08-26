@@ -98,7 +98,7 @@ end
 
 """Live `status` table until Ctrl-C.
 
-`ticks` / `DISTSSHKITQUEUE_WATCH_TICKS` are a test harness (finite frames), not
+`ticks` / `DISTSSHQUEUE_WATCH_TICKS` are a test harness (finite frames), not
 product CLI. The verb `watch` is the table redraw; a later monitor package may
 own that name (Kit `kit.progress` watchers).
 """

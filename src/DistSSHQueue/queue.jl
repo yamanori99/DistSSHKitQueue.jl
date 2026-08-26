@@ -29,7 +29,7 @@ end
 
 """Kit project: `DISTRIBUTED_PROJECT_ROOT`, else the `Project.toml` above `cwd`, else `cwd`.
 
-Not the Julia `--project=` that loaded DistSSHKitQueue.
+Not the Julia `--project=` that loaded DistSSHQueue.
 """
 function job_project(; cwd::AbstractString=pwd())::String
     env = strip(get(ENV, "DISTRIBUTED_PROJECT_ROOT", ""))

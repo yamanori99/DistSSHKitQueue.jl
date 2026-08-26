@@ -1,6 +1,6 @@
 # Docker SSH workers (Queue happy-path E2E)
 
-Real OpenSSH + rsync Linux workers for a DistSSHKitQueue end-to-end run. These
+Real OpenSSH + rsync Linux workers for a DistSSHQueue end-to-end run. These
 containers are **DistSSHKit `go` / `drive` targets** (`child:NAME[:N]`), not the queue
 host. The queue host and `serve` run on the host during `--e2e`.
 
@@ -28,7 +28,7 @@ The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSH
 6. `result_path` is Kit’s collected tree; peek it on the queue host (no second collect).
 7. Queue-host CLI (omit `qhost:`, fake `HOME`): `setup`, `enable --write-only`,
    `disable --write-only`, foreground `serve`, `submit go child:dskq-w1:1 SCRIPT.jl`, `status`,
-   `watch` (harness `DISTSSHKITQUEUE_WATCH_TICKS=1`), `stop`.
+   `watch` (harness `DISTSSHQUEUE_WATCH_TICKS=1`), `stop`.
 8. Client `qhost:dskq-qh` over a **loopback OpenSSH** (not a fake `ssh` binary):
    `submit` / `status` / `watch` / `cancel` / `stop` / `teardown -y --write-only`.
    `qhost:HOST setup` is refused.
@@ -61,7 +61,7 @@ On macOS, ports publish on `127.0.0.1` (Docker Desktop / Colima defaults) so
 macOS Local Network Privacy does not block SSH from the queue host.
 
 Do not run DistSSHKit `testenv/docker-ssh` at the same time: both bind
-`2222` / `2223`. Compose project name is `distsshkitqueue-docker-ssh` so a
+`2222` / `2223`. Compose project name is `distsshqueue-docker-ssh` so a
 Kit stack in a folder also named `docker-ssh` is not treated as the same
 project. `up.sh` runs `down.sh` first (same as Kit) and drops a stale
 `.generated/known_hosts` (container sshd host keys change on recreate;
@@ -82,12 +82,12 @@ From a **client** (same box is fine if you still pass `qhost:HOST` to a real ssh
 
 ```bash
 # on the queue host, once
-julia --project=../.. -m DistSSHKitQueue setup
-# put SSH opts in ~/.distsshkitqueue/config.toml [env]
+julia --project=../.. -m DistSSHQueue setup
+# put SSH opts in ~/.distsshqueue/config.toml [env]
 
 # from a client
-julia --project=../.. -m DistSSHKitQueue qhost:HOST submit go child:dskq-w1:1 SCRIPT.jl
-julia --project=../.. -m DistSSHKitQueue qhost:HOST status
+julia --project=../.. -m DistSSHQueue qhost:HOST submit go child:dskq-w1:1 SCRIPT.jl
+julia --project=../.. -m DistSSHQueue qhost:HOST status
 ```
 
 Or probe a worker without Queue:

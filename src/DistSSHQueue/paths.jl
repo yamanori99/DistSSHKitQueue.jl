@@ -27,13 +27,13 @@ function default_julia_bin()::String
     end
 end
 
-"""`~/.distsshkitqueue/env`, a Queue environment independent of any dev checkout.
+"""`~/.distsshqueue/env`, a Queue environment independent of any dev checkout.
 
 Not created automatically (that would mean running `Pkg` network operations as a
 side effect of `setup`); see README for the one-time `Pkg.add`.
 """
 function default_queue_env_dir(; home::AbstractString=homedir())::String
-    return joinpath(home, ".distsshkitqueue", "env")
+    return joinpath(home, ".distsshqueue", "env")
 end
 
 """The `--queue-env` `enable` bakes in by default: the dedicated env dir if

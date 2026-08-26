@@ -1,9 +1,9 @@
 [deps]
-DistSSHKitQueue = "ddddfce7-695b-401e-b38f-5c0cd1044d3d"
+DistSSHQueue = "24254401-70d8-4a51-8ea4-cfab19f5bc73"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 
 [sources]
-DistSSHKitQueue = {path = ".."}
+DistSSHQueue = {path = ".."}
 
 [compat]
 Documenter = "1"

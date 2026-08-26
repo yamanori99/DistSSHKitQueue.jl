@@ -1,10 +1,10 @@
 """Like Kit `go!`/`drive!`: no separate "start the server" step. If no `serve` is
 watching `store`, spawn one detached (log next to the store). Opt out with
-`DISTSSHKITQUEUE_NO_AUTOSERVE=1` (tests, or a harness that manages `serve` itself).
+`DISTSSHQUEUE_NO_AUTOSERVE=1` (tests, or a harness that manages `serve` itself).
 A prior `stop` also holds it off until an explicit `serve` clears the latch.
 """
 function ensure_serve!(store::AbstractString)::Bool
-    get(ENV, "DISTSSHKITQUEUE_NO_AUTOSERVE", "") == "1" && return false
+    get(ENV, "DISTSSHQUEUE_NO_AUTOSERVE", "") == "1" && return false
     serve_stopped(store) && return false
     serve_alive(store) && return false
     julia = default_julia_bin()
@@ -24,16 +24,16 @@ lets serve outlive `submit` without that handle. Windows has no serve
 unit; keep the Julia spawn there.
 """
 function serve_tag()::String
-    return String(get(ENV, "DISTSSHKITQUEUE_SERVE_TAG", ""))
+    return String(get(ENV, "DISTSSHQUEUE_SERVE_TAG", ""))
 end
 
 function with_serve_tag(cmd::Cmd)::Cmd
     tag = serve_tag()
     isempty(tag) && return cmd
-    return addenv(cmd, "DISTSSHKITQUEUE_SERVE_TAG" => tag)
+    return addenv(cmd, "DISTSSHQUEUE_SERVE_TAG" => tag)
 end
 
-"""Unix `sh -c` body for autoserve. `DISTSSHKITQUEUE_SERVE_TAG` is copied onto
+"""Unix `sh -c` body for autoserve. `DISTSSHQUEUE_SERVE_TAG` is copied onto
 the child via `env` so a test reaper can `ps` / `kill` it after Ctrl-C.
 Production leaves the env unset; the script is then plain `nohup julia … &`.
 """
@@ -41,10 +41,10 @@ function detached_serve_script(julia::AbstractString, project::AbstractString, l
     jl = sh_single_quote(julia)
     proj = sh_single_quote(project)
     lg = sh_single_quote(log)
-    inner = "$jl --startup-file=no --project=$proj -m DistSSHKitQueue serve </dev/null >>$lg 2>&1"
+    inner = "$jl --startup-file=no --project=$proj -m DistSSHQueue serve </dev/null >>$lg 2>&1"
     tag = serve_tag()
     if !isempty(tag)
-        inner = "env DISTSSHKITQUEUE_SERVE_TAG=$(sh_single_quote(tag)) $inner"
+        inner = "env DISTSSHQUEUE_SERVE_TAG=$(sh_single_quote(tag)) $inner"
     end
     return "nohup $inner &"
 end
@@ -52,7 +52,7 @@ end
 function spawn_detached_serve!(julia::AbstractString, project::AbstractString, log::AbstractString)
     if Sys.iswindows()
         io = open(log, "a")
-        cmd = with_serve_tag(`$julia --startup-file=no --project=$project -m DistSSHKitQueue serve`)
+        cmd = with_serve_tag(`$julia --startup-file=no --project=$project -m DistSSHQueue serve`)
         run(pipeline(detach(cmd); stdin=devnull, stdout=io, stderr=io); wait=false)
         close(io)
         return nothing
@@ -61,7 +61,7 @@ function spawn_detached_serve!(julia::AbstractString, project::AbstractString, l
     return nothing
 end
 
-"""SIGTERM processes that carry `DISTSSHKITQUEUE_SERVE_TAG` or a test pid list.
+"""SIGTERM processes that carry `DISTSSHQUEUE_SERVE_TAG` or a test pid list.
 
 Does not kill the caller. Used by the test harness after interrupt / parent death.
 No-op when `tag` is empty.
@@ -70,7 +70,7 @@ function reap_serve_tag!(tag::AbstractString)
     isempty(tag) && return nothing
     Sys.iswindows() && return nothing
     self = getpid()
-    needle = "DISTSSHKITQUEUE_SERVE_TAG=" * tag
+    needle = "DISTSSHQUEUE_SERVE_TAG=" * tag
     try
         for line in eachline(`ps axeww`)
             occursin(needle, line) || continue
@@ -84,7 +84,7 @@ function reap_serve_tag!(tag::AbstractString)
         end
     catch
     end
-    list = String(get(ENV, "DISTSSHKITQUEUE_TEST_PIDS", ""))
+    list = String(get(ENV, "DISTSSHQUEUE_TEST_PIDS", ""))
     if !isempty(list) && isfile(list)
         for line in eachline(list)
             pid = tryparse(Int, strip(line))

@@ -9,17 +9,17 @@ Submit from a **client** after the queue host is up
 
 Run from a directory where Queue is loadable (`julia --project=.`).
 That `--project=.` stays on the **client**. `qhost:` loads Queue from
-`~/.distsshkitqueue/env` (`--queue-env DIR` if you used another dir).
+`~/.distsshqueue/env` (`--queue-env DIR` if you used another dir).
 `SCRIPT.jl` must exist **on the queue host** in that job's clone
 (`~/org/Repo.jl`), not only on the laptop. `qhost:` does not send the client
 cwd.
 
 ```bash
-julia --project=. -m DistSSHKitQueue qhost:mini list-host
-julia --project=. -m DistSSHKitQueue qhost:mini size
+julia --project=. -m DistSSHQueue qhost:mini list-host
+julia --project=. -m DistSSHQueue qhost:mini size
 ```
 
-One lab: `export DISTSSHKITQUEUE_HOST=mini` and omit `qhost:` (the token
+One lab: `export DISTSSHQUEUE_HOST=mini` and omit `qhost:` (the token
 still wins). Several clusters: pass `qhost:` each time.
 
 `list-host` is not Kit `--hosts`. `ssh -G` runs on the queue host.
@@ -33,10 +33,10 @@ when workers are on the queue host). Flags:
 [kit drive](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/drive/).
 
 ```bash
-julia --project=. -m DistSSHKitQueue qhost:mini submit go child:host1:4 SCRIPT.jl
-julia --project=. -m DistSSHKitQueue qhost:mini status
-julia --project=. -m DistSSHKitQueue qhost:mini watch
-julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
+julia --project=. -m DistSSHQueue qhost:mini submit go child:host1:4 SCRIPT.jl
+julia --project=. -m DistSSHQueue qhost:mini status
+julia --project=. -m DistSSHQueue qhost:mini watch
+julia --project=. -m DistSSHQueue qhost:mini cancel <id>
 ```
 
 `submit` starts `serve` if none is running. `status` / `watch` print

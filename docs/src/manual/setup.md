@@ -3,8 +3,8 @@
 Write config, or wipe Queue state on this host.
 
 ```bash
-julia -m DistSSHKitQueue setup [--force]
-julia -m DistSSHKitQueue teardown -y
+julia -m DistSSHQueue setup [--force]
+julia -m DistSSHQueue teardown -y
 ```
 
 Also: [Prepare](@ref Tutorial-Prepare), [serve](@ref Manual-serve),
@@ -19,31 +19,32 @@ no-op unless `--force`.
 | Flag | Meaning |
 | --- | --- |
 | `--force` | `setup`: rewrite `config.toml` |
-| `--config PATH` | `setup` / `teardown`: config path (`DISTSSHKITQUEUE_CONFIG`) |
+| `--config PATH` | `setup` / `teardown`: config path (`DISTSSHQUEUE_CONFIG`) |
 | `-y` / `--yes` | `teardown`: confirm (`DISTSSHKIT_YES`; same values as DistSSHKit) |
 | `--write-only` | `teardown`: do not stop `serve` or unload the OS unit |
-| `--home DIR` | `teardown`: home for `~/.distsshkitqueue` |
+| `--home DIR` | `teardown`: home for `~/.distsshqueue` |
 | `--bindir DIR` | `teardown`: leftover `dskq` shim path |
 | `-h` / `--help` | Queue usage |
 
-`DISTSSHKITQUEUE_YES` is gone. `[env]` in the target `config.toml`
+`DISTSSHQUEUE_YES` is gone. `[env]` in the target `config.toml`
 still applies.
 
 ## teardown
 
-Stops `serve`, removes the OS unit and `~/.distsshkitqueue`. Does
+Stops `serve`, removes the OS unit and `~/.distsshqueue`. Does
 not `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/`
-results. Trees: [Where files live](@ref Layout). Still removes a leftover
+results. Trees: [Where files live](@ref Layout). Still removes leftover
+`~/.distsshkitqueue`, old `org.distsshkitqueue.serve` units, and
 `~/.local/bin/dskq` if present.
 
 ## config.toml
 
-`~/.distsshkitqueue/config.toml`. Override:
-`DISTSSHKITQUEUE_CONFIG`. Resolution: CLI / ENV > config.toml >
+`~/.distsshqueue/config.toml`. Override:
+`DISTSSHQUEUE_CONFIG`. Resolution: CLI / ENV > config.toml >
 built-in defaults. `[env]` keys use `get!` so a real ENV value wins.
 
 ```toml
-store = "~/.distsshkitqueue/jobs.toml"
+store = "~/.distsshqueue/jobs.toml"
 # hosts = ["parent", "child:host1:4"]
 
 [env]
@@ -54,9 +55,9 @@ store = "~/.distsshkitqueue/jobs.toml"
 
 | Key | Meaning |
 | --- | --- |
-| `store` | Job table path (`DISTSSHKITQUEUE_STORE`) |
+| `store` | Job table path (`DISTSSHQUEUE_STORE`) |
 | `hosts` | Kit tokens; missing = allow-all; `[]` = allow none |
-| `[env]` | Default ENV for this host (not `DISTSSHKITQUEUE_HOST`). Skip `DISTRIBUTED_REMOTE_PROJECT_ROOT` unless this box is one job |
+| `[env]` | Default ENV for this host (not `DISTSSHQUEUE_HOST`). Skip `DISTRIBUTED_REMOTE_PROJECT_ROOT` unless this box is one job |
 
 CLI `submit` re-reads `hosts` each time
 ([submit](@ref Manual-submit)). Library [`submit!`](@ref) uses

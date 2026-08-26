@@ -12,6 +12,6 @@ using Pkg
 Pkg.activate(; temp=true)
 Pkg.develop(PackageSpec(; path=pwd()))
 Pkg.add("Aqua")
-using Aqua, DistSSHKitQueue
-Aqua.test_all(DistSSHKitQueue)
+using Aqua, DistSSHQueue
+Aqua.test_all(DistSSHQueue)
 '

@@ -1,17 +1,17 @@
-"""User config: `~/.distsshkitqueue/config.toml`. Override: `DISTSSHKITQUEUE_CONFIG`.
+"""User config: `~/.distsshqueue/config.toml`. Override: `DISTSSHQUEUE_CONFIG`.
 
 Resolution: CLI / ENV > config.toml > built-in defaults.
 `[env]` keys are applied with `get!` so a real ENV value wins.
 """
 
 function default_config_path(; home::AbstractString=homedir())::String
-    return joinpath(home, ".distsshkitqueue", "config.toml")
+    return joinpath(home, ".distsshqueue", "config.toml")
 end
 
-queue_data_dir(; home::AbstractString=homedir())::String = joinpath(home, ".distsshkitqueue")
+queue_data_dir(; home::AbstractString=homedir())::String = joinpath(home, ".distsshqueue")
 
 function config_path(; home::AbstractString=homedir())::String
-    env = strip(get(ENV, "DISTSSHKITQUEUE_CONFIG", ""))
+    env = strip(get(ENV, "DISTSSHQUEUE_CONFIG", ""))
     return isempty(env) ? default_config_path(; home=home) : env
 end
 
@@ -188,7 +188,7 @@ end
 
 function default_config_body(; store::AbstractString=default_store_path())::String
     return """
-# DistSSHKitQueue. Override with DISTSSHKITQUEUE_CONFIG / DISTSSHKITQUEUE_STORE.
+# DistSSHQueue. Override with DISTSSHQUEUE_CONFIG / DISTSSHQUEUE_STORE.
 store = $(repr(String(store)))
 # hosts = ["parent", "child:host1:4"]   # Kit tokens; optional max :N
 
@@ -209,7 +209,7 @@ function write_config_template(path::AbstractString; store::AbstractString=defau
 end
 
 function store_path()::String
-    env = strip(get(ENV, "DISTSSHKITQUEUE_STORE", ""))
+    env = strip(get(ENV, "DISTSSHQUEUE_STORE", ""))
     isempty(env) || return env
     st = config_store_path(load_config())
     st === nothing || return st

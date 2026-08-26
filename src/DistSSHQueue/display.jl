@@ -42,17 +42,17 @@ function _q_state_color(state::Symbol)
 end
 
 function println_queue_version(io::IO=stdout)
-    println(io, "DistSSHKitQueue $(pkgversion(DistSSHKitQueue))")
+    println(io, "DistSSHQueue $(pkgversion(DistSSHQueue))")
     DistSSHKit.println_kit_version(io)
     return nothing
 end
 
 function print_queue_usage(io::IO=stdout)
-    DistSSHKit.print_help_chrome("DistSSHKitQueue"; io=io)
+    DistSSHKit.print_help_chrome("DistSSHQueue"; io=io)
     DistSSHKit.print_help_section("Usage"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  julia -m DistSSHKitQueue [qhost:HOST] <command> [args...]",
-        "  julia -m DistSSHKitQueue --version",
+        "  julia -m DistSSHQueue [qhost:HOST] <command> [args...]",
+        "  julia -m DistSSHQueue --version",
     )
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Client"; io=io)
@@ -83,13 +83,13 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_section("Notes"; io=io)
     DistSSHKit.print_help_lines(io,
         "  Day to day: qhost:HOST from a client (like Kit child:NAME). On the queue host: omit it.",
-        "  DISTSSHKITQUEUE_HOST is the default SSH name when qhost: is omitted (client only).",
-        "  status / watch print qhost (client token via DISTSSHKITQUEUE_QHOST, or local plus hostname).",
+        "  DISTSSHQUEUE_HOST is the default SSH name when qhost: is omitted (client only).",
+        "  status / watch print qhost (client token via DISTSSHQUEUE_QHOST, or local plus hostname).",
         "  A sleeping laptop is not a queue host.",
         "  Do not pass qhost:HOST to setup / serve / enable / disable / add-host / remove-host.",
         "  --hosts / --julia belong to Kit go/drive. Queue-host Julia: --remote-julia / JULIA_DISTRIBUTED_EXE.",
-        "  --queue-env DIR is julia --project= on the queue host (default ~/.distsshkitqueue/env). Not the client's --project=.",
-        "  DISTSSHKITQUEUE_QUEUE_ENV overrides that default. --queue-env @ is the remote default env.",
+        "  --queue-env DIR is julia --project= on the queue host (default ~/.distsshqueue/env). Not the client's --project=.",
+        "  DISTSSHQUEUE_QUEUE_ENV overrides that default. --queue-env @ is the remote default env.",
         "  list-host is not Kit --hosts. On the queue host: list-host. From a client: qhost:HOST list-host.",
         "  size is Kit size (RAM/CPU / --probe). qhost:HOST size. Omit tokens to use config hosts. Not a submit gate.",
         "  add-host / remove-host write that hosts list on the queue host. Same tokens as Kit: parent / child:NAME.",
@@ -99,13 +99,13 @@ function print_queue_usage(io::IO=stdout)
         "  ssh -G for list-host runs on the queue host (its SSH config), not on the client.",
         "  list-host does not print private keys or IdentityFile.",
         "  config hosts = [\"parent\", \"child:host1:4\"]. Library submit! uses Queue(; allowed=…).",
-        "  teardown -y: serve, OS unit, ~/.distsshkitqueue (not a git clone).",
+        "  teardown -y: serve, OS unit, ~/.distsshqueue (not a git clone).",
         "  teardown also honors DISTSSHKIT_YES (same as DistSSHKit).",
-        "  submit starts serve if none is running (DISTSSHKITQUEUE_NO_AUTOSERVE=1).",
+        "  submit starts serve if none is running (DISTSSHQUEUE_NO_AUTOSERVE=1).",
         "  stop: submit will not start serve; only an explicit serve resumes.",
         "  Bare go / drive alias submit go / submit drive. Kit go argv with a .jl",
         "  and no Queue verb is go (`--hosts child:NAME:N SCRIPT.jl`).",
-        "  --version / -v print DistSSHKitQueue then DistSSHKit. submit go -v is Kit only.",
+        "  --version / -v print DistSSHQueue then DistSSHKit. submit go -v is Kit only.",
         "  Ctrl-C on serve stops this process. A DistSSHKit job already running is not killed.",
         "  enable --queue-env DIR is julia --project= in the OS unit.",
         "  Project is cwd / DISTRIBUTED_PROJECT_ROOT, not enable --queue-env.",
@@ -113,9 +113,9 @@ function print_queue_usage(io::IO=stdout)
         "  submit refuses two projects Kit would deploy to the same worker path (no rename, no --delete).",
         "  Job ids are a bare stdout line. submit stderr is `Queued  N` (and running).",
         "  DISTSSHKIT_QUIET hides that stderr. status / watch -q hide chrome (Kit --quiet / DISTSSHKIT_QUIET). --progress / --verbose stay chrome.",
-        "  Config: $(_q_short(default_config_path()))   DISTSSHKITQUEUE_CONFIG",
-        "  Store:  $(_q_short(default_store_path()))   DISTSSHKITQUEUE_STORE / config store=",
-        "  Default qhost: DISTSSHKITQUEUE_HOST (not DISTSSHKIT_HOSTS).",
+        "  Config: $(_q_short(default_config_path()))   DISTSSHQUEUE_CONFIG",
+        "  Store:  $(_q_short(default_store_path()))   DISTSSHQUEUE_STORE / config store=",
+        "  Default qhost: DISTSSHQUEUE_HOST (not DISTSSHKIT_HOSTS).",
     )
     return nothing
 end
@@ -141,7 +141,7 @@ function print_present(path::AbstractString; io::IO=stdout)
 end
 
 function print_serve_banner(pid::Integer, store::AbstractString; io::IO=stdout)
-    DistSSHKit.print_help_chrome("DistSSHKitQueue serve"; io=io)
+    DistSSHKit.print_help_chrome("DistSSHQueue serve"; io=io)
     DistSSHKit.print_help_lines(io, "  pid $pid  store $(_q_short(store))")
     return nothing
 end
@@ -186,7 +186,7 @@ function print_serve_gone(store::AbstractString; io::IO=stdout)
 end
 
 function print_serve_already(pid::Integer, store::AbstractString; io::IO=stdout)
-    DistSSHKit.print_help_chrome("DistSSHKitQueue serve"; io=io)
+    DistSSHKit.print_help_chrome("DistSSHQueue serve"; io=io)
     DistSSHKit.print_colored(io, "Already running", :cyan, false)
     println(io)
     DistSSHKit.print_help_lines(io,
@@ -313,7 +313,7 @@ function print_watch_frame(
     quiet::Bool=false,
 )
     if !quiet
-        DistSSHKit.print_help_chrome("DistSSHKitQueue watch"; io=io)
+        DistSSHKit.print_help_chrome("DistSSHQueue watch"; io=io)
         DistSSHKit.print_help_section("Process"; io=io)
         DistSSHKit.print_help_lines(io,
             "  store   $(_q_short(store))",
