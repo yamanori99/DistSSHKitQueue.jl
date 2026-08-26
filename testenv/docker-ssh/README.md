@@ -113,9 +113,10 @@ retries). `DSKQ_SKIP_UP=1` skips compose up (image job: build+push only).
 
 [`.github/workflows/ssh-e2e.yml`](../../.github/workflows/ssh-e2e.yml) runs
 `./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
-`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. Ordinary PR E2E
-does not upload Codecov. A `cut` PR sets `DSKQ_CODE_COVERAGE=1` and uploads
-flag `e2e`. `Pkg.test()` still does not start Docker.
+`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. Otherwise the
+job `ubuntu-latest → ubuntu-24.04` is skipped (`e2e-gate` still runs). Ordinary
+PR E2E does not upload Codecov. A `cut` PR sets `DSKQ_CODE_COVERAGE=1` and
+uploads flag `e2e`. `Pkg.test()` still does not start Docker.
 
 [`.github/workflows/ssh-e2e-daily.yml`](../../.github/workflows/ssh-e2e-daily.yml)
 is **not** a PR check (schedule 04:00 JST + `workflow_dispatch`). It builds
