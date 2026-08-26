@@ -14,7 +14,7 @@ Submitters `using DistSSHKitQueue`. Queue-host code `using DistSSHKit`.
 Job files for Kit `go` still do not import DistSSHKit.
 
 Prefer the CLI. From a client: `qhost:HOST` (not `--hosts`). Default
-hop: `DISTSSHKITQUEUE_HOST`. CLI `submit` uses `follow_config`; library
+queue host: `DISTSSHKITQUEUE_HOST`. CLI `submit` uses `follow_config`; library
 [`submit!`](@ref) uses `Queue(; allowed=…)` unless `follow_config=true`.
 Config: `~/.distsshkitqueue/config.toml`.
 
@@ -51,7 +51,7 @@ load!
 step!
 ```
 
-## Waiter
+## serve
 
 ```@docs
 serve!
@@ -64,4 +64,4 @@ job_project
 ```
 
 `default_store_path()` is `~/.distsshkitqueue/jobs.toml`.
-The waiter calls DistSSHKit `execute!(…; detached=true, job_id=…)`.
+`serve` calls DistSSHKit `execute!(…; detached=true, job_id=…)`.

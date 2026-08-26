@@ -51,12 +51,12 @@ For everything else, see the
 ### Basic terms
 
 - **Queue host** — the always-on machine that holds `~/.distsshkitqueue` and
-  runs the waiter (macOS or Linux; a VM is fine). A sleeping laptop is not
+  runs `serve` (macOS or Linux; a VM is fine). A sleeping laptop is not
   this box.
 - **Client** — a dev machine that submits, lists, watches, or cancels. No
   cap. It must not become the Kit master.
-- **Waiter** — the `serve` process on the queue host. It starts DistSSHKit
-  (`execute!(…; detached=true)`) and waits. Stopping it does not cancel a
+- **serve** — FIFO process on the queue host. It starts DistSSHKit
+  (`execute!(…; detached=true)`). Stopping it does not cancel a
   Kit job that is already running.
 - **Workers** — where the script runs. DistSSHKit tokens: `parent[:N]` on
   the queue host, `child:NAME[:N]` on SSH machines.
@@ -64,7 +64,7 @@ For everything else, see the
 ```text
   clients = dev machines (no cap)          one queue host (always on)
   ───────────────────────────────          ──────────────────────────
-  yours / a colleague's / …                waiter   one Kit job at a time
+  yours / a colleague's / …                FIFO     one Kit job at a time
        │                                   table    ~/.distsshkitqueue
        │  julia -m DistSSHKitQueue         add-host / remove-host
        │    qhost:NAME                     serve    now, this terminal
@@ -100,9 +100,10 @@ table and Kit result dirs stay **on that box**. The client has no
 #### Queue host
 
 `~/.distsshkitqueue` plus **one Kit clone per job** (unique
-`~/org/Repo.jl`). Not the Queue env. Hop `SCRIPT.jl` is that tree. Do
+`~/org/Repo.jl`). Not `--queue-env`. `SCRIPT.jl` is that clone on the
+queue host. Do
 not set `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`.
-`submit` errors if a second tree would land on the same worker path.
+`submit` errors if a second project would land on the same worker path.
 
 ```text
 ~/.distsshkitqueue/
@@ -111,7 +112,7 @@ not set `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`.
   jobs.toml.log
   jobs.toml.pid         while serve is up
   jobs.toml.stopped     after stop, until serve
-  env/                  hop / enable default
+  env/                  --queue-env / enable default
     Project.toml
     Manifest.toml
 
@@ -155,7 +156,7 @@ julia --project=. -m DistSSHKitQueue qhost:mini watch
 julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
 ```
 
-`submit` starts a waiter on the queue host if none is running. Job ids are a
+`submit` starts `serve` on the queue host if none is running. Job ids are a
 bare stdout line; stderr shows `Queued  N` unless `DISTSSHKIT_QUIET` is set.
 
 On the **queue host** (once):

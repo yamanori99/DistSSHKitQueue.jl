@@ -60,8 +60,8 @@ function cli_env(d::AbstractString)
     return env, cfg, store, jobdir
 end
 
-function stop_store_waiter(store::AbstractString)
-    DistSSHKitQueue.stop_waiter!(store)
+function stop_store_serve(store::AbstractString)
+    DistSSHKitQueue.stop_serve!(store)
     return nothing
 end
 
@@ -113,7 +113,7 @@ end
                     @test occursin("Ctrl-C stops watch", wout)
                 end
             finally
-                DistSSHKitQueue.stop_waiter!(store)
+                DistSSHKitQueue.stop_serve!(store)
                 try
                     kill(proc)
                     wait(proc)
@@ -145,7 +145,7 @@ end
                     @test occursin("cancelled", listed)
                 end
             finally
-                DistSSHKitQueue.stop_waiter!(store)
+                DistSSHKitQueue.stop_serve!(store)
             end
         end
     end
@@ -167,7 +167,7 @@ end
                     @test done.state === :cancelled
                 end
             finally
-                DistSSHKitQueue.stop_waiter!(store)
+                DistSSHKitQueue.stop_serve!(store)
             end
         end
     end

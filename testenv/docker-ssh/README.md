@@ -2,7 +2,7 @@
 
 Real OpenSSH + rsync Linux workers for a DistSSHKitQueue end-to-end run. These
 containers are **DistSSHKit `go` / `drive` targets** (`child:NAME[:N]`), not the queue
-host. The queue host and the waiter run on the host during `--e2e`.
+host. The queue host and `serve` run on the host during `--e2e`.
 
 Adapted from DistSSHKit's `testenv/docker-ssh` (same worker image shape), kept
 independent in this repo. `Pkg.test()` does **not** start Docker or run this.
@@ -14,7 +14,7 @@ Optional Mac-only path (same image and `test/e2e.jl`):
 
 ## What the E2E proves
 
-The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `child:NAME[:N]` workers only. Do not add a container named `qhost`; the client hop is loopback `qhost:dskq-qh`. SSH Host `dskq-w1` / `dskq-w2` is not Compose `child-1` / `child-2` (naming: issue #35). Roles: [test/README.md](../../test/README.md#ssh-e2e-roles).
+The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `child:NAME[:N]` workers only. Do not add a container named `qhost`; the client `qhost:` is loopback `qhost:dskq-qh`. SSH Host `dskq-w1` / `dskq-w2` is not Compose `child-1` / `child-2` (naming: issue #35). Roles: [test/README.md](../../test/README.md#ssh-e2e-roles).
 
 [`test/e2e.jl`](../../test/e2e.jl):
 
@@ -22,9 +22,9 @@ The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSH
    those call `go!` / `pipeline!` themselves).
 2. `setup!` deploys that project to the workers (rsync + instantiate).
 3. Enqueue each remaining demo (same contract as `submit go` / `submit drive`) and
-   drive the waiter to `:done`.
+   drive `serve` to `:done`.
 4. FIFO: two queued Kit jobs, one running at a time.
-5. Cancel the middle queued row; waiter skips it and runs the next.
+5. Cancel the middle queued row; `serve` skips it and runs the next.
 6. `result_path` is Kit’s collected tree; peek it on the queue host (no second collect).
 7. Queue-host CLI (omit `qhost:`, fake `HOME`): `setup`, `enable --write-only`,
    `disable --write-only`, foreground `serve`, `submit go child:dskq-w1:1 SCRIPT.jl`, `status`,

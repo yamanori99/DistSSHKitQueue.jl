@@ -8,10 +8,10 @@ Submit from a **client** after the queue host is up
 ## Point at the queue host
 
 Run from a directory where Queue is loadable (`julia --project=.`).
-That `--project=.` stays on the **client**. The hop loads Queue from
+That `--project=.` stays on the **client**. `qhost:` loads Queue from
 `~/.distsshkitqueue/env` (`--queue-env DIR` if you used another dir).
 `SCRIPT.jl` must exist **on the queue host** in that job's clone
-(`~/org/Repo.jl`), not only on the laptop. Hop does not send the client
+(`~/org/Repo.jl`), not only on the laptop. `qhost:` does not send the client
 cwd.
 
 ```bash
@@ -39,9 +39,9 @@ julia --project=. -m DistSSHKitQueue qhost:mini watch
 julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
 ```
 
-`submit` starts a waiter if none is running. `status` / `watch` print
+`submit` starts `serve` if none is running. `status` / `watch` print
 `qhost` (or `local (hostname)` when you omitted it). `watch` redraws
-until Ctrl-C; it does not stop the waiter. Job ids print as a bare
+until Ctrl-C; it does not stop `serve`. Job ids print as a bare
 stdout line. `submit` also prints `Queued  N` on stderr unless
 `DISTSSHKIT_QUIET` is set.
 

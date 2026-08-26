@@ -27,7 +27,7 @@ function Queue(;
     return Queue(ReentrantLock(), Job[], st, runner, nothing, names, follow_config)
 end
 
-"""Kit job tree: `DISTRIBUTED_PROJECT_ROOT`, else the `Project.toml` above `cwd`, else `cwd`.
+"""Kit project: `DISTRIBUTED_PROJECT_ROOT`, else the `Project.toml` above `cwd`, else `cwd`.
 
 Not the Julia `--project=` that loaded DistSSHKitQueue.
 """
@@ -39,7 +39,7 @@ function job_project(; cwd::AbstractString=pwd())::String
     return DistSSHKit.canonical_local_path(root)
 end
 
-"""Worker path Kit would use for this queue-host tree (`remote=` or Kit default / ENV)."""
+"""Worker path Kit would use for this queue-host project (`remote=` or Kit default / ENV)."""
 function kit_worker_root(project::AbstractString, kw::AbstractDict)::String
     r = get(kw, "remote", nothing)
     if r isa AbstractString
@@ -49,9 +49,9 @@ function kit_worker_root(project::AbstractString, kw::AbstractDict)::String
     return DistSSHKit.resolve_remote_project_root(DistSSHKit.canonical_local_path(project))
 end
 
-"""Refuse two different queue-host trees that Kit would place on the same worker path.
+"""Refuse two different queue-host projects that Kit would place on the same worker path.
 
-Does not rename. Does not `setup --delete`. Same tree (re-submit) is fine.
+Does not rename. Does not `setup --delete`. Same project (re-submit) is fine.
 """
 function reject_worker_root_collision!(jobs::Vector{Job}, project::AbstractString, kw::AbstractDict)
     proj = DistSSHKit.canonical_local_path(project)
@@ -63,7 +63,7 @@ function reject_worker_root_collision!(jobs::Vector{Job}, project::AbstractStrin
         op == proj && continue
         kit_worker_root(op, j.kwargs) == root || continue
         throw(ArgumentError(
-            "job tree $(proj) and $(op) both deploy to $(root) on workers. " *
+            "project $(proj) and $(op) both deploy to $(root) on workers. " *
             "Use a unique ~/parent/Repo.jl; do not pin DISTRIBUTED_REMOTE_PROJECT_ROOT in shared config. " *
             "Queue does not rename or setup --delete.",
         ))
@@ -236,7 +236,7 @@ function kit_run_error_text(result)::String
     end
 end
 
-"""Pid gone: prefer `kit.result`, else `:failed` (waiter lost `KitProcess`)."""
+"""Pid gone: prefer `kit.result`, else `:failed` (`serve` lost `KitProcess`)."""
 function settle_lost_kit_child!(j::Job)
     dir = kit_output_dir(j)
     rec = dir === nothing ? nothing : DistSSHKit.kit_result_from_dir(dir)
@@ -316,7 +316,7 @@ end
 
 """Merge disk into `q.jobs`.
 
-The waiter overlays its in-memory live row whenever disk still has that
+`serve` overlays its in-memory live row whenever disk still has that
 id and the disk row is not `:cancelled` (stale `load!` may have written
 `:failed` without `kit.pid`; a later `_finish!(:done)` must still land).
 Client `cancel!` persists `:cancelled`: that row wins, and `live_id` is
@@ -396,7 +396,7 @@ end
 
 `hosts` must be DistSSHKit 0.4 placement tokens (`parent[:N]` / `child:NAME[:N]`).
 Missing `project` uses `job_project()` (cwd / `DISTRIBUTED_PROJECT_ROOT`), not the
-waiter env (`enable --queue-env` / Julia `--project=` that loaded Queue). Same verb as CLI `submit`.
+serve env (`enable --queue-env` / Julia `--project=` that loaded Queue). Same verb as CLI `submit`.
 
 `q.allowed` is the inventory (`Queue(; allowed=…)`), names plus optional max `:N`.
 It does not read `config.toml`. CLI `submit` uses `Queue(; follow_config=true)` so each
@@ -584,20 +584,20 @@ function _running_copy(q::Queue)::Union{Nothing,Job}
     end
 end
 
-"""Load `store` (stale `:running` → `:failed`), then `step!` until interrupt. Ctrl-C stops the waiter, not Kit.
+"""Load `store` (stale `:running` → `:failed`), then `step!` until interrupt. Ctrl-C stops serve, not Kit.
 
 A second `serve` on the same store prints `Already running` and returns.
 """
 function serve!(q::Queue; interval::Real=0.2)
     store = q.store
     if store isa String
-        existing = waiter_pid(store)
+        existing = serve_pid(store)
         if existing !== nothing && existing != getpid()
             print_serve_already(existing, store)
             return nothing
         end
         # Claim the pidfile before `load!`. Two autoserve processes otherwise both
-        # pass `waiter_alive` and the second `load_jobs` persists `:failed` on a
+        # pass `serve_alive` and the second `load_jobs` persists `:failed` on a
         # `:running` row that has no `kit.pid` yet.
         clear_stopped!(store)
         write_pid_file(store)
@@ -624,10 +624,10 @@ function serve!(q::Queue; interval::Real=0.2)
     else
         nothing
     end
-    owns() = store isa String ? (waiter_pid(store) == getpid()) : true
+    owns() = store isa String ? (serve_pid(store) == getpid()) : true
     gone = false
     # Skip the dir-lock + TOML parse of `step!` while the store is unchanged: an
-    # idle waiter otherwise churns mkdir/rmdir + parse every `interval`. Any
+    # idle serve otherwise churns mkdir/rmdir + parse every `interval`. Any
     # client enqueue or our own persist bumps the mtime, so nothing is missed.
     last_mtime = Ref(typemin(Float64))
     try
@@ -660,8 +660,8 @@ function serve!(q::Queue; interval::Real=0.2)
             flush(io)
         end
         if gone
-            print_waiter_gone(label; io=io)
-        elseif store isa String && waiter_pid(store) == getpid()
+            print_serve_gone(label; io=io)
+        elseif store isa String && serve_pid(store) == getpid()
             remove_pid_file(store)
         end
     end

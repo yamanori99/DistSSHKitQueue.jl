@@ -2,8 +2,8 @@
 # Queue SSH E2E against testenv/docker-ssh workers. Not part of Pkg.test().
 #
 # Stages DistSSHKit `demos/` into testenv/example-job, setup! to the workers,
-# then enqueue Kit go/drive jobs through the Queue waiter
-# (same as CLI `submit go` / `submit drive`). The waiter runs
+# then enqueue Kit go/drive jobs through Queue `serve`
+# (same as CLI `submit go` / `submit drive`). `serve` runs
 # DistSSHKit `execute!(…; detached=true)`.
 #
 # Also: `julia -m DistSSHKitQueue` on the queue host (omit `qhost:HOST`) and as a
@@ -161,7 +161,7 @@ function wait_status(pred, cmd::Cmd; tries=600, sleep_s=0.2)
     return out
 end
 
-# CLI for assertions. Product chrome (`Wrote`, `Started waiter`, expected
+# CLI for assertions. Product chrome (`Wrote`, `Started serve`, expected
 # `Error:`) stays off the test log; stdout is still returned when captured.
 function run_cli(cmd::Cmd)
     return run(pipeline(ignorestatus(cmd); stdout=devnull, stderr=devnull))
@@ -349,7 +349,7 @@ end
             host = HOSTS[1]
             token = "child:$(host):1"
 
-            @testset "Kit go/drive demos through the waiter" begin
+            @testset "Kit go/drive demos through serve" begin
                 cases = (
                     (
                         :go,
@@ -392,10 +392,10 @@ end
                         q = Queue(; store = case_store)
                         id = enqueue_kit!(q, kind, script, token; out = out, args = args)
                         @test job(q, id).kind === kind
-                        waiter = Queue(; store = case_store)
-                        load!(waiter)
-                        st = drive_until_terminal!(waiter, id)
-                        row = job(waiter, id)
+                        q = Queue(; store = case_store)
+                        load!(q)
+                        st = drive_until_terminal!(q, id)
+                        row = job(q, id)
                         st === :done || @warn "job not done" label state = st error = row.error
                         @test st === :done
                         @test row.kind === kind
@@ -519,7 +519,7 @@ end
                     "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
                     "DISTSSHKITQUEUE_WATCH_TICKS" => "1",
                     "DISTRIBUTED_SSH_OPTS" => "-F $(SSH_CONFIG)",
-                    # Job tree is the example job, not the CLI's cwd. Over `qhost:`
+                    # Kit project is the example job, not the CLI's cwd. Over `qhost:`
                     # the ssh command lands in the login HOME, so `job_project()`
                     # cannot infer it; pin it like the API tests pass `project=`.
                     "DISTRIBUTED_PROJECT_ROOT" => JOB_PROJECT,
@@ -576,7 +576,7 @@ end
                         @test occursin("DistSSHKitQueue watch", wout)
                         @test occursin(id, wout)
                     finally
-                        DistSSHKitQueue.stop_waiter!(store)
+                        DistSSHKitQueue.stop_serve!(store)
                         try
                             kill(serve_proc)
                             wait(serve_proc)
@@ -613,8 +613,8 @@ end
                             "DISTSSHKIT_YES" => "1",
                             "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
                             "DISTRIBUTED_SSH_OPTS" => "-F $(SSH_CONFIG)",
-                            # `qhost:` submit runs in the login HOME; pin the job
-                            # tree so `job_project()` does not fall back to it.
+                            # `qhost:` submit runs in the login HOME; pin the Kit
+                            # project so `job_project()` does not fall back to it.
                             "DISTRIBUTED_PROJECT_ROOT" => JOB_PROJECT,
                             "DISTRIBUTED_REMOTE_PROJECT_ROOT" => REMOTE_ROOT,
                         )
@@ -643,7 +643,7 @@ end
                         wout = read_cli(addenv(qh(["watch", "--interval", "0.05"]), client_env...))
                         @test occursin(id1, wout)
 
-                        # Occupy the waiter on this box (`parent:1`); a worker
+                        # Occupy serve on this box (`parent:1`); a worker
                         # `pi_echo` finishes before cancel. Submit the queued row
                         # immediately (same pattern as test/integration/cli.jl).
                         hold = joinpath(d, "hold.jl")
@@ -670,8 +670,8 @@ end
                         @test run_cli(addenv(qh(["stop"]), client_env...)).exitcode == 0
                         @test run_cli(addenv(qh(["teardown", "-y", "--write-only"]), client_env...)).exitcode == 0
                     finally
-                        DistSSHKitQueue.stop_waiter!(qh_store)
-                        DistSSHKitQueue.stop_waiter!(store)
+                        DistSSHKitQueue.stop_serve!(qh_store)
+                        DistSSHKitQueue.stop_serve!(store)
                         stop_loopback_sshd(sshd_proc)
                     end
                 end

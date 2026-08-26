@@ -14,7 +14,7 @@ Kit `go` / `drive` / `size` flags stay in the
 | [submit](@ref Manual-submit) | Enqueue DistSSHKit `go` / `drive` |
 | [status](@ref Manual-status) | `status` / `watch` / `cancel` |
 | [hosts](@ref Manual-hosts) | `add-host` / `remove-host` / `list-host` / `size` |
-| [waiter](@ref Manual-waiter) | `serve` / `stop` / `enable` / `disable` |
+| [serve](@ref Manual-serve) | `serve` / `stop` / `enable` / `disable` |
 | [setup](@ref Manual-setup) | `setup` / `teardown` / `config.toml` |
 
 ## Client vs queue host
@@ -27,9 +27,9 @@ Refuse `qhost:`: `setup`, `serve`, `enable`, `disable`, `add-host`,
 `watch`, `cancel`, `stop`, `teardown`.
 
 `--hosts` / `--julia` belong to Kit `go` / `drive`. Queue-host Julia is
-`--remote-julia` / `JULIA_DISTRIBUTED_EXE`. Hop Queue env is
-`--queue-env DIR` (default `~/.distsshkitqueue/env`), not the client's
-`--project=.`. Default hop host: `DISTSSHKITQUEUE_HOST` (not
+`--remote-julia` / `JULIA_DISTRIBUTED_EXE`. `--queue-env DIR` is
+`julia --project=` on the queue host (default `~/.distsshkitqueue/env`),
+not the client's `--project=.`. Default `qhost:`: `DISTSSHKITQUEUE_HOST` (not
 `DISTSSHKIT_HOSTS`). Not forwarded. Not `DISTSSHKITQUEUE_QHOST` (that is
 `status` / `watch` display).
 
@@ -42,19 +42,19 @@ queue host. `disable` is the opposite of `enable`, not of `serve`.
 Each row: `id` (UUID), `kind` (`:go` / `:drive`), `script`, `hosts`,
 `state` (`:queued` / `:running` / `:done` / `:failed` / `:cancelled`),
 `queued_at` / `started_at` / `finished_at`, `error`, and `result_path`
-— Kit's output directory. If submit omitted `--output-dir`, the waiter
+— Kit's output directory. If submit omitted `--output-dir`, `serve`
 sets one with DistSSHKit `allocate_output_dir` when the row becomes
 `:running` (so `cancel` and a later `serve` can find `kit.pid`). Queue
 does not keep a second copy of Kit's result tree. Kit kwargs (`args`,
 `project`, `output_dir`, …) travel as an opaque bag through DistSSHKit's
-`execute!` allow-list. The waiter also passes `job_id` (the row UUID)
+`execute!` allow-list. `serve` also passes `job_id` (the row UUID)
 so Kit progress lines can carry `job=`.
 
 The table is TOML on the queue host (`~/.distsshkitqueue/jobs.toml`),
-rewritten under a directory lock. Kit results stay under the job tree
-(`.distsshkit/`). Layout: [Where files live](@ref Layout). If the waiter
+rewritten under a directory lock. Kit results stay under that project
+(`.distsshkit/`). Layout: [Where files live](@ref Layout). If `serve`
 dies: `:queued` rows reload on the next `serve`. A `:running` row whose
-DistSSHKit `kit.pid` is still alive stays `:running` (the waiter will
+DistSSHKit `kit.pid` is still alive stays `:running` (`serve` will
 not start the next FIFO job). A `:running` row with no live `kit.pid`
 is `:done` or `:failed` from `kit.result` when that file exists,
 otherwise `:failed`.
@@ -74,6 +74,6 @@ otherwise `:failed`.
 A scheduler inside DistSSHKit, weakdeps from Queue to DistSSHKit, a glue
 package, lab-wide slot ceilings or occupancy packing, preemption /
 fair-share / priorities / reservations / backfill, HTTP or a listen
-socket, a sleeping laptop as the waiter, auto-retry of crashed
+socket, a sleeping laptop as `serve`, auto-retry of crashed
 `:running` jobs, a Queue-owned copy of Kit's result trees, and native
 Windows.

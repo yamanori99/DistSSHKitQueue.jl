@@ -124,8 +124,8 @@ function _process_alive_fallback(pid::Integer)::Bool
     end
 end
 
-"""Live waiter pid from the store pidfile, or `nothing`."""
-function waiter_pid(store::AbstractString)::Union{Nothing,Int}
+"""Live serve pid from the store pidfile, or `nothing`."""
+function serve_pid(store::AbstractString)::Union{Nothing,Int}
     p = store_pid_path(store)
     isfile(p) || return nothing
     pid = tryparse(Int, strip(read(p, String)))
@@ -135,21 +135,21 @@ function waiter_pid(store::AbstractString)::Union{Nothing,Int}
 end
 
 """Is a `serve` for `store` already running (pidfile + live process)?"""
-waiter_alive(store::AbstractString)::Bool = waiter_pid(store) !== nothing
+serve_alive(store::AbstractString)::Bool = serve_pid(store) !== nothing
 
 function write_pid_file(store::AbstractString)
     mkpath(dirname(store))
     write(store_pid_path(store), string(getpid()))
-    record_test_waiter_pid!(getpid())
+    record_test_serve_pid!(getpid())
     return nothing
 end
 
-"""If tests set `DISTSSHKITQUEUE_TEST_PIDS`, append this waiter's pid.
+"""If tests set `DISTSSHKITQUEUE_TEST_PIDS`, append this serve pid.
 
 Harness `atexit` / parent-death reaper reads that list. Production leaves the
 env unset, so this is a no-op.
 """
-function record_test_waiter_pid!(pid::Integer)
+function record_test_serve_pid!(pid::Integer)
     path = String(get(ENV, "DISTSSHKITQUEUE_TEST_PIDS", ""))
     isempty(path) && return nothing
     try
@@ -164,10 +164,10 @@ end
 remove_pid_file(store::AbstractString) = rm(store_pid_path(store); force=true)
 
 """Latch that `stop` leaves next to the store so `submit` will not auto-serve.
-An explicit `serve` clears it; that is the only thing that resumes the waiter."""
+An explicit `serve` clears it; that is the only thing that resumes serve."""
 store_stop_path(store::AbstractString)::String = string(store, ".stopped")
 
-waiter_stopped(store::AbstractString)::Bool = isfile(store_stop_path(store))
+serve_stopped(store::AbstractString)::Bool = isfile(store_stop_path(store))
 
 function set_stopped!(store::AbstractString)
     mkpath(dirname(store))
@@ -177,8 +177,8 @@ end
 
 clear_stopped!(store::AbstractString) = rm(store_stop_path(store); force=true)
 
-"""SIGTERM a waiter recorded in the store pidfile. Does not kill this process."""
-function stop_waiter!(store::AbstractString)::Bool
+"""SIGTERM a serve recorded in the store pidfile. Does not kill this process."""
+function stop_serve!(store::AbstractString)::Bool
     p = store_pid_path(store)
     isfile(p) || return false
     pid = tryparse(Int, strip(read(p, String)))

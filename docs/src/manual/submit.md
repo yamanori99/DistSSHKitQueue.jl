@@ -1,6 +1,6 @@
 # [submit](@id Manual-submit)
 
-Enqueue a DistSSHKit `go` or `drive`. Starts a waiter if none is
+Enqueue a DistSSHKit `go` or `drive`. Starts `serve` if none is
 running.
 
 ```bash
@@ -25,9 +25,9 @@ The script is checked to exist **before** enqueue (path resolved on the
 queue host). Job id prints as a bare stdout line. CLI `submit` also prints
 `Queued  N` on stderr (`(R running)` when a job is already running);
 `DISTSSHKIT_QUIET` hides that. Library [`submit!`](@ref) does not.
-Two different job
-trees that Kit would deploy to the same worker path are refused (no
-rename, no `setup --delete`). The same tree may be submitted again.
+Two different projects
+that Kit would deploy to the same worker path are refused (no
+rename, no `setup --delete`). The same project may be submitted again.
 
 ## Flags
 
@@ -42,8 +42,8 @@ flag set.
 | `-v` / `--version` | On `submit go` / `submit drive`: Kit only |
 | `-h` / `--help` | Kit help for that kind |
 
-Opt out of autoserve: `DISTSSHKITQUEUE_NO_AUTOSERVE=1`. A prior
-[`stop`](@ref Manual-waiter) also holds the waiter off until an
+Opt out of auto `serve`: `DISTSSHKITQUEUE_NO_AUTOSERVE=1`. A prior
+[`stop`](@ref Manual-serve) also holds `serve` off until an
 explicit `serve`.
 
 A `:running` Kit job is not stopped when `hosts` changes. `:queued`

@@ -13,11 +13,11 @@ Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
 [User Guide](@ref Manual).
 
 `status` / `watch` print `qhost` from `DISTSSHKITQUEUE_QHOST` (set on
-the ssh hop), or `local (hostname)` when omitted. No `--via`. Not the
+the `qhost:` ssh), or `local (hostname)` when omitted. No `--via`. Not the
 job `HOSTS` column. `watch` with `qhost:HOST` uses `ssh -t` so the
 remote TTY can clear the screen.
 
-`watch` does not stop the waiter. Ctrl-C leaves it running.
+`watch` does not stop `serve`. Ctrl-C leaves it running.
 
 ## Flags
 

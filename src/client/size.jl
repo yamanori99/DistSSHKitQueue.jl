@@ -1,4 +1,4 @@
-"""CLI `size`: DistSSHKit `size` / `size!` on the queue host (job tree).
+"""CLI `size`: DistSSHKit `size` / `size!` on the queue host (cwd / project).
 
 Same argv as Kit (`parent` / `child:NAME`, `--gb-per-worker`, `--probe`, …).
 No tokens: size every name on config `hosts`. Does not enqueue.
@@ -52,7 +52,7 @@ function size_cli(args::Vector{String})::Cint
         DistSSHKit.print_help_blank()
         DistSSHKit.print_help_section("Queue"; io=stdout)
         DistSSHKit.print_help_lines(stdout,
-            "  Same flags as DistSSHKit size. Runs on the queue host (job tree).",
+            "  Same flags as DistSSHKit size. Runs on the queue host (cwd / project).",
             "  julia -m DistSSHKitQueue [qhost:HOST] size [parent] [child:NAME...]",
             "  Omit tokens to size config hosts. Does not enqueue.",
         )

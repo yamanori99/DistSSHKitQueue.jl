@@ -2,9 +2,9 @@
 
 Internals of this repo. Users: [README.md](README.md), [README.ja.md](README.ja.md), [NEWS.md](NEWS.md), [docs](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/) (`docs/`; [docs/README.md](docs/README.md)).
 
-This is a **separate** package from DistSSHKit: a FIFO waiter in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
+This is a **separate** package from DistSSHKit: FIFO `serve` in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
 
-Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **max** (`test/e2e.jl`: waiter API, queue-host CLI, `qhost:` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
+Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **max** (`test/e2e.jl`: `serve` API, queue-host CLI, `qhost:` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
 
 ## Requirements
 
@@ -134,7 +134,7 @@ If Queue cannot implement something without a kit hook, open a DistSSHKit Enhanc
 
 | Unreleased is… | Cut? |
 | --- | --- |
-| Happy-path bug (FIFO enqueue / waiter) | Yes, that patch promptly |
+| Happy-path bug (FIFO enqueue / `serve`) | Yes, that patch promptly |
 | Opt-in flags, docs, CI | When someone needs it on General, **or** those items have sat in Unreleased for **two weeks** |
 
 ### After a cut on General
@@ -167,16 +167,16 @@ Every tracked path must match some `area:*` glob (`gen-labeler.sh --check`). Glo
 
 | Paths | Label |
 | --- | --- |
-| `src/client/<stem>.jl` / `src/qhost/<stem>.jl` (`_` → `-` in the label) | `area:<stem>` |
+| `src/client/**` | `area:client` |
+| `src/qhost/**` | `area:qhost` |
 | Leftover queue (`src/DistSSHKitQueue.jl`, `src/DistSSHKitQueue/**`, matching unit tests, shared `test/integration/cli.jl`, package meta) | `area:queue` |
 | Harness under `test/` (not `unit/` / `integration/`) and `testenv/**` | `area:test` |
-| `test/e2e.jl` | client / qhost areas as well |
-| Product tests under `unit/` and `integration/` | that `area:<stem>` (plus `area:queue` when leftover shared queue) |
+| `test/e2e.jl` | `area:client` and `area:qhost` as well |
 | `docs/**` | `area:docs` |
 | `README.md`, `README.ja.md`, `NEWS.md`, `CONTRIBUTING.md`, `SECURITY.md` | `area:project-docs` |
 | `.github/**`, `codecov.yml` | `area:ci` |
 
-New client / qhost file or a new product-test tree: edit the script, regenerate, create the GitHub label.
+New leftover queue test file: edit the script, regenerate, create the GitHub label.
 
 Backfill every PR after a vocabulary change:
 

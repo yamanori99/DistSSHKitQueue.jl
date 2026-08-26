@@ -7,7 +7,7 @@ julia -m DistSSHKitQueue setup [--force]
 julia -m DistSSHKitQueue teardown -y
 ```
 
-Also: [Prepare](@ref Tutorial-Prepare), [waiter](@ref Manual-waiter),
+Also: [Prepare](@ref Tutorial-Prepare), [serve](@ref Manual-serve),
 [hosts](@ref Manual-hosts). `setup` refuses `qhost:`. `teardown` can
 run from a client (`qhost:HOST teardown -y`).
 
@@ -21,7 +21,7 @@ no-op unless `--force`.
 | `--force` | `setup`: rewrite `config.toml` |
 | `--config PATH` | `setup` / `teardown`: config path (`DISTSSHKITQUEUE_CONFIG`) |
 | `-y` / `--yes` | `teardown`: confirm (`DISTSSHKIT_YES`; same values as DistSSHKit) |
-| `--write-only` | `teardown`: do not stop the waiter or unload the OS unit |
+| `--write-only` | `teardown`: do not stop `serve` or unload the OS unit |
 | `--home DIR` | `teardown`: home for `~/.distsshkitqueue` |
 | `--bindir DIR` | `teardown`: leftover `dskq` shim path |
 | `-h` / `--help` | Queue usage |
@@ -31,7 +31,7 @@ still applies.
 
 ## teardown
 
-Stops the waiter, removes the OS unit and `~/.distsshkitqueue`. Does
+Stops `serve`, removes the OS unit and `~/.distsshkitqueue`. Does
 not `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/`
 results. Trees: [Where files live](@ref Layout). Still removes a leftover
 `~/.local/bin/dskq` if present.

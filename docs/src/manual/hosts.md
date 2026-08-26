@@ -45,7 +45,7 @@ julia -m DistSSHKitQueue qhost:mini list-host
 
 ## size
 
-DistSSHKit `size` on the queue host (job tree). Omit tokens to size
+DistSSHKit `size` on the queue host (cwd / project). Omit tokens to size
 config `hosts`. Does not enqueue. Prints a `submit drive` template.
 
 ```bash
