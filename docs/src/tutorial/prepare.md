@@ -3,7 +3,8 @@
 First-time **queue host** before a [First job](@ref Tutorial-Client).
 Clients can skip this page if someone already set that box up.
 
-Also see [Requirements](@ref), [User Guide · setup](@ref Manual-setup),
+Also see [Requirements](@ref), [Where files live](@ref Layout),
+[User Guide · setup](@ref Manual-setup),
 [Introduction](@ref DistSSHKitQueue.jl).
 
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host`
@@ -11,24 +12,30 @@ refuse `qhost:` — log in to the queue host and run them there.
 
 ## Install Queue
 
-Once, in the default env:
+Once, in `~/.distsshkitqueue/env` (the hop and `enable` default):
+
+```bash
+mkdir -p ~/.distsshkitqueue/env
+cd ~/.distsshkitqueue/env
+julia --project=.
+```
 
 ```julia
 pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1
 ```
 
-That pulls DistSSHKit **0.4.1+** from General.
-
-A dedicated env at `~/.distsshkitqueue/env`, if you create one, is the
-usual `enable --queue-env` so a checkout can be deleted later. `setup`
-does not create that env (it would run `Pkg` as a side effect).
+That pulls DistSSHKit **0.4.1+** from General. `setup` does not create
+that env (it would run `Pkg` as a side effect). A different dir is
+`--queue-env DIR` on `enable` and on the client hop. `--queue-env @` is
+the remote default Julia env (no `--project=`).
 
 ## Config and inventory
 
 ```bash
-julia -m DistSSHKitQueue setup
-julia -m DistSSHKitQueue add-host parent child:host1
-julia -m DistSSHKitQueue list-host
+cd ~/.distsshkitqueue/env
+julia --project=. -m DistSSHKitQueue setup
+julia --project=. -m DistSSHKitQueue add-host parent child:host1
+julia --project=. -m DistSSHKitQueue list-host
 ```
 
 `setup` writes `~/.distsshkitqueue/config.toml` if missing (`--force`
@@ -40,13 +47,15 @@ no longer allow-all). Optional `:N` is a max. No `serve` restart: the
 next `submit` re-reads the file.
 
 Workers still need DistSSHKit `setup` (rsync or clone, then instantiate)
-from the **queue host**, not from Queue.
+from the **queue host**, not from Queue, **from that job's clone**
+(`~/org/Repo.jl`). Leave `DISTRIBUTED_REMOTE_PROJECT_ROOT` unset in
+queue `config.toml` so Kit uses `~/parent/Repo.jl` per tree.
 [kit Prepare](https://yamanori99.github.io/DistSSHKit.jl/stable/tutorial/prepare/).
 
 ## Survive reboot (optional)
 
 ```bash
-julia -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
+julia --project=. -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
 ```
 
 `--queue-env` is the env that loads Queue in the OS unit, not Julia
@@ -56,7 +65,7 @@ not leave a `serve` terminal open.
 Foreground, this session only:
 
 ```bash
-julia -m DistSSHKitQueue serve
+julia --project=. -m DistSSHKitQueue serve
 ```
 
 Next: [First job](@ref Tutorial-Client).

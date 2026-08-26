@@ -39,6 +39,33 @@ end
     @test_throws ArgumentError Queue(; allowed=["parent"], follow_config=true)
 end
 
+@testset "submit! rejects two trees that share a worker path" begin
+    mktempdir() do d
+        a = joinpath(d, "a")
+        b = joinpath(d, "b")
+        mkpath(a)
+        mkpath(b)
+        write(joinpath(a, "Project.toml"), "[deps]\n")
+        write(joinpath(b, "Project.toml"), "[deps]\n")
+        write(joinpath(a, "x.jl"), "1\n")
+        write(joinpath(b, "x.jl"), "1\n")
+        q = Queue(; runner=_ -> nothing)
+        shared = "/tmp/dskq-shared-remote"
+        withenv("DISTRIBUTED_REMOTE_PROJECT_ROOT" => shared) do
+            id = submit!(q, joinpath(a, "x.jl"), "parent:1"; project=a)
+            @test DistSSHKit.canonical_local_path(String(job(q, id).kwargs["project"])) ==
+                  DistSSHKit.canonical_local_path(a)
+            @test_throws ArgumentError submit!(q, joinpath(b, "x.jl"), "parent:1"; project=b)
+            id2 = submit!(q, joinpath(a, "x.jl"), "parent:1"; project=a)
+            @test job(q, id2).state === :queued
+        end
+        q2 = Queue(; runner=_ -> nothing)
+        submit!(q2, joinpath(a, "x.jl"), "parent:1"; project=a, remote="/r/one")
+        @test_throws ArgumentError submit!(q2, joinpath(b, "x.jl"), "parent:1"; project=b, remote="/r/one")
+        submit!(q2, joinpath(b, "x.jl"), "parent:1"; project=b, remote="/r/two")
+    end
+end
+
 @testset "submit! rejects :N above the allowed max" begin
     q = Queue(; runner=_ -> nothing, allowed=["parent:2", "child:host1:4"])
     @test submit!(q, "ok.jl", "parent:2", "child:host1:4") isa String
@@ -470,11 +497,17 @@ end
                 @test occursin("Bare go / drive alias", help)
                 @test occursin("no Queue verb is go", help)
                 @test occursin("submit go -v is Kit only", help)
+                @test occursin("Queued  N", help)
                 @test !occursin("--hosts HOST", help)
                 @test occursin("watch", help)
                 @test occursin("status [-q]", help)
                 @test occursin("enable", help)
                 @test occursin("--queue-env", help)
+                @test occursin("The job tree is cwd", help)
+                @test occursin("One Kit clone per job", help)
+                @test occursin("same worker path", help)
+                @test occursin("Hop Queue env", help)
+                @test occursin("Not the client's --project=", help)
                 @test occursin("disable", help)
                 @test occursin("sleeping laptop", help)
                 @test !occursin("service install", help)
@@ -626,10 +659,28 @@ end
             "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1",
         ) do
             cd(jobdir) do
-                code_ok, _, _ = capture_stdio() do
+                code_ok, out_ok, err_ok = capture_stdio() do
                     DistSSHKitQueue.main(["submit", "go", "parent:1", "job.jl"])
                 end
                 @test code_ok == 0
+                @test occursin(r"Queued\s+1\b", err_ok)
+                @test !occursin("Queued", out_ok)
+                id1 = strip(out_ok)
+                @test !isempty(id1)
+                code2, out2, err2 = capture_stdio() do
+                    DistSSHKitQueue.main(["submit", "go", "parent:1", "job.jl"])
+                end
+                @test code2 == 0
+                @test occursin(r"Queued\s+2\b", err2)
+                @test strip(out2) != id1
+                withenv("DISTSSHKIT_QUIET" => "1") do
+                    code_q, out_q, err_q = capture_stdio() do
+                        DistSSHKitQueue.main(["submit", "go", "parent:1", "job.jl"])
+                    end
+                    @test code_q == 0
+                    @test !occursin("Queued", err_q)
+                    @test !isempty(strip(out_q))
+                end
                 code_bad, _, err = capture_stdio() do
                     DistSSHKitQueue.main(["submit", "go", "child:host1:1", "job.jl"])
                 end
@@ -956,11 +1007,72 @@ end
     @test occursin("org.distsshkitqueue.serve", plist)
     @test occursin("/opt/bin/julia", plist)
     @test occursin("--project=/opt/Queue.jl", plist)
+    @test occursin("--startup-file=no", plist)
+    @test occursin("<string>-m</string>", plist)
     @test occursin("DistSSHKitQueue", plist)
     @test occursin("serve", plist)
+    @test occursin("<key>RunAtLoad</key>", plist)
+    @test occursin("<key>KeepAlive</key>", plist)
     unit = DistSSHKitQueue.systemd_user_unit("/usr/bin/julia", "/opt/Queue.jl")
     @test occursin("ExecStart=/usr/bin/julia --startup-file=no --project=/opt/Queue.jl -m DistSSHKitQueue serve", unit)
     @test occursin("Restart=on-failure", unit)
+    @test occursin("Type=simple", unit)
+    @test occursin("WantedBy=default.target", unit)
+end
+
+# README / docs paths. Literal strings so Linux Pkg.test still catches a macOS
+# path drift (and the reverse). `enable --write-only` then pins the live OS.
+@testset "enable unit paths match docs (macOS and Linux)" begin
+    @test DistSSHKitQueue.launch_agent_path(; home="/Users/lab") ==
+        "/Users/lab/Library/LaunchAgents/org.distsshkitqueue.serve.plist"
+    @test DistSSHKitQueue.systemd_user_path(; home="/home/lab") ==
+        "/home/lab/.config/systemd/user/distsshkitqueue.serve.service"
+    mktempdir() do home
+        plist = DistSSHKitQueue.launch_agent_path(; home)
+        unit = DistSSHKitQueue.systemd_user_path(; home)
+        DistSSHKitQueue.write_serve_unit(plist, DistSSHKitQueue.launch_agent_plist("/opt/julia", "/opt/env"))
+        DistSSHKitQueue.write_serve_unit(unit, DistSSHKitQueue.systemd_user_unit("/opt/julia", "/opt/env"))
+        @test isfile(joinpath(home, "Library", "LaunchAgents", "org.distsshkitqueue.serve.plist"))
+        @test isfile(joinpath(home, ".config", "systemd", "user", "distsshkitqueue.serve.service"))
+    end
+end
+
+@testset "enable --write-only writes the host OS unit under HOME" begin
+    Sys.iswindows() && return nothing
+    mktempdir() do d
+        home = joinpath(d, "home")
+        envdir = joinpath(d, "qenv")
+        mkpath(home)
+        mkpath(envdir)
+        write(joinpath(envdir, "Project.toml"), "[deps]\n")
+        julia = DistSSHKitQueue.default_julia_bin()
+        mac_unit = joinpath(home, "Library", "LaunchAgents", "org.distsshkitqueue.serve.plist")
+        linux_unit = joinpath(home, ".config", "systemd", "user", "distsshkitqueue.serve.service")
+        withenv("HOME" => home) do
+            @test homedir() == home
+            code, out, _ = capture_stdio() do
+                DistSSHKitQueue.main(["enable", "--write-only", "--queue-env", envdir, "--julia", julia])
+            end
+            @test code == 0
+            want = Sys.isapple() ? mac_unit : linux_unit
+            other = Sys.isapple() ? linux_unit : mac_unit
+            @test isfile(want)
+            @test !isfile(other)
+            body = read(want, String)
+            jl = DistSSHKit.canonical_local_path(julia)
+            proj = DistSSHKit.canonical_local_path(envdir)
+            @test occursin(jl, body)
+            @test occursin("--project=$proj", body)
+            @test occursin("DistSSHKitQueue", body)
+            @test occursin("serve", body)
+            @test occursin(Sys.isapple() ? "org.distsshkitqueue.serve.plist" : "distsshkitqueue.serve.service", out)
+            code2, _, _ = capture_stdio() do
+                DistSSHKitQueue.main(["disable", "--write-only"])
+            end
+            @test code2 == 0
+            @test !isfile(want)
+        end
+    end
 end
 
 @testset "enable refuses --project; --queue-env is the Queue env" begin

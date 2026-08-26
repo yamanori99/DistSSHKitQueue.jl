@@ -22,7 +22,12 @@ re-reads config `hosts`. Library [`submit!`](@ref) uses
 `Queue(; allowed=…)` unless `follow_config=true`.
 
 The script is checked to exist **before** enqueue (path resolved on the
-queue host). Job id prints as a bare stdout line.
+queue host). Job id prints as a bare stdout line. CLI `submit` also prints
+`Queued  N` on stderr (`(R running)` when a job is already running);
+`DISTSSHKIT_QUIET` hides that. Library [`submit!`](@ref) does not.
+Two different job
+trees that Kit would deploy to the same worker path are refused (no
+rename, no `setup --delete`). The same tree may be submitted again.
 
 ## Flags
 

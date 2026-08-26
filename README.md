@@ -82,6 +82,67 @@ there? Omit it. One lab: `export DISTSSHKITQUEUE_HOST=…` and omit `qhost:`
 Placement tokens, `go` / `drive` flags, and remote setup are DistSSHKit's —
 see the [kit docs](https://yamanori99.github.io/DistSSHKit.jl/stable/).
 
+### Where files live
+
+`qhost:` is the SSH name of the queue host, not a storage prefix. The
+table and Kit result dirs stay **on that box**. The client has no
+`~/.distsshkitqueue`. Queue does not copy Kit trees.
+
+#### Client
+
+```text
+~/my-job/
+  Project.toml          DistSSHKitQueue (CLI)
+  Manifest.toml
+  SCRIPT.jl             interpreted on the queue host
+```
+
+#### Queue host
+
+`~/.distsshkitqueue` plus **one Kit clone per job** (unique
+`~/org/Repo.jl`). Not the Queue env. Hop `SCRIPT.jl` is that tree. Do
+not set `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`.
+`submit` errors if a second tree would land on the same worker path.
+
+```text
+~/.distsshkitqueue/
+  config.toml
+  jobs.toml             every row (no prune)
+  jobs.toml.log
+  jobs.toml.pid         while serve is up
+  jobs.toml.stopped     after stop, until serve
+  env/                  hop / enable default
+    Project.toml
+    Manifest.toml
+
+~/org/Repo.jl/          one clone per job (cwd / DISTRIBUTED_PROJECT_ROOT)
+  Project.toml          compute deps
+  SCRIPT.jl
+  .distsshkit/go/
+    SCRIPT_<UTC>_<id>/  result_path
+      kit.pid
+      kit.result
+```
+
+`enable` (optional; skip if you only `serve` in a terminal):
+
+- **macOS** — `~/Library/LaunchAgents/org.distsshkitqueue.serve.plist`
+- **Linux / WSL2** — `~/.config/systemd/user/distsshkitqueue.serve.service`
+
+User units (no root). Same command: `julia --project=<queue-env> -m DistSSHKitQueue serve`.
+
+#### Workers
+
+No Queue table. Kit default `~/parent/Repo.jl` (not a shared `[env]`
+remote).
+Collect lands in the queue-host `.distsshkit/` dir above.
+
+```text
+<remote project root>/
+  Project.toml
+  SCRIPT.jl
+```
+
 ### Examples
 
 From a **client** (job directory; Queue must be loadable from that env):
@@ -94,14 +155,16 @@ julia --project=. -m DistSSHKitQueue qhost:mini watch
 julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
 ```
 
-`submit` starts a waiter on the queue host if none is running.
+`submit` starts a waiter on the queue host if none is running. Job ids are a
+bare stdout line; stderr shows `Queued  N` unless `DISTSSHKIT_QUIET` is set.
 
 On the **queue host** (once):
 
 ```bash
-julia -m DistSSHKitQueue setup
-julia -m DistSSHKitQueue add-host parent child:host1
-julia -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
+cd ~/.distsshkitqueue/env
+julia --project=. -m DistSSHKitQueue setup
+julia --project=. -m DistSSHKitQueue add-host parent child:host1
+julia --project=. -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
 ```
 
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` refuse

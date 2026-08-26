@@ -531,13 +531,23 @@ end
                     @test run_cli(addenv(qcmd(["setup"]), env...)).exitcode == 0
                     @test isfile(cfg)
                     @test run_cli(addenv(qcmd(["enable", "--write-only", "--queue-env", test_project, "--julia", E2E_JULIA]), env...)).exitcode == 0
-                    unit = if Sys.isapple()
-                        DistSSHKitQueue.launch_agent_path(; home=e2e_home)
+                    rel = if Sys.isapple()
+                        joinpath("Library", "LaunchAgents", "org.distsshkitqueue.serve.plist")
                     else
-                        DistSSHKitQueue.systemd_user_path(; home=e2e_home)
+                        joinpath(".config", "systemd", "user", "distsshkitqueue.serve.service")
                     end
+                    unit = joinpath(e2e_home, rel)
+                    @test unit == (Sys.isapple() ? DistSSHKitQueue.launch_agent_path(; home=e2e_home) :
+                        DistSSHKitQueue.systemd_user_path(; home=e2e_home))
                     @test isfile(unit)
-                    @test occursin("DistSSHKitQueue", read(unit, String))
+                    @test !isfile(joinpath(e2e_home, Sys.isapple() ?
+                        joinpath(".config", "systemd", "user", "distsshkitqueue.serve.service") :
+                        joinpath("Library", "LaunchAgents", "org.distsshkitqueue.serve.plist")))
+                    body = read(unit, String)
+                    @test occursin("DistSSHKitQueue", body)
+                    @test occursin("serve", body)
+                    @test occursin("--project=", body)
+                    @test occursin("--startup-file=no", body)
                     @test run_cli(addenv(qcmd(["disable", "--write-only"]), env...)).exitcode == 0
                     @test !isfile(unit)
 
@@ -614,7 +624,7 @@ end
                             "DISTSSHKITQUEUE_WATCH_TICKS" => "1",
                             "DISTRIBUTED_SSH_OPTS" => "-F $ssh_cfg",
                         )
-                        qh(rest) = qcmd(["qhost:dskq-qh", "--remote-julia", wrapper, rest...])
+                        qh(rest) = qcmd(["qhost:dskq-qh", "--remote-julia", wrapper, "--queue-env", test_project, rest...])
 
                         reject_err = IOBuffer()
                         rejected = run(pipeline(ignorestatus(addenv(qh(["setup"]), client_env...)); stdout=devnull, stderr=reject_err))

@@ -39,6 +39,38 @@ function job_project(; cwd::AbstractString=pwd())::String
     return DistSSHKit.canonical_local_path(root)
 end
 
+"""Worker path Kit would use for this queue-host tree (`remote=` or Kit default / ENV)."""
+function kit_worker_root(project::AbstractString, kw::AbstractDict)::String
+    r = get(kw, "remote", nothing)
+    if r isa AbstractString
+        s = strip(String(r))
+        !isempty(s) && return s
+    end
+    return DistSSHKit.resolve_remote_project_root(DistSSHKit.canonical_local_path(project))
+end
+
+"""Refuse two different queue-host trees that Kit would place on the same worker path.
+
+Does not rename. Does not `setup --delete`. Same tree (re-submit) is fine.
+"""
+function reject_worker_root_collision!(jobs::Vector{Job}, project::AbstractString, kw::AbstractDict)
+    proj = DistSSHKit.canonical_local_path(project)
+    root = kit_worker_root(proj, kw)
+    for j in jobs
+        other = get(j.kwargs, "project", nothing)
+        other isa AbstractString || continue
+        op = DistSSHKit.canonical_local_path(String(other))
+        op == proj && continue
+        kit_worker_root(op, j.kwargs) == root || continue
+        throw(ArgumentError(
+            "job tree $(proj) and $(op) both deploy to $(root) on workers. " *
+            "Use a unique ~/parent/Repo.jl; do not pin DISTRIBUTED_REMOTE_PROJECT_ROOT in shared config. " *
+            "Queue does not rename or setup --delete.",
+        ))
+    end
+    return nothing
+end
+
 resolve_script(path::AbstractString) = DistSSHKit.canonical_local_path(path)
 
 function as_host_allow(allowed)::Union{Nothing, HostAllow}
@@ -351,6 +383,7 @@ function _submit!(q::Queue, kind::Symbol, script::AbstractString, hosts; kwargs.
                 reject_host_token!(allow, t)
             end
             reload_keep_live!(q)
+            reject_worker_root_collision!(q.jobs, String(kw["project"]), kw)
             j = Job(; kind=kind, script=script_path, hosts=toks, kwargs=kw)
             push!(q.jobs, j)
             _persist!(q)

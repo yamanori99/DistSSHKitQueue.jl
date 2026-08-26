@@ -1,8 +1,9 @@
-"""Client `qhost:NAME` / `--remote-julia`: peel flags and `run_on_host` to the queue host.
+"""Client `qhost:NAME` / `--remote-julia` / `--queue-env`: peel flags and `run_on_host`.
 
 Kit `--hosts` / `--julia` stay on `go` / `drive`. `setup` / `serve` /
 `enable` / `disable` / `add-host` / `remove-host` are not forwarded.
-Not a Kit placement token.
+Not a Kit placement token. Hop Julia is `julia --startup-file=no
+--project=<queue-env> -m DistSSHKitQueue` (not the client's `--project=`).
 """
 
 function default_remote_julia()::String
@@ -32,6 +33,15 @@ const QHOST_DEFAULT_ENV = "DISTSSHKITQUEUE_HOST"
 """Harness only: finite `watch` frames. Not a product flag (tests / E2E)."""
 const WATCH_TICKS_ENV = "DISTSSHKITQUEUE_WATCH_TICKS"
 
+"""Client default Queue env on the hop (`julia --project=` there). Not forwarded."""
+const QUEUE_ENV_ENV = "DISTSSHKITQUEUE_QUEUE_ENV"
+
+"""Usual dedicated env on the queue host (same as `enable --queue-env` default)."""
+const HOP_QUEUE_ENV_DEFAULT = "~/.distsshkitqueue/env"
+
+"""`--queue-env @`: hop uses the remote default Julia env (no `--project=`)."""
+const HOP_QUEUE_ENV_NONE = "@"
+
 function qhost_default_from_env()::Union{Nothing,String}
     v = strip(get(ENV, QHOST_DEFAULT_ENV, ""))
     isempty(v) && return nothing
@@ -52,27 +62,44 @@ function _set_qhost(cur::Union{Nothing,String}, next::AbstractString)::String
     return n
 end
 
-"""Peel leading `qhost:NAME` / `--remote-julia PATH`. `rjulia` is `nothing` if omitted."""
+function _set_queue_env(cur::Union{Nothing,String}, next::AbstractString)::String
+    n = String(next)
+    if cur !== nothing && cur != n
+        throw(ArgumentError("queue env given twice ($cur and $n)"))
+    end
+    return n
+end
+
+"""Peel leading `qhost:NAME` / `--remote-julia PATH` / `--queue-env DIR`."""
 function extract_remote_opts(args::Vector{String})
     host = nothing
     rjulia = nothing
+    qenv = nothing
     i = 1
     while i <= length(args)
         a = args[i]
         if a == "--qhost"
             throw(ArgumentError("use `qhost:NAME`, not `--qhost`"))
+        elseif a == "--project" || startswith(a, "--project=")
+            throw(ArgumentError(
+                "hop Queue env is --queue-env DIR (julia --project= there). " *
+                "Client julia --project= loads Queue locally; it is not forwarded.",
+            ))
         elseif startswith(a, "qhost:")
             host = _set_qhost(host, parse_qhost_token(a))
             i += 1
         elseif a == "--remote-julia" && i < length(args)
             rjulia = args[i+1]
             i += 2
+        elseif a == "--queue-env" && i < length(args)
+            qenv = _set_queue_env(qenv, args[i+1])
+            i += 2
         else
             break
         end
     end
     host === nothing && (host = qhost_default_from_env())
-    return host, rjulia, args[i:end]
+    return host, rjulia, qenv, args[i:end]
 end
 
 function coalesce_remote(
@@ -88,6 +115,35 @@ function coalesce_remote(
     spec = ajulia !== nothing ? String(ajulia) :
            (bjulia !== nothing ? String(bjulia) : default_remote_julia())
     return host, spec
+end
+
+"""CLI `--queue-env` wins, then `DISTSSHKITQUEUE_QUEUE_ENV`, then the dedicated dir.
+
+`@` means no `--project=` (remote default Julia env).
+"""
+function coalesce_queue_env(
+    a::Union{Nothing,AbstractString},
+    b::Union{Nothing,AbstractString},
+)::String
+    if a !== nothing && b !== nothing && String(a) != String(b)
+        throw(ArgumentError("queue env given twice ($(a) and $(b))"))
+    end
+    picked = a !== nothing ? String(a) : (b === nothing ? nothing : String(b))
+    if picked === nothing
+        v = strip(get(ENV, QUEUE_ENV_ENV, ""))
+        picked = isempty(v) ? HOP_QUEUE_ENV_DEFAULT : String(v)
+    end
+    return picked
+end
+
+"""Julia flags for `run_on_host` before `-m` / `-e`. `~` expands on the queue host."""
+function hop_julia_prefix(queue_env::AbstractString)::Vector{String}
+    prefix = String["--startup-file=no"]
+    q = strip(String(queue_env))
+    q == HOP_QUEUE_ENV_NONE && return prefix
+    isempty(q) && (q = HOP_QUEUE_ENV_DEFAULT)
+    push!(prefix, "--project=$q")
+    return prefix
 end
 
 const QHOST_LOCAL_VERBS = ("setup", "serve", "enable", "disable", "service", "add-host", "remove-host")
@@ -132,6 +188,7 @@ function remote_dispatch(
     payload::Vector{String};
     tty::Bool=false,
     qhost_display::Union{Nothing,AbstractString}=nothing,
+    queue_env::AbstractString=HOP_QUEUE_ENV_DEFAULT,
 )::Cint
     label = qhost_display === nothing ? nothing : strip(String(qhost_display))
     assigns = String[]
@@ -151,11 +208,12 @@ function remote_dispatch(
         args = String[String(sub)]
         append!(args, String[String(a) for a in payload])
         expr = join(assigns, "; ") * "; exit(Int(DistSSHKitQueue.main($(repr(args)))))"
-        argv = String["-e", "using DistSSHKitQueue; " * expr]
+        core = String["-e", "using DistSSHKitQueue; " * expr]
     else
-        argv = String["-m", "DistSSHKitQueue", String(sub)]
-        append!(argv, payload)
+        core = String["-m", "DistSSHKitQueue", String(sub)]
+        append!(core, payload)
     end
+    argv = append!(hop_julia_prefix(queue_env), core)
     spec = strip(String(rjulia))
     auto = isempty(spec) || spec == "auto"
     proc = DistSSHKit.run_on_host(
@@ -187,10 +245,12 @@ function maybe_remote(
     rest::Vector{String};
     tty::Bool=false,
     label_qhost::Bool=false,
+    queue_env::Union{Nothing,AbstractString}=nothing,
 )::Union{Nothing,Cint}
-    host, rjulia, payload = extract_remote_opts(rest)
+    host, rjulia, qenv, payload = extract_remote_opts(rest)
     dest, spec = coalesce_remote(qhost, gjulia, host, rjulia)
     dest === nothing && return nothing
     disp = label_qhost ? dest : nothing
-    return remote_dispatch(dest, spec, sub, payload; tty=tty, qhost_display=disp)
+    q = coalesce_queue_env(queue_env, qenv)
+    return remote_dispatch(dest, spec, sub, payload; tty=tty, qhost_display=disp, queue_env=q)
 end
