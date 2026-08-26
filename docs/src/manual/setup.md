@@ -33,7 +33,8 @@ still applies.
 
 Stops the waiter, removes the OS unit and `~/.distsshkitqueue`. Does
 not `Pkg.rm`, and never deletes a git clone or Kit `.distsshkit/`
-results. Still removes a leftover `~/.local/bin/dskq` if present.
+results. Trees: [Where files live](@ref Layout). Still removes a leftover
+`~/.local/bin/dskq` if present.
 
 ## config.toml
 
@@ -47,15 +48,15 @@ store = "~/.distsshkitqueue/jobs.toml"
 
 [env]
 # DISTRIBUTED_SSH_OPTS = "-F /path/to/ssh_config"
-# DISTRIBUTED_REMOTE_PROJECT_ROOT = "/home/dev/job"
 # DISTSSHKIT_YES = "1"
+# Do not set DISTRIBUTED_REMOTE_PROJECT_ROOT here on a shared queue host.
 ```
 
 | Key | Meaning |
 | --- | --- |
 | `store` | Job table path (`DISTSSHKITQUEUE_STORE`) |
 | `hosts` | Kit tokens; missing = allow-all; `[]` = allow none |
-| `[env]` | Default ENV for this host (not `DISTSSHKITQUEUE_HOST`) |
+| `[env]` | Default ENV for this host (not `DISTSSHKITQUEUE_HOST`). Skip `DISTRIBUTED_REMOTE_PROJECT_ROOT` unless this box is one job |
 
 CLI `submit` re-reads `hosts` each time
 ([submit](@ref Manual-submit)). Library [`submit!`](@ref) uses

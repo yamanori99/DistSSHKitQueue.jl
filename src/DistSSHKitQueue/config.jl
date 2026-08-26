@@ -194,8 +194,10 @@ store = $(repr(String(store)))
 
 [env]
 # DISTRIBUTED_SSH_OPTS = "-F /path/to/ssh_config"
-# DISTRIBUTED_REMOTE_PROJECT_ROOT = "/home/dev/job"
 # DISTSSHKIT_YES = "1"
+# Do not set DISTRIBUTED_REMOTE_PROJECT_ROOT here on a shared queue host:
+# every job would deploy to that one worker path. Kit default is
+# ~/basename(parent)/basename(job-tree) from the queue-host clone.
 """
 end
 

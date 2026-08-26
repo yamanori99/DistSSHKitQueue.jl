@@ -20,7 +20,9 @@ Julia **1.12+**. `julia -m DistSSHKitQueue` (no `dskq` shim;
 - `submit go` / `submit drive` check the script exists first. A Kit-shaped
   line with a `.jl` and no Queue verb is `go`. `--hosts` / `--julia` stay on
   Kit. Queued `go` with `job_id` runs the slot script (`-L`).
-- Job ids are a bare stdout line. `cancel` of `:running` records
+- Job ids are a bare stdout line. `submit` also prints `Queued  N` on
+  stderr (`(R running)` when a job is already running). `DISTSSHKIT_QUIET`
+  hides that line. `cancel` of `:running` records
   `allocate_output_dir` (or `--output-dir`) so `terminate_run!` has a path.
   `cannot be cancelled` for an unknown id, a finished row, or `:running`
   without a known output dir. `status` has an `ERROR` column on failure.
@@ -32,6 +34,10 @@ Julia **1.12+**. `julia -m DistSSHKitQueue` (no `dskq` shim;
 - Token is `qhost:NAME` (like Kit `child:NAME`). `--qhost` and `--via` are
   refused. `setup` / `serve` / `enable` / `disable` refuse `qhost:` (log in
   on the queue host).
+- Hop is `julia --startup-file=no --project=~/.distsshkitqueue/env` (not the
+  client's `--project=.`, not remote cwd `.`). `--queue-env DIR` /
+  `DISTSSHKITQUEUE_QUEUE_ENV`; `@` is the remote default env. `--project` on
+  the hop is refused.
 - Omitted `qhost:` uses `DISTSSHKITQUEUE_HOST` (SSH name). Token wins. Not
   `DISTSSHKIT_HOSTS`. Not forwarded on the hop.
 - `status` / `watch` print `qhost` from `DISTSSHKITQUEUE_QHOST` (set on the
@@ -42,8 +48,13 @@ Julia **1.12+**. `julia -m DistSSHKitQueue` (no `dskq` shim;
 - Store is `~/.distsshkitqueue` (`config.toml`: `store` + `[env]`; ENV wins).
   `setup` writes config only.
 - `enable --queue-env DIR` is the unit's Queue env (`--project` refused).
-  Job tree stays cwd / `DISTRIBUTED_PROJECT_ROOT`. `enable --julia` is the
-  unit binary. Queue-host Julia for jobs is `--remote-julia` /
+  Job tree stays cwd / `DISTRIBUTED_PROJECT_ROOT`. One Kit clone per job
+  on the queue host (`~/org/Repo.jl`); not a Queue job name. Do not pin
+  `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`. Kit worker
+  path is `~/parent/Repo.jl`. `submit` refuses a second tree that Kit
+  would deploy to the same worker path (no rename, no `setup --delete`).
+  `enable --julia` is the unit binary.
+  Queue-host Julia for jobs is `--remote-julia` /
   `JULIA_DISTRIBUTED_EXE`.
 - `teardown` confirms like DistSSHKit (`-y` / `--yes` / `DISTSSHKIT_YES`).
   `[env]` in the target config still applies.
@@ -69,4 +80,4 @@ Julia **1.12+**. `julia -m DistSSHKitQueue` (no `dskq` shim;
 
 - English README is the landing page. Japanese: `README.ja.md`. Documenter
   First Steps / User Guide cover Queue verbs; Kit `go` / `drive` stay in
-  the kit docs.
+  the kit docs. Requirements show client / queue-host / worker trees.

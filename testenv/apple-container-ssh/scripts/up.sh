@@ -161,7 +161,9 @@ ssh -F "${DOCKER_ROOT}/.generated/ssh_config" dskq-w2 \
 if [[ "$RUN_E2E" -eq 1 ]]; then
   export DSKQ_SSH_E2E=1
   cd "${QUEUE_ROOT}"
-  julia --project=test --color=yes -e 'using Pkg; Pkg.instantiate()'
+  # Workspace Manifest is gitignored. A root-only instantiate can omit
+  # test's path dep; Julia 1.13 `instantiate` then errors instead of resolving.
+  julia --project=test --color=yes -e 'using Pkg; Pkg.resolve(); Pkg.instantiate()'
   julia_e2e=(julia --project=test --color=yes)
   if [[ "${DSKQ_CODE_COVERAGE:-}" == "1" ]]; then
     julia_e2e+=(--code-coverage=user)

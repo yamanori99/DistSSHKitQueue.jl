@@ -59,6 +59,8 @@ Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);
 - **Workers** — where the script runs. DistSSHKit tokens: `parent[:N]` on
   the queue host, `child:NAME[:N]` on SSH machines.
 
+Trees (client / queue host / workers): [Where files live](@ref Layout).
+
 ```text
   clients = dev machines (no cap)          one queue host (always on)
   ───────────────────────────────          ──────────────────────────

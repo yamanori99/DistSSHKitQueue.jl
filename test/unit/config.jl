@@ -216,43 +216,46 @@ end
 @testset "extract_remote_opts" begin
     withenv("DISTSSHKITQUEUE_HOST" => nothing) do
     withenv("JULIA_DISTRIBUTED_EXE" => nothing) do
-        host, rjulia, payload = DistSSHKitQueue.extract_remote_opts(["qhost:qbox", "status"])
+        host, rjulia, qenv, payload = DistSSHKitQueue.extract_remote_opts(["qhost:qbox", "status"])
         @test host == "qbox"
         @test rjulia === nothing
+        @test qenv === nothing
         @test payload == ["status"]
         dest, spec = DistSSHKitQueue.coalesce_remote(host, rjulia, nothing, nothing)
         @test dest == "qbox"
         @test spec == "auto"
-        h2, j2, p2 = DistSSHKitQueue.extract_remote_opts(["--hosts", "other", "status"])
+        h2, j2, q2, p2 = DistSSHKitQueue.extract_remote_opts(["--hosts", "other", "status"])
         @test h2 === nothing
         @test j2 === nothing
+        @test q2 === nothing
         @test p2 == ["--hosts", "other", "status"]
-        h3, _, p3 = DistSSHKitQueue.extract_remote_opts(["go", "--hosts", "child:w:2", "S.jl"])
+        h3, _, _, p3 = DistSSHKitQueue.extract_remote_opts(["go", "--hosts", "child:w:2", "S.jl"])
         @test h3 === nothing
         @test p3 == ["go", "--hosts", "child:w:2", "S.jl"]
-        h4, j4, p4 = DistSSHKitQueue.extract_remote_opts(["go", "--julia", "/opt/julia", "S.jl"])
+        h4, j4, _, p4 = DistSSHKitQueue.extract_remote_opts(["go", "--julia", "/opt/julia", "S.jl"])
         @test h4 === nothing
         @test j4 === nothing
         @test p4 == ["go", "--julia", "/opt/julia", "S.jl"]
     end
     withenv("JULIA_DISTRIBUTED_EXE" => "/opt/from-env/julia") do
-        h, j, p = DistSSHKitQueue.extract_remote_opts(["qhost:qbox", "status"])
+        h, j, _, p = DistSSHKitQueue.extract_remote_opts(["qhost:qbox", "status"])
         _, spec = DistSSHKitQueue.coalesce_remote(h, j, nothing, nothing)
         @test spec == "/opt/from-env/julia"
         @test p == ["status"]
     end
 
-    host2, rjulia2, payload2 = DistSSHKitQueue.extract_remote_opts([
+    host2, rjulia2, qenv2, payload2 = DistSSHKitQueue.extract_remote_opts([
         "qhost:qbox", "--remote-julia", "/opt/julia", "go", "parent:1", "S.jl",
     ])
     @test host2 == "qbox"
     @test rjulia2 == "/opt/julia"
+    @test qenv2 === nothing
     @test payload2 == ["go", "parent:1", "S.jl"]
     @test_throws ArgumentError DistSSHKitQueue.extract_remote_opts(["--qhost", "qbox", "status"])
     @test DistSSHKitQueue.parse_qhost_token("qhost:user@box") == "user@box"
     @test_throws ArgumentError DistSSHKitQueue.parse_qhost_token("child:w:2")
 
-    host_go, julia_go, payload_go = DistSSHKitQueue.extract_remote_opts(["go", "child:w1:2", "S.jl"])
+    host_go, julia_go, _, payload_go = DistSSHKitQueue.extract_remote_opts(["go", "child:w1:2", "S.jl"])
     @test host_go === nothing
     @test julia_go === nothing
     @test payload_go == ["go", "child:w1:2", "S.jl"]
@@ -276,7 +279,7 @@ end
     @test code2 == 1
     @test occursin("runs on the queue host", err2)
 
-    host4, _, payload4 = DistSSHKitQueue.extract_remote_opts(String[])
+    host4, _, _, payload4 = DistSSHKitQueue.extract_remote_opts(String[])
     @test host4 === nothing
     @test payload4 == String[]
 
@@ -289,16 +292,38 @@ end
     @test !DistSSHKitQueue.looks_like_kit_go_argv(["status"])
     @test !DistSSHKitQueue.looks_like_kit_go_argv(["--hosts", "child:w:2"])
     withenv("DISTSSHKITQUEUE_HOST" => "qbox") do
-        hd, _, pd = DistSSHKitQueue.extract_remote_opts(["status"])
+        hd, _, _, pd = DistSSHKitQueue.extract_remote_opts(["status"])
         @test hd == "qbox"
         @test pd == ["status"]
-        ht, _, _ = DistSSHKitQueue.extract_remote_opts(["qhost:other", "status"])
+        ht, _, _, _ = DistSSHKitQueue.extract_remote_opts(["qhost:other", "status"])
         @test ht == "other"
     end
     withenv("DISTSSHKITQUEUE_HOST" => "qhost:qbox") do
-        hp, _, _ = DistSSHKitQueue.extract_remote_opts(["status"])
+        hp, _, _, _ = DistSSHKitQueue.extract_remote_opts(["status"])
         @test hp == "qbox"
     end
+
+    _, _, qe, pl = DistSSHKitQueue.extract_remote_opts([
+        "qhost:qbox", "--queue-env", "~/test-queue", "list-host",
+    ])
+    @test qe == "~/test-queue"
+    @test pl == ["list-host"]
+    @test DistSSHKitQueue.coalesce_queue_env(qe, nothing) == "~/test-queue"
+    @test DistSSHKitQueue.coalesce_queue_env(nothing, nothing) ==
+          DistSSHKitQueue.HOP_QUEUE_ENV_DEFAULT
+    withenv(DistSSHKitQueue.QUEUE_ENV_ENV => "/opt/qenv") do
+        @test DistSSHKitQueue.coalesce_queue_env(nothing, nothing) == "/opt/qenv"
+        @test DistSSHKitQueue.coalesce_queue_env("~/test-queue", nothing) == "~/test-queue"
+    end
+    @test DistSSHKitQueue.hop_julia_prefix("~/.distsshkitqueue/env") ==
+          ["--startup-file=no", "--project=~/.distsshkitqueue/env"]
+    @test DistSSHKitQueue.hop_julia_prefix("@") == ["--startup-file=no"]
+    code3, _, err3 = capture_stdio() do
+        DistSSHKitQueue.main(["qhost:qbox", "--project", ".", "list-host"])
+    end
+    @test code3 == 1
+    @test occursin("--queue-env", err3)
+    @test occursin("not forwarded", err3)
     end
 end
 
@@ -337,6 +362,8 @@ end
         @test occursin("[env]", text)
         @test occursin("# DistSSHKitQueue", text)
         @test occursin("DISTRIBUTED_SSH_OPTS", text)
+        @test occursin("Do not set DISTRIBUTED_REMOTE_PROJECT_ROOT here", text)
+        @test !occursin("DISTRIBUTED_REMOTE_PROJECT_ROOT = ", text)
         @test !occursin("# hosts", text)
         DistSSHKitQueue.add_host_names!(cfg, ["child:host1"])
         @test DistSSHKitQueue.config_host_names(DistSSHKitQueue.load_config(; path=cfg)) ==

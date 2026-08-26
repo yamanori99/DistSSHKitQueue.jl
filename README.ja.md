@@ -81,6 +81,67 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
 配置トークン、`go` / `drive` のフラグ、リモートの準備は DistSSHKit の範囲である。
 [kit docs](https://yamanori99.github.io/DistSSHKit.jl/stable/) を参照。
 
+### ファイルの置き場
+
+`qhost:` はキューホストの SSH 名であり、保存先の接頭辞ではない。表と Kit の
+結果ディレクトリは **そのマシン** に残る。クライアントに
+`~/.distsshkitqueue` は無い。Queue は Kit の木をコピーしない。
+
+#### クライアント
+
+```text
+~/my-job/
+  Project.toml          DistSSHKitQueue (CLI)
+  Manifest.toml
+  SCRIPT.jl             解釈はキューホスト側
+```
+
+#### キューホスト
+
+`~/.distsshkitqueue` と **ジョブごとに一つの Kit クローン** (パスは
+`~/org/Repo.jl` で一意)。Queue env とは別。hop の `SCRIPT.jl` はその木。
+共有 `config.toml` に `DISTRIBUTED_REMOTE_PROJECT_ROOT` は書かない。
+二本目の木が同じ worker パスなら `submit` はエラー。
+
+```text
+~/.distsshkitqueue/
+  config.toml
+  jobs.toml             全行 (prune しない)
+  jobs.toml.log
+  jobs.toml.pid         serve 中
+  jobs.toml.stopped     stop 後、serve まで
+  env/                  hop / enable の既定
+    Project.toml
+    Manifest.toml
+
+~/org/Repo.jl/          ジョブごとに一つのクローン (cwd / DISTRIBUTED_PROJECT_ROOT)
+  Project.toml          計算の依存
+  SCRIPT.jl
+  .distsshkit/go/
+    SCRIPT_<UTC>_<id>/  result_path
+      kit.pid
+      kit.result
+```
+
+`enable` (任意。この端末の `serve` だけなら不要):
+
+- **macOS** — `~/Library/LaunchAgents/org.distsshkitqueue.serve.plist`
+- **Linux / WSL2** — `~/.config/systemd/user/distsshkitqueue.serve.service`
+
+ユーザ unit (root 不要)。中身は同じ
+`julia --project=<queue-env> -m DistSSHKitQueue serve`。
+
+#### ワーカー
+
+Queue の表は無い。Kit 既定は `~/parent/Repo.jl` (共有 `[env]` の
+remote ではない)。収集先は上のキューホスト `.distsshkit/`。
+
+```text
+<remote project root>/
+  Project.toml
+  SCRIPT.jl
+```
+
 ### 例
 
 **クライアント** から (ジョブのディレクトリ。その env から Queue が load できること):
@@ -93,14 +154,16 @@ julia --project=. -m DistSSHKitQueue qhost:mini watch
 julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
 ```
 
-`submit` は、ウェイターが無ければキューホスト上で起動する。
+`submit` は、ウェイターが無ければキューホスト上で起動する。ジョブ id は
+stdout 1 行。stderr に `Queued  N` (`DISTSSHKIT_QUIET` で隠す)。
 
 **キューホスト** で一度だけ:
 
 ```bash
-julia -m DistSSHKitQueue setup
-julia -m DistSSHKitQueue add-host parent child:host1
-julia -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
+cd ~/.distsshkitqueue/env
+julia --project=. -m DistSSHKitQueue setup
+julia --project=. -m DistSSHKitQueue add-host parent child:host1
+julia --project=. -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
 ```
 
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` は

@@ -30,8 +30,17 @@ function submit_cli(store::AbstractString, kind::Symbol, script::AbstractString,
     q = Queue(; store=store, follow_config=true)
     nt = isempty(kw) ? NamedTuple() : (; (Symbol(k) => v for (k, v) in kw)...)
     id = submit!(q, String(script), String[String(x) for x in hosts]; kind=kind, nt...)
-    ensure_waiter!(store)
     println(id)
+    if !_kit_env_on("DISTSSHKIT_QUIET")
+        nq = count(j -> j.state === :queued, q.jobs)
+        nr = count(j -> j.state === :running, q.jobs)
+        if nr > 0
+            println(stderr, "Queued  $(nq)  ($(nr) running)")
+        else
+            println(stderr, "Queued  $(nq)")
+        end
+    end
+    ensure_waiter!(store)
     return 0
 end
 

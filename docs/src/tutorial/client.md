@@ -2,12 +2,17 @@
 
 Submit from a **client** after the queue host is up
 ([Prepare](@ref Tutorial-Prepare)). Also see
-[User Guide · submit](@ref Manual-submit), [status](@ref Manual-status).
+[User Guide · submit](@ref Manual-submit), [status](@ref Manual-status),
+[Where files live](@ref Layout).
 
 ## Point at the queue host
 
-Run from the job directory (`julia --project=.`). Queue must be loadable
-from that env.
+Run from a directory where Queue is loadable (`julia --project=.`).
+That `--project=.` stays on the **client**. The hop loads Queue from
+`~/.distsshkitqueue/env` (`--queue-env DIR` if you used another dir).
+`SCRIPT.jl` must exist **on the queue host** in that job's clone
+(`~/org/Repo.jl`), not only on the laptop. Hop does not send the client
+cwd.
 
 ```bash
 julia --project=. -m DistSSHKitQueue qhost:mini list-host
@@ -37,7 +42,8 @@ julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
 `submit` starts a waiter if none is running. `status` / `watch` print
 `qhost` (or `local (hostname)` when you omitted it). `watch` redraws
 until Ctrl-C; it does not stop the waiter. Job ids print as a bare
-stdout line.
+stdout line. `submit` also prints `Queued  N` on stderr unless
+`DISTSSHKIT_QUIET` is set.
 
 Bare `go` / `drive` alias `submit go` / `submit drive`. A Kit-shaped
 line with a `.jl` and no Queue verb is `go`.

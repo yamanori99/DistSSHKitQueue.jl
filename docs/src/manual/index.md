@@ -27,9 +27,11 @@ Refuse `qhost:`: `setup`, `serve`, `enable`, `disable`, `add-host`,
 `watch`, `cancel`, `stop`, `teardown`.
 
 `--hosts` / `--julia` belong to Kit `go` / `drive`. Queue-host Julia is
-`--remote-julia` / `JULIA_DISTRIBUTED_EXE`. Default hop:
-`DISTSSHKITQUEUE_HOST` (not `DISTSSHKIT_HOSTS`). Not forwarded. Not
-`DISTSSHKITQUEUE_QHOST` (that is `status` / `watch` display).
+`--remote-julia` / `JULIA_DISTRIBUTED_EXE`. Hop Queue env is
+`--queue-env DIR` (default `~/.distsshkitqueue/env`), not the client's
+`--project=.`. Default hop host: `DISTSSHKITQUEUE_HOST` (not
+`DISTSSHKIT_HOSTS`). Not forwarded. Not `DISTSSHKITQUEUE_QHOST` (that is
+`status` / `watch` display).
 
 `serve` is “run the process”. `enable` is “register that process with
 the OS” (LaunchAgent / systemd). `enable` does not make a laptop a
@@ -49,11 +51,13 @@ does not keep a second copy of Kit's result tree. Kit kwargs (`args`,
 so Kit progress lines can carry `job=`.
 
 The table is TOML on the queue host (`~/.distsshkitqueue/jobs.toml`),
-rewritten under a directory lock. If the waiter dies: `:queued` rows
-reload on the next `serve`. A `:running` row whose DistSSHKit `kit.pid`
-is still alive stays `:running` (the waiter will not start the next
-FIFO job). A `:running` row with no live `kit.pid` is `:done` or
-`:failed` from `kit.result` when that file exists, otherwise `:failed`.
+rewritten under a directory lock. Kit results stay under the job tree
+(`.distsshkit/`). Layout: [Where files live](@ref Layout). If the waiter
+dies: `:queued` rows reload on the next `serve`. A `:running` row whose
+DistSSHKit `kit.pid` is still alive stays `:running` (the waiter will
+not start the next FIFO job). A `:running` row with no live `kit.pid`
+is `:done` or `:failed` from `kit.result` when that file exists,
+otherwise `:failed`.
 
 ## Shared peel
 

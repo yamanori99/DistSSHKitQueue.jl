@@ -220,6 +220,8 @@ end
             @test occursin("--hosts", dumped)
             @test occursin("child:w:2", dumped)
             @test occursin("hello.jl", dumped)
+            @test occursin("--startup-file=no", dumped)
+            @test occursin("--project=~/.distsshkitqueue/env", dumped)
             @test !occursin("add-host", dumped)
             @test occursin("DISTSSHKITQUEUE_QHOST", dumped)
             @test !occursin("--via", dumped)
