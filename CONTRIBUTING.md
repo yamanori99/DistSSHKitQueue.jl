@@ -4,7 +4,7 @@ Internals of this repo. Users: [README.md](README.md), [README.ja.md](README.ja.
 
 This is a **separate** package from DistSSHKit: FIFO `serve` in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
 
-Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **max** (`test/e2e.jl`: `serve` API, queue-host CLI, `qhost:` over loopback OpenSSH), Gitleaks, schedule-only **E2E daily** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
+Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **max** (`test/e2e.jl`: `serve` API, queue-host CLI, `qhost:` over loopback OpenSSH), Gitleaks, schedule-only **E2E weekly** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
 
 ## Requirements
 
@@ -12,10 +12,10 @@ macOS, Linux, or WSL2 Ubuntu. Not native Windows (the kit shells out to `ssh` / 
 
 | What | Need |
 | --- | --- |
-| Library, `Pkg.test()`, docs | Julia **1.12+** |
+| Library, `Pkg.test()`, `julia -m DistSSHQueue`, docs | Julia **1.12+** |
 | DistSSHKit | **0.4.1+** from General (`execute!`, `job_id`, `kit.pid` / `kit.result`). Not a git sibling. |
 
-Prefer [juliaup](https://github.com/JuliaLang/juliaup).
+Prefer [juliaup](https://github.com/JuliaLang/juliaup). Details: [Requirements](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/).
 
 ## Setup
 
@@ -63,7 +63,7 @@ Exactly three pins, in [`.github/julia-slots.env`](.github/julia-slots.env). Do 
 | Slot | Role | Required |
 | --- | --- | --- |
 | **min** | `Project.toml` julia floor. Pkg.test (no coverage), Aqua, JETLS, Documenter | yes |
-| **max** | Newest tagged or prerelease (`versions.json`). Pkg.test, Aqua, PR / daily E2E, GHCR worker. Codecov `pkgtest` on **main push** only | yes |
+| **max** | Newest tagged or prerelease (`versions.json`). Pkg.test, Aqua, PR / weekly E2E, GHCR worker. Codecov `pkgtest` on **main push** only | yes |
 | **tip** | Next-minor nightly. Pkg.test, Aqua. `continue-on-error` | no |
 
 JETLS is min plus `JULIA_SLOT_JETLS_MAX` (job name still `JETLS - max`). That pin lags when `max` / `tip` move past what JETLS lists (today 1.12.2–1.13). Raise it only after JETLS supports that runtime. No JETLS **tip**.
@@ -78,16 +78,16 @@ These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS /
 
 `README.md`, `README.ja.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`.
 
-A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. macOS / WSL stay on `E2E daily`, not the PR.
+A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. macOS / WSL stay on `E2E weekly`, not the PR.
 
-CI uploads Codecov on **main push** only (`Pkg.test` max slot, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E daily** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
+CI uploads Codecov on **main push** only (`Pkg.test` max slot, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E weekly** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DSKQ_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
-Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. Path-gated E2E skips the job `ubuntu-latest → ubuntu-24.04` (Actions: Skipped; GitHub still treats a skipped required check as pass). E2E daily and CI weekly are not required.
+Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. Path-gated E2E skips the job `ubuntu-latest → ubuntu-24.04` (Actions: Skipped; GitHub still treats a skipped required check as pass). E2E weekly and CI weekly are not required.
 
 - `Pkg.test - min - ubuntu-latest`
 - `Pkg.test - max - ubuntu-latest`
@@ -102,7 +102,7 @@ Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure.
 
 | When | Workflow | What |
 | --- | --- | --- |
-| 04:00 JST, or Run workflow | `E2E daily` | `ubuntu-latest`, `macos-15-intel`, WSL2 → `ubuntu-24.04`. Linux job uploads E2E Codecov. Not a PR check. Failure opens (or comments on) Issue `E2E daily failed`; a later green run closes it. After a `cut` merge, dispatch this on that commit and wait for green before register. |
+| Sunday 04:00 JST, or Run workflow | `E2E weekly` | `ubuntu-latest`, `macos-15-intel`, WSL2 → `ubuntu-24.04`. Linux job uploads E2E Codecov. Not a PR check. Failure opens (or comments on) Issue `E2E weekly failed`; a later green run closes it. After a `cut` merge, dispatch this on that commit and wait for green before register. |
 | Sunday 10:00 JST, or Run workflow | `CI weekly` | Same `Pkg.test` / JETLS / Aqua slots as a PR (no coverage). Not a PR check. Catches max / Aqua / JETLS `@release` drift when nothing merged that week. Failure of min/max jobs opens Issue `CI weekly failed` (`ci`); tip is omitted from that notify. |
 
 ## Pull requests

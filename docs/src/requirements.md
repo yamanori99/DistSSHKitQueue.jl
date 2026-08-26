@@ -15,16 +15,26 @@ runs jobs.
 
 - **macOS, Linux, and WSL2 Ubuntu** (not native Windows)
 - **Julia 1.12+**
+  - Library (`Pkg.add` / `using` / `submit!`), CLI
+    (`julia -m DistSSHQueue`)
   - Same **major.minor** on the queue host and SSH workers (DistSSHKit
-    `setup --check` fails on a mismatch unless `--ignore-julia-version`)
-  - Prefer
-    **[juliaup](https://github.com/JuliaLang/juliaup)** at
-    `$HOME/.juliaup/bin/julia`
+    `setup --check` fails on a mismatch unless `--ignore-julia-version`;
+    patch-only differences warn)
+  - Prefer **[juliaup](https://github.com/JuliaLang/juliaup)** at
+    `$HOME/.juliaup/bin/julia`. If it is not there, put a 1.12+ binary at a
+    usual OS path ([Checks](@ref)) or set `--remote-julia` /
+    `JULIA_DISTRIBUTED_EXE`. Missing path or a related bug:
+    [open an Issue](https://github.com/yamanori99/DistSSHQueue.jl/issues).
 - **DistSSHKit 0.4.1+** from General. Do not `Pkg.develop` Kit for
   ordinary Queue work
 
-WSL2 is Linux, with DistSSHKit's extra rules: run **inside** the distro,
-keep the project on the Linux filesystem (`~/…`), not `/mnt/c/…`.
+WSL2 is Linux, with DistSSHKit's extra rules:
+
+- Run Queue **inside** the distro, not PowerShell
+- Keep the project on the Linux filesystem (`~/…`), not `/mnt/c/…`
+- Install `ssh` / `rsync` / Julia inside WSL
+- SSH E2E uses `./testenv/docker-ssh/scripts/up.sh --e2e` (Docker Compose
+  must be visible from WSL)
 
 ## Queue host
 
@@ -63,6 +73,50 @@ not on the client.
 DistSSHKit hosts. Passwordless SSH **from the queue host**, Julia
 1.12+ with the same major.minor. Details:
 [kit Requirements](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/).
+
+## Checks
+
+The `ssh …` snippets below are **examples** you can type yourself — DistSSHQueue
+does not run them. Timeouts need not match DistSSHKit (`ConnectTimeout` here is
+`5`; the kit uses `10` plus keepalives). Worker probes are DistSSHKit's
+(`setup --check` from the queue host).
+
+### Queue host
+
+- `julia --version`
+- `uname -s` — Darwin or Linux
+- `which rsync`
+- `which git` — git deploy path only
+- `julia --project=$HOME/.distsshqueue/env -m DistSSHQueue --version`
+
+### Client to queue host
+
+`HOST` is the SSH name in `qhost:HOST`.
+
+```bash
+ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new HOST echo ok
+```
+
+Queue-host Julia (non-interactive `ssh` often has no login `PATH`):
+
+- `$HOME/.juliaup/bin/julia`
+- macOS: `/opt/homebrew/bin/julia`, `/usr/local/bin/julia`, `/usr/bin/julia`
+- Linux / WSL2: `/usr/bin/julia`, `/usr/local/bin/julia`
+
+```bash
+ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new HOST '$HOME/.juliaup/bin/julia --version'
+```
+
+`--remote-julia` / `JULIA_DISTRIBUTED_EXE` if the binary is elsewhere.
+
+### Workers
+
+From the **queue host**, DistSSHKit [Checks](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/#Checks)
+(passwordless SSH, Julia path / version). Example:
+
+```bash
+julia --project=$HOME/.distsshqueue/env -m DistSSHKit setup --check USER@HOST
+```
 
 ## [Where files live](@id Layout)
 
