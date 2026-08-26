@@ -1,15 +1,15 @@
 using Documenter
-using DistSSHKitQueue
+using DistSSHQueue
 
-DocMeta.setdocmeta!(DistSSHKitQueue, :DocTestSetup, :(using DistSSHKitQueue); recursive=true)
+DocMeta.setdocmeta!(DistSSHQueue, :DocTestSetup, :(using DistSSHQueue); recursive=true)
 
 makedocs(;
-    modules=[DistSSHKitQueue],
+    modules=[DistSSHQueue],
     authors="Takanori Yamamoto, Honoka Ampuku, and contributors",
-    sitename="DistSSHKitQueue.jl",
+    sitename="DistSSHQueue.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", nothing) == "true",
-        canonical="https://yamanori99.github.io/DistSSHKitQueue.jl",
+        canonical="https://yamanori99.github.io/DistSSHQueue.jl",
         edit_link="main",
         assets=["assets/custom.css"],
     ),
@@ -35,7 +35,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/yamanori99/DistSSHKitQueue.jl.git",
+    repo="github.com/yamanori99/DistSSHQueue.jl.git",
     devbranch="main",
     push_preview=true,
     versions=["dev" => "dev"],

@@ -34,8 +34,8 @@
 "area:queue":
   - changed-files:
       - any-glob-to-any-file:
-          - "src/DistSSHKitQueue.jl"
-          - "src/DistSSHKitQueue/**"
+          - "src/DistSSHQueue.jl"
+          - "src/DistSSHQueue/**"
           - ".gitattributes"
           - ".gitignore"
           - ".vscode/**"

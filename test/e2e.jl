@@ -6,7 +6,7 @@
 # (same as CLI `submit go` / `submit drive`). `serve` runs
 # DistSSHKit `execute!(…; detached=true)`.
 #
-# Also: `julia -m DistSSHKitQueue` on the queue host (omit `qhost:HOST`) and as a
+# Also: `julia -m DistSSHQueue` on the queue host (omit `qhost:HOST`) and as a
 # client (`qhost:HOST` over loopback OpenSSH). Kit slots on docker-ssh (`child:dskq-w1:1`).
 # Three roles, one suite: client = loopback, qhost = this host, child = containers.
 # Do not treat a container as qhost. `parent:1` only occupies FIFO here.
@@ -27,13 +27,13 @@ using Test
 using Dates
 using Sockets
 using DistSSHKit
-using DistSSHKitQueue
+using DistSSHQueue
 
 const QUEUE_ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCKER_SSH = joinpath(QUEUE_ROOT, "testenv", "docker-ssh")
 const JOB_PROJECT = joinpath(QUEUE_ROOT, "testenv", "example-job")
 const REMOTE_ROOT = "/home/dev/dskq-e2e"
-const E2E_JULIA = DistSSHKitQueue.default_julia_bin()
+const E2E_JULIA = DistSSHQueue.default_julia_bin()
 
 _e2e_enabled() = get(ENV, "DSKQ_SSH_E2E", "") == "1"
 
@@ -143,10 +143,10 @@ function julia_depot_path_env()::String
 end
 
 function e2e_qcmd(test_project::AbstractString, args)
-    return DistSSHKitQueue.with_serve_tag(
+    return DistSSHQueue.with_serve_tag(
         Cmd(String[
             E2E_JULIA, "--startup-file=no", "--project=$test_project",
-            "-m", "DistSSHKitQueue", String[string(a) for a in args]...,
+            "-m", "DistSSHQueue", String[string(a) for a in args]...,
         ]),
     )
 end
@@ -303,14 +303,14 @@ end
 function write_remote_julia(path::AbstractString, env::Dict{String,String})
     exports = String[]
     for (k, v) in env
-        push!(exports, "export $k=$(DistSSHKitQueue.sh_single_quote(v))")
+        push!(exports, "export $k=$(DistSSHQueue.sh_single_quote(v))")
     end
     write(
         path,
         """
 #!/bin/sh
 $(join(exports, "\n"))
-exec $(DistSSHKitQueue.sh_single_quote(E2E_JULIA)) "\$@"
+exec $(DistSSHQueue.sh_single_quote(E2E_JULIA)) "\$@"
 """,
     )
     chmod(path, 0o755)
@@ -482,10 +482,10 @@ end
                 @test step!(h) == 1
                 @test job(h, a).state === :running
                 t0 = time()
-                while !DistSSHKitQueue.kit_child_alive(job(h, a)) && (time() - t0) < 60
+                while !DistSSHQueue.kit_child_alive(job(h, a)) && (time() - t0) < 60
                     sleep(0.05)
                 end
-                @test DistSSHKitQueue.kit_child_alive(job(h, a))
+                @test DistSSHQueue.kit_child_alive(job(h, a))
                 @test cancel!(h, a)
                 @test job(h, a).state === :cancelled
                 @test step!(h) == 1
@@ -504,8 +504,8 @@ end
             mktempdir() do d
                 e2e_home = joinpath(d, "home")
                 mkpath(e2e_home)
-                cfg = joinpath(e2e_home, ".distsshkitqueue", "config.toml")
-                store = joinpath(e2e_home, ".distsshkitqueue", "jobs.toml")
+                cfg = joinpath(e2e_home, ".distsshqueue", "config.toml")
+                store = joinpath(e2e_home, ".distsshqueue", "jobs.toml")
                 token = "child:$(HOSTS[1]):1"
                 script = joinpath(JOB_PROJECT, "demos", "without_kit", "pi_echo.jl")
                 @test isfile(script)
@@ -513,11 +513,11 @@ end
                 host_env = Dict{String,String}(
                     "HOME" => e2e_home,
                     "JULIA_DEPOT_PATH" => julia_depot_path_env(),
-                    "DISTSSHKITQUEUE_CONFIG" => cfg,
-                    "DISTSSHKITQUEUE_STORE" => store,
+                    "DISTSSHQUEUE_CONFIG" => cfg,
+                    "DISTSSHQUEUE_STORE" => store,
                     "DISTSSHKIT_YES" => "1",
                     "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
-                    "DISTSSHKITQUEUE_WATCH_TICKS" => "1",
+                    "DISTSSHQUEUE_WATCH_TICKS" => "1",
                     "DISTRIBUTED_SSH_OPTS" => "-F $(SSH_CONFIG)",
                     # Kit project is the example job, not the CLI's cwd. Over `qhost:`
                     # the ssh command lands in the login HOME, so `job_project()`
@@ -527,24 +527,24 @@ end
                 )
 
                 @testset "queue-host verbs (logged in; omit qhost:)" begin
-                    env = merge(host_env, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
+                    env = merge(host_env, Dict("DISTSSHQUEUE_NO_AUTOSERVE" => "1"))
                     @test run_cli(addenv(qcmd(["setup"]), env...)).exitcode == 0
                     @test isfile(cfg)
                     @test run_cli(addenv(qcmd(["enable", "--write-only", "--queue-env", test_project, "--julia", E2E_JULIA]), env...)).exitcode == 0
                     rel = if Sys.isapple()
-                        joinpath("Library", "LaunchAgents", "org.distsshkitqueue.serve.plist")
+                        joinpath("Library", "LaunchAgents", "org.distsshqueue.serve.plist")
                     else
-                        joinpath(".config", "systemd", "user", "distsshkitqueue.serve.service")
+                        joinpath(".config", "systemd", "user", "distsshqueue.serve.service")
                     end
                     unit = joinpath(e2e_home, rel)
-                    @test unit == (Sys.isapple() ? DistSSHKitQueue.launch_agent_path(; home=e2e_home) :
-                        DistSSHKitQueue.systemd_user_path(; home=e2e_home))
+                    @test unit == (Sys.isapple() ? DistSSHQueue.launch_agent_path(; home=e2e_home) :
+                        DistSSHQueue.systemd_user_path(; home=e2e_home))
                     @test isfile(unit)
                     @test !isfile(joinpath(e2e_home, Sys.isapple() ?
-                        joinpath(".config", "systemd", "user", "distsshkitqueue.serve.service") :
-                        joinpath("Library", "LaunchAgents", "org.distsshkitqueue.serve.plist")))
+                        joinpath(".config", "systemd", "user", "distsshqueue.serve.service") :
+                        joinpath("Library", "LaunchAgents", "org.distsshqueue.serve.plist")))
                     body = read(unit, String)
-                    @test occursin("DistSSHKitQueue", body)
+                    @test occursin("DistSSHQueue", body)
                     @test occursin("serve", body)
                     @test occursin("--project=", body)
                     @test occursin("--startup-file=no", body)
@@ -557,7 +557,7 @@ end
                         qcmd(["size", "--gb-per-worker", "1.5", "parent", "child:$(HOSTS[1])"]),
                         size_env...,
                     ))
-                    @test occursin("DistSSHKitQueue size", size_out)
+                    @test occursin("DistSSHQueue size", size_out)
                     @test occursin("Queue submit:", size_out)
                     @test occursin("child:$(HOSTS[1]):", size_out)
 
@@ -573,10 +573,10 @@ end
                         @test occursin(id, listed)
                         @test occursin("  done  ", listed)
                         wout = read_cli(addenv(qcmd(["watch", "--interval", "0.05"]), merge(env, Dict("DISTSSHKIT_QUIET" => "0"))...))
-                        @test occursin("DistSSHKitQueue watch", wout)
+                        @test occursin("DistSSHQueue watch", wout)
                         @test occursin(id, wout)
                     finally
-                        DistSSHKitQueue.stop_serve!(store)
+                        DistSSHQueue.stop_serve!(store)
                         try
                             kill(serve_proc)
                             wait(serve_proc)
@@ -590,7 +590,7 @@ end
                     sshd_dir = joinpath(d, "sshd")
                     mkpath(sshd_dir)
                     port = free_loopback_port()
-                    qh_store = joinpath(e2e_home, ".distsshkitqueue", "qhost-jobs.toml")
+                    qh_store = joinpath(e2e_home, ".distsshqueue", "qhost-jobs.toml")
                     sshd_proc = start_loopback_sshd(sshd_dir, port, controller_key)
                     try
                         ssh_cfg = write_ssh_config_with_qhost(
@@ -608,8 +608,8 @@ end
                             "HOME" => e2e_home,
                             "JULIA_DEPOT_PATH" => julia_depot_path_env(),
                             "JULIA_PROJECT" => test_project,
-                            "DISTSSHKITQUEUE_CONFIG" => cfg,
-                            "DISTSSHKITQUEUE_STORE" => qh_store,
+                            "DISTSSHQUEUE_CONFIG" => cfg,
+                            "DISTSSHQUEUE_STORE" => qh_store,
                             "DISTSSHKIT_YES" => "1",
                             "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
                             "DISTRIBUTED_SSH_OPTS" => "-F $(SSH_CONFIG)",
@@ -621,7 +621,7 @@ end
                         wrapper = write_remote_julia(joinpath(d, "remote-julia"), remote_env)
                         client_env = Dict{String,String}(
                             "DISTSSHKIT_YES" => "1",
-                            "DISTSSHKITQUEUE_WATCH_TICKS" => "1",
+                            "DISTSSHQUEUE_WATCH_TICKS" => "1",
                             "DISTRIBUTED_SSH_OPTS" => "-F $ssh_cfg",
                         )
                         qh(rest) = qcmd(["qhost:dskq-qh", "--remote-julia", wrapper, "--queue-env", test_project, rest...])
@@ -670,8 +670,8 @@ end
                         @test run_cli(addenv(qh(["stop"]), client_env...)).exitcode == 0
                         @test run_cli(addenv(qh(["teardown", "-y", "--write-only"]), client_env...)).exitcode == 0
                     finally
-                        DistSSHKitQueue.stop_serve!(qh_store)
-                        DistSSHKitQueue.stop_serve!(store)
+                        DistSSHQueue.stop_serve!(qh_store)
+                        DistSSHQueue.stop_serve!(store)
                         stop_loopback_sshd(sshd_proc)
                     end
                 end

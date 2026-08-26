@@ -8,6 +8,7 @@ docs/site/
 data/
 results/
 output/
+.distsshqueue/
 .distsshkitqueue/
 
 # Tests & CI artifacts

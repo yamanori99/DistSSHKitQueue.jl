@@ -1,6 +1,6 @@
-# [DistSSHKitQueue.jl](@id DistSSHKitQueue.jl)
+# [DistSSHQueue.jl](@id DistSSHQueue.jl)
 
-DistSSHKitQueue runs jobs one after another on machines that several
+DistSSHQueue runs jobs one after another on machines that several
 people share. You can submit a job, check its status, and cancel.
 [DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) does the run.
 Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
@@ -11,7 +11,7 @@ on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**. Placement tokens
 (`parent[:N]` / `child:NAME[:N]`) stay DistSSHKit's — see the
 [kit docs](https://yamanori99.github.io/DistSSHKit.jl/stable/).
 
-## What is DistSSHKitQueue?
+## What is DistSSHQueue?
 
 Day to day you **submit** from a client (`qhost:HOST`). If no `serve` is up,
 `submit` starts one on the queue host. You do not need `setup`, `serve`, or
@@ -19,7 +19,7 @@ Day to day you **submit** from a client (`qhost:HOST`). If no `serve` is up,
 
 How you call it:
 
-- **CLI** — `julia --project=. -m DistSSHKitQueue qhost:HOST submit go …`
+- **CLI** — `julia --project=. -m DistSSHQueue qhost:HOST submit go …`
 - **Julia API** — `submit!` / `cancel!` / `serve!` on a [`Queue`](@ref)
   ([API](@ref API))
 
@@ -32,24 +32,26 @@ How you call it:
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl
 ```
 
 Or, equivalently, via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl", rev="v0.1.0-beta.1")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl")
 ```
 
-Not on General yet, so pin the beta tag by URL. DistSSHKit **0.4.1+** comes from
+Not on General yet. DistSSHKit **0.4.1+** comes from
 General with it. Do not `Pkg.develop` Kit for ordinary Queue work.
+Git tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not pin it
+for DistSSHQueue.
 
 Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);
 `pkg> add` does not install them. [Requirements](@ref).
 
 ## Basic terms
 
-- **Queue host** — the always-on machine that holds `~/.distsshkitqueue`
+- **Queue host** — the always-on machine that holds `~/.distsshqueue`
   and runs `serve`. A sleeping laptop is not this box.
 - **Client** — a dev machine that submits, lists, watches, or cancels. No
   cap. It must not become the Kit master.
@@ -65,8 +67,8 @@ Trees (client / queue host / workers): [Where files live](@ref Layout).
   clients = dev machines (no cap)          one queue host (always on)
   ───────────────────────────────          ──────────────────────────
   yours / a colleague's / …                FIFO     one Kit job at a time
-       │                                   table    ~/.distsshkitqueue
-       │  julia -m DistSSHKitQueue         add-host / remove-host
+       │                                   table    ~/.distsshqueue
+       │  julia -m DistSSHQueue         add-host / remove-host
        │    qhost:NAME                     serve    now, this terminal
        │    submit | status | list-host    enable   again after reboot
        │    watch | cancel | …
@@ -91,11 +93,11 @@ embed from Julia.
 ## Contributing
 
 Bugs and feature requests:
-[Issues](https://github.com/yamanori99/DistSSHKitQueue.jl/issues).
+[Issues](https://github.com/yamanori99/DistSSHQueue.jl/issues).
 See
-[CONTRIBUTING.md](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/CONTRIBUTING.md).
+[CONTRIBUTING.md](https://github.com/yamanori99/DistSSHQueue.jl/blob/main/CONTRIBUTING.md).
 
 ## License
 
 Source code is
-[MIT](https://github.com/yamanori99/DistSSHKitQueue.jl/blob/main/LICENSE).
+[MIT](https://github.com/yamanori99/DistSSHQueue.jl/blob/main/LICENSE).

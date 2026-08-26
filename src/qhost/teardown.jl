@@ -1,6 +1,7 @@
-"""Remove queue-host state: serve, OS unit, store, `~/.distsshkitqueue`.
+"""Remove queue-host state: serve, OS unit, store, `~/.distsshqueue`.
 
 A leftover `dskq` shim from older `setup` is removed if present.
+Leftover DistSSHKitQueue `~/.distsshkitqueue` and old OS units are removed too.
 
 Does not `Pkg.rm` or delete a git clone. Kit `.distsshkit/` next to a clone stays.
 Needs `-y` / `--yes` (or Kit `DISTSSHKIT_YES`, same values as DistSSHKit: `1` / `true` / `yes` / `on`).
@@ -12,7 +13,7 @@ function teardown_yes()::Bool
 end
 
 function teardown_store(; home::AbstractString=homedir(), config::AbstractString=config_path(; home=home))::String
-    env = strip(get(ENV, "DISTSSHKITQUEUE_STORE", ""))
+    env = strip(get(ENV, "DISTSSHQUEUE_STORE", ""))
     isempty(env) || return env
     st = config_store_path(load_config(; path=config))
     st === nothing || return st
@@ -26,12 +27,15 @@ function teardown_targets(;
 )::Vector{String}
     st = teardown_store(; home=home, config=config)
     data = queue_data_dir(; home=home)
+    legacy = joinpath(home, ".distsshkitqueue")
     wrap = wrapper_path(; bindir=bindir)
-    out = String[wrap, st, store_pid_path(st), store_stop_path(st), string(st, ".log"), config, data]
+    out = String[wrap, st, store_pid_path(st), store_stop_path(st), string(st, ".log"), config, data, legacy]
     if Sys.isapple()
         push!(out, launch_agent_path(; home=home))
+        push!(out, legacy_launch_agent_path(; home=home))
     elseif Sys.islinux()
         push!(out, systemd_user_path(; home=home))
+        push!(out, legacy_systemd_user_path(; home=home))
     end
     seen = Set{String}()
     uniq = String[]
@@ -75,6 +79,8 @@ function teardown(;
     ispath(config) && rm(config; force=true)
     data = queue_data_dir(; home=home)
     isdir(data) && rm(data; force=true, recursive=true)
+    legacy = joinpath(home, ".distsshkitqueue")
+    isdir(legacy) && rm(legacy; force=true, recursive=true)
     for p in existing
         print_removed(p; io=io)
     end

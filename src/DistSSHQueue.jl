@@ -1,15 +1,15 @@
 """
-DistSSHKitQueue — FIFO `serve` for DistSSHKit (`go` / `drive`).
+DistSSHQueue — FIFO `serve` for DistSSHKit (`go` / `drive`).
 
 Package entry: exports, `include`s, `main` (`@main` on Julia 1.12+).
-FIFO: `src/DistSSHKitQueue/`. Client CLI: `src/client/`. Queue host CLI: `src/qhost/`.
+FIFO: `src/DistSSHQueue/`. Client CLI: `src/client/`. Queue host CLI: `src/qhost/`.
 `serve` runs DistSSHKit `execute!(...; detached=true)`.
 `--project=<queue-env>` loads this package; the Kit project is `job_project()`.
-Config: `~/.distsshkitqueue/config.toml`.
+Config: `~/.distsshqueue/config.toml`.
 
-Concept: [docs](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/).
+Concept: [docs](https://yamanori99.github.io/DistSSHQueue.jl/dev/).
 """
-module DistSSHKitQueue
+module DistSSHQueue
 
 using Dates
 using DistSSHKit
@@ -28,12 +28,12 @@ export serve
 export job_project
 export default_store_path
 
-include("DistSSHKitQueue/job.jl")
-include("DistSSHKitQueue/store.jl")
-include("DistSSHKitQueue/paths.jl")
-include("DistSSHKitQueue/config.jl")
-include("DistSSHKitQueue/display.jl")
-include("DistSSHKitQueue/queue.jl")
+include("DistSSHQueue/job.jl")
+include("DistSSHQueue/store.jl")
+include("DistSSHQueue/paths.jl")
+include("DistSSHQueue/config.jl")
+include("DistSSHQueue/display.jl")
+include("DistSSHQueue/queue.jl")
 include("client/qhost.jl")
 include("client/submit.jl")
 include("client/status.jl")
@@ -48,7 +48,7 @@ include("qhost/serve.jl")
 
 show_usage(; io::IO=stdout) = print_queue_usage(io)
 
-"""CLI entry. Prefer `julia -m DistSSHKitQueue` (client `qhost:HOST` / queue-host `setup`)."""
+"""CLI entry. Prefer `julia -m DistSSHQueue` (client `qhost:HOST` / queue-host `setup`)."""
 function main(args::Vector{String}=copy(ARGS))::Cint
     apply_config_env!(load_config())
     try
@@ -145,4 +145,4 @@ if VERSION >= v"1.12"
     Base.eval(@__MODULE__, :(@main))
 end
 
-end # module DistSSHKitQueue
+end # module DistSSHQueue

@@ -4,7 +4,7 @@ Command reference. For a hands-on path, use First Steps
 ([Requirements](@ref) → [Prepare](@ref Tutorial-Prepare) →
 [First job](@ref Tutorial-Client)).
 
-Full help: `julia --project=. -m DistSSHKitQueue --help`.
+Full help: `julia --project=. -m DistSSHQueue --help`.
 Each command page starts with a **Flags** table for that command.
 Kit `go` / `drive` / `size` flags stay in the
 [kit User Guide](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/).
@@ -28,9 +28,9 @@ Refuse `qhost:`: `setup`, `serve`, `enable`, `disable`, `add-host`,
 
 `--hosts` / `--julia` belong to Kit `go` / `drive`. Queue-host Julia is
 `--remote-julia` / `JULIA_DISTRIBUTED_EXE`. `--queue-env DIR` is
-`julia --project=` on the queue host (default `~/.distsshkitqueue/env`),
-not the client's `--project=.`. Default `qhost:`: `DISTSSHKITQUEUE_HOST` (not
-`DISTSSHKIT_HOSTS`). Not forwarded. Not `DISTSSHKITQUEUE_QHOST` (that is
+`julia --project=` on the queue host (default `~/.distsshqueue/env`),
+not the client's `--project=.`. Default `qhost:`: `DISTSSHQUEUE_HOST` (not
+`DISTSSHKIT_HOSTS`). Not forwarded. Not `DISTSSHQUEUE_QHOST` (that is
 `status` / `watch` display).
 
 `serve` is “run the process”. `enable` is “register that process with
@@ -50,7 +50,7 @@ does not keep a second copy of Kit's result tree. Kit kwargs (`args`,
 `execute!` allow-list. `serve` also passes `job_id` (the row UUID)
 so Kit progress lines can carry `job=`.
 
-The table is TOML on the queue host (`~/.distsshkitqueue/jobs.toml`),
+The table is TOML on the queue host (`~/.distsshqueue/jobs.toml`),
 rewritten under a directory lock. Kit results stay under that project
 (`.distsshkit/`). Layout: [Where files live](@ref Layout). If `serve`
 dies: `:queued` rows reload on the next `serve`. A `:running` row whose

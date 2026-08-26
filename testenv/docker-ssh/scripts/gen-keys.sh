@@ -12,12 +12,12 @@ HOSTS_FILE="${GEN}/hosts"
 mkdir -p "${KEYS}" "${GEN}"
 
 if [[ ! -f "${CONTROLLER_KEY}" ]]; then
-  ssh-keygen -t ed25519 -f "${CONTROLLER_KEY}" -N "" -C "distsshkitqueue-docker-ssh-controller"
+  ssh-keygen -t ed25519 -f "${CONTROLLER_KEY}" -N "" -C "distsshqueue-docker-ssh-controller"
 fi
 cp "${CONTROLLER_KEY}.pub" "${KEYS}/controller.pub"
 
 if [[ ! -f "${KEYS}/inter-worker" ]]; then
-  ssh-keygen -t ed25519 -f "${KEYS}/inter-worker" -N "" -C "distsshkitqueue-inter-worker"
+  ssh-keygen -t ed25519 -f "${KEYS}/inter-worker" -N "" -C "distsshqueue-inter-worker"
 fi
 
 umask 077
@@ -52,7 +52,7 @@ Host dskq-w2
 EOF
 
 cat > "${HOSTS_FILE}" <<'EOF'
-# DistSSHKitQueue docker-ssh workers (SSH config Host aliases)
+# DistSSHQueue docker-ssh workers (SSH config Host aliases)
 dskq-w1
 dskq-w2
 EOF

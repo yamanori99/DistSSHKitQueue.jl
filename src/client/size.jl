@@ -38,9 +38,9 @@ function print_queue_size_submit(include_parent::Bool, hosts::Vector{String}, pl
     end
     println("Queue submit:")
     if isempty(parts)
-        println("  julia --project=. -m DistSSHKitQueue submit drive SCRIPT.jl")
+        println("  julia --project=. -m DistSSHQueue submit drive SCRIPT.jl")
     else
-        println("  julia --project=. -m DistSSHKitQueue submit drive ", join(parts, " "), " SCRIPT.jl")
+        println("  julia --project=. -m DistSSHQueue submit drive ", join(parts, " "), " SCRIPT.jl")
     end
     return nothing
 end
@@ -53,7 +53,7 @@ function size_cli(args::Vector{String})::Cint
         DistSSHKit.print_help_section("Queue"; io=stdout)
         DistSSHKit.print_help_lines(stdout,
             "  Same flags as DistSSHKit size. Runs on the queue host (cwd / project).",
-            "  julia -m DistSSHKitQueue [qhost:HOST] size [parent] [child:NAME...]",
+            "  julia -m DistSSHQueue [qhost:HOST] size [parent] [child:NAME...]",
             "  Omit tokens to size config hosts. Does not enqueue.",
         )
         return 0
@@ -70,7 +70,7 @@ function size_cli(args::Vector{String})::Cint
         return 0
     end
     project = job_project()
-    DistSSHKit.print_header("DistSSHKitQueue size")
+    DistSSHKit.print_header("DistSSHQueue size")
     DistSSHKit.writeln_field("Project", DistSSHKit.short_path(project))
     DistSSHKit.kit_println()
     samples = DistSSHKit.resolve_worker_memory_samples(project, all_hosts, hosts, opts)

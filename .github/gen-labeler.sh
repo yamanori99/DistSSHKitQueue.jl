@@ -4,7 +4,7 @@
 # Convention (coarse, Kit-shaped leftover + two dirs):
 #   - src/client/** → area:client
 #   - src/qhost/** → area:qhost
-#   - leftover DistSSHKitQueue modules, matching unit tests, shared CLI
+#   - leftover DistSSHQueue modules, matching unit tests, shared CLI
 #     tests, package meta → area:queue (every tracked path must match some
 #     area:*)
 #   - test harness → area:test (`testenv/**` plus each `test/<name>` that is
@@ -86,8 +86,8 @@ EOF
 "area:queue":
   - changed-files:
       - any-glob-to-any-file:
-          - "src/DistSSHKitQueue.jl"
-          - "src/DistSSHKitQueue/**"
+          - "src/DistSSHQueue.jl"
+          - "src/DistSSHQueue/**"
           - ".gitattributes"
           - ".gitignore"
           - ".vscode/**"

@@ -46,7 +46,7 @@ function print_list_host(
     names::Union{Nothing, HostAllow};
     io::IO=stdout,
 )
-    DistSSHKit.print_help_chrome("DistSSHKitQueue list-host"; io=io)
+    DistSSHKit.print_help_chrome("DistSSHQueue list-host"; io=io)
     if names === nothing
         println(io, "  (no hosts= in config; submit accepts any Kit name)")
         return nothing

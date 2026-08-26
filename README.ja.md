@@ -1,19 +1,19 @@
-# DistSSHKitQueue.jl
+# DistSSHQueue.jl
 
 [English](README.md) · [日本語](README.ja.md)
 
-[![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/CI.yml?branch=main&label=Test)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/gh/yamanori99/DistSSHKitQueue.jl/graph/badge.svg)](https://codecov.io/gh/yamanori99/DistSSHKitQueue.jl)
-[![JETLS](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/jetls.yml?branch=main&label=JETLS)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/jetls.yml)
-[![Aqua](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/aqua.yml?branch=main&label=Aqua)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/aqua.yml)
-[![E2E](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/ssh-e2e.yml?branch=main&label=E2E)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/ssh-e2e.yml)
-[![E2E daily](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHKitQueue.jl/ssh-e2e-daily.yml?branch=main&label=E2E%20daily)](https://github.com/yamanori99/DistSSHKitQueue.jl/actions/workflows/ssh-e2e-daily.yml)
+[![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/CI.yml?branch=main&label=Test)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/CI.yml)
+[![codecov](https://codecov.io/gh/yamanori99/DistSSHQueue.jl/graph/badge.svg)](https://codecov.io/gh/yamanori99/DistSSHQueue.jl)
+[![JETLS](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/jetls.yml?branch=main&label=JETLS)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/jetls.yml)
+[![Aqua](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/aqua.yml?branch=main&label=Aqua)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/aqua.yml)
+[![E2E](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/ssh-e2e.yml?branch=main&label=E2E)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/ssh-e2e.yml)
+[![E2E daily](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/ssh-e2e-daily.yml?branch=main&label=E2E%20daily)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/ssh-e2e-daily.yml)
 
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/)
-[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/requirements/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
+[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-DistSSHKitQueue は、何人かで同じマシンを使い、ジョブを順番に走らせるものである。
+DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に走らせるものである。
 ジョブの投入、状態の確認、取り消しができる。
 実行は [DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) が担う。
 対応は **macOS、Linux、WSL2 Ubuntu** (ネイティブ Windows は対象外)。
@@ -26,23 +26,24 @@ General にはまだ無い。Julia **1.12+**、DistSSHKit **0.4.1+**。
 Julia REPL で `]` を押して Pkg モードに入り、次を実行する。
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHKitQueue.jl#v0.1.0-beta.1
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl
 ```
 
 同じことを `Pkg` API で書くと次のとおり。
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHKitQueue.jl", rev="v0.1.0-beta.1")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl")
 ```
 
-General にはまだ無いので、beta タグを URL で入れる。DistSSHKit **0.4.1+** は General から付いてくる。
-通常の Queue 作業で Kit を `Pkg.develop` しない。
+General にはまだ無い。DistSSHKit **0.4.1+** は General から付いてくる。
+通常の Queue 作業で Kit を `Pkg.develop` しない。git タグ `v0.1.0-beta.1` は
+旧 DistSSHKitQueue (旧 UUID) なので、DistSSHQueue には使わない。
 
 キューホストには **`ssh`**、**`rsync`**、および (git デプロイを使うときだけ) **`git`** も必要。
 `pkg> add` では入らない。詳細な利用条件については以下:
-[Requirements](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/requirements/)。
+[Requirements](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/)。
 
-パッケージの詳細は **[ドキュメント](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/)** を参照。
+パッケージの詳細は **[ドキュメント](https://yamanori99.github.io/DistSSHQueue.jl/dev/)** を参照。
 
 公式ドキュメント本体は英語である。
 
@@ -50,7 +51,7 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
 
 ### 基本用語
 
-- **キューホスト** — `~/.distsshkitqueue` を持ち、`serve` を動かす常時起動のマシン
+- **キューホスト** — `~/.distsshqueue` を持ち、`serve` を動かす常時起動のマシン
   (macOS または Linux。VM でよい)。スリープするラップトップはこれではない。
 - **クライアント** — 投入・一覧・監視・取消をする開発マシン。台数に上限はない。
   Kit のマスターになってはならない。
@@ -64,8 +65,8 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
   clients = dev machines (no cap)          one queue host (always on)
   ───────────────────────────────          ──────────────────────────
   yours / a colleague's / …                FIFO     one Kit job at a time
-       │                                   table    ~/.distsshkitqueue
-       │  julia -m DistSSHKitQueue         add-host / remove-host
+       │                                   table    ~/.distsshqueue
+       │  julia -m DistSSHQueue         add-host / remove-host
        │    qhost:NAME                     serve    now, this terminal
        │    submit | status | list-host    enable   again after reboot
        │    watch | cancel | …
@@ -75,7 +76,7 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
 
 `qhost:NAME` はキューホストの SSH 名である (Kit の `child:NAME` と同じ形だが、
 ワーカーではなくキューホストを指す)。既にそのマシンにログインしていれば省略する。
-ラボが 1 つのとき: `export DISTSSHKITQUEUE_HOST=…` して `qhost:` を省略できる
+ラボが 1 つのとき: `export DISTSSHQUEUE_HOST=…` して `qhost:` を省略できる
 (トークンがあればそちらが勝つ)。`--hosts` / `--julia` は Kit の `go` / `drive` のまま。
 
 配置トークン、`go` / `drive` のフラグ、リモートの準備は DistSSHKit の範囲である。
@@ -85,26 +86,26 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
 
 `qhost:` はキューホストの SSH 名であり、保存先の接頭辞ではない。表と Kit の
 結果ディレクトリは **そのマシン** に残る。クライアントに
-`~/.distsshkitqueue` は無い。Queue は Kit の木をコピーしない。
+`~/.distsshqueue` は無い。Queue は Kit の木をコピーしない。
 
 #### クライアント
 
 ```text
 ~/my-job/
-  Project.toml          DistSSHKitQueue (CLI)
+  Project.toml          DistSSHQueue (CLI)
   Manifest.toml
   SCRIPT.jl             解釈はキューホスト側
 ```
 
 #### キューホスト
 
-`~/.distsshkitqueue` と **ジョブごとに一つの Kit クローン** (パスは
+`~/.distsshqueue` と **ジョブごとに一つの Kit クローン** (パスは
 `~/org/Repo.jl` で一意)。`--queue-env` とは別。`SCRIPT.jl` はそのクローン。
 共有 `config.toml` に `DISTRIBUTED_REMOTE_PROJECT_ROOT` は書かない。
 二本目のプロジェクトが同じ worker パスなら `submit` はエラー。
 
 ```text
-~/.distsshkitqueue/
+~/.distsshqueue/
   config.toml
   jobs.toml             全行 (prune しない)
   jobs.toml.log
@@ -125,11 +126,11 @@ General にはまだ無いので、beta タグを URL で入れる。DistSSHKit 
 
 `enable` (任意。この端末の `serve` だけなら不要):
 
-- **macOS** — `~/Library/LaunchAgents/org.distsshkitqueue.serve.plist`
-- **Linux / WSL2** — `~/.config/systemd/user/distsshkitqueue.serve.service`
+- **macOS** — `~/Library/LaunchAgents/org.distsshqueue.serve.plist`
+- **Linux / WSL2** — `~/.config/systemd/user/distsshqueue.serve.service`
 
 ユーザ unit (root 不要)。中身は同じ
-`julia --project=<queue-env> -m DistSSHKitQueue serve`。
+`julia --project=<queue-env> -m DistSSHQueue serve`。
 
 #### ワーカー
 
@@ -147,11 +148,11 @@ remote ではない)。収集先は上のキューホスト `.distsshkit/`。
 **クライアント** から (ジョブのディレクトリ。その env から Queue が load できること):
 
 ```bash
-julia --project=. -m DistSSHKitQueue qhost:mini list-host
-julia --project=. -m DistSSHKitQueue qhost:mini submit go child:host1:4 SCRIPT.jl
-julia --project=. -m DistSSHKitQueue qhost:mini status
-julia --project=. -m DistSSHKitQueue qhost:mini watch
-julia --project=. -m DistSSHKitQueue qhost:mini cancel <id>
+julia --project=. -m DistSSHQueue qhost:mini list-host
+julia --project=. -m DistSSHQueue qhost:mini submit go child:host1:4 SCRIPT.jl
+julia --project=. -m DistSSHQueue qhost:mini status
+julia --project=. -m DistSSHQueue qhost:mini watch
+julia --project=. -m DistSSHQueue qhost:mini cancel <id>
 ```
 
 `submit` は、`serve` が無ければキューホスト上で起動する。ジョブ id は
@@ -160,29 +161,29 @@ stdout 1 行。stderr に `Queued  N` (`DISTSSHKIT_QUIET` で隠す)。
 **キューホスト** で一度だけ:
 
 ```bash
-cd ~/.distsshkitqueue/env
-julia --project=. -m DistSSHKitQueue setup
-julia --project=. -m DistSSHKitQueue add-host parent child:host1
-julia --project=. -m DistSSHKitQueue enable --queue-env ~/.distsshkitqueue/env
+cd ~/.distsshqueue/env
+julia --project=. -m DistSSHQueue setup
+julia --project=. -m DistSSHQueue add-host parent child:host1
+julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
 ```
 
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` は
 `qhost:` を受け付けない。コマンド参照:
-[User Guide](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/manual/)。
+[User Guide](https://yamanori99.github.io/DistSSHQueue.jl/dev/manual/)。
 
 ## ドキュメント
 
 | | |
 | --- | --- |
-| Introduction | [Introduction](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/) |
-| First Steps | [First Steps](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/requirements/) |
-| User Guide | [User Guide](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/manual/) |
-| API | [API](https://yamanori99.github.io/DistSSHKitQueue.jl/dev/api/) |
+| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/dev/) |
+| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/) |
+| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/dev/manual/) |
+| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/dev/api/) |
 | News | [NEWS.md](NEWS.md) |
 
 ## 貢献
 
-バグ報告・機能要望は [Issues](https://github.com/yamanori99/DistSSHKitQueue.jl/issues)。
+バグ報告・機能要望は [Issues](https://github.com/yamanori99/DistSSHQueue.jl/issues)。
 貢献の仕方は [CONTRIBUTING.md](CONTRIBUTING.md) を参照。
 
 ## ライセンス

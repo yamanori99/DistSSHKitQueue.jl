@@ -5,10 +5,10 @@ not enqueue. Not Kit `--hosts` (that still names workers on `go` /
 `drive`).
 
 ```bash
-julia -m DistSSHKitQueue add-host parent child:host1
-julia -m DistSSHKitQueue list-host
-julia -m DistSSHKitQueue size
-julia -m DistSSHKitQueue remove-host child:host1
+julia -m DistSSHQueue add-host parent child:host1
+julia -m DistSSHQueue list-host
+julia -m DistSSHQueue size
+julia -m DistSSHQueue remove-host child:host1
 ```
 
 From a **client**, `list-host` and `size` are forwarded like `status`.
@@ -40,7 +40,7 @@ HostName / User / Port. No private keys or IdentityFile. `ssh -G` runs
 on the queue host, not on the client.
 
 ```bash
-julia -m DistSSHKitQueue qhost:mini list-host
+julia -m DistSSHQueue qhost:mini list-host
 ```
 
 ## size
@@ -49,8 +49,8 @@ DistSSHKit `size` on the queue host (cwd / project). Omit tokens to size
 config `hosts`. Does not enqueue. Prints a `submit drive` template.
 
 ```bash
-julia -m DistSSHKitQueue qhost:mini size
-julia -m DistSSHKitQueue qhost:mini size --gb-per-worker 1.5 parent child:host1
+julia -m DistSSHQueue qhost:mini size
+julia -m DistSSHQueue qhost:mini size --gb-per-worker 1.5 parent child:host1
 ```
 
 Kit flags (`--probe`, `--gb-per-worker`, …):

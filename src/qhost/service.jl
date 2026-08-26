@@ -1,10 +1,12 @@
-"""OS unit that runs `julia --project=<queue-env> -m DistSSHKitQueue serve`.
+"""OS unit that runs `julia --project=<queue-env> -m DistSSHQueue serve`.
 
 Writes a LaunchAgent (macOS) or systemd user unit (Linux). Not a second protocol.
 """
 
-const SERVICE_LABEL = "org.distsshkitqueue.serve"
-const SYSTEMD_UNIT = "distsshkitqueue.serve.service"
+const SERVICE_LABEL = "org.distsshqueue.serve"
+const SYSTEMD_UNIT = "distsshqueue.serve.service"
+const LEGACY_SERVICE_LABEL = "org.distsshkitqueue.serve"
+const LEGACY_SYSTEMD_UNIT = "distsshkitqueue.serve.service"
 
 function xml_escape(s::AbstractString)::String
     t = replace(String(s), "&" => "&amp;")
@@ -19,6 +21,14 @@ end
 
 function systemd_user_path(; home::AbstractString=homedir())::String
     return joinpath(home, ".config", "systemd", "user", SYSTEMD_UNIT)
+end
+
+function legacy_launch_agent_path(; home::AbstractString=homedir())::String
+    return joinpath(home, "Library", "LaunchAgents", string(LEGACY_SERVICE_LABEL, ".plist"))
+end
+
+function legacy_systemd_user_path(; home::AbstractString=homedir())::String
+    return joinpath(home, ".config", "systemd", "user", LEGACY_SYSTEMD_UNIT)
 end
 
 function launch_agent_plist(julia::AbstractString, project::AbstractString)::String
@@ -37,7 +47,7 @@ function launch_agent_plist(julia::AbstractString, project::AbstractString)::Str
         <string>--startup-file=no</string>
         <string>--project=$p</string>
         <string>-m</string>
-        <string>DistSSHKitQueue</string>
+        <string>DistSSHQueue</string>
         <string>serve</string>
     </array>
     <key>RunAtLoad</key>
@@ -55,11 +65,11 @@ function systemd_user_unit(julia::AbstractString, project::AbstractString)::Stri
     proj = occursin(r"\s", project) ? "'$(replace(project, "'" => "'\\''"))'" : String(project)
     return """
 [Unit]
-Description=DistSSHKitQueue serve
+Description=DistSSHQueue serve
 
 [Service]
 Type=simple
-ExecStart=$exe --startup-file=no --project=$proj -m DistSSHKitQueue serve
+ExecStart=$exe --startup-file=no --project=$proj -m DistSSHQueue serve
 Restart=on-failure
 
 [Install]
@@ -98,13 +108,17 @@ function service_uninstall(; apply::Bool=true, home::AbstractString=homedir())
     live = DistSSHKit.canonical_local_path(home) == DistSSHKit.canonical_local_path(homedir())
     if Sys.isapple()
         path = launch_agent_path(; home=home)
-        apply && live && isfile(path) && _launchctl_unload()
+        legacy = legacy_launch_agent_path(; home=home)
+        apply && live && (isfile(path) || isfile(legacy)) && _launchctl_unload()
         isfile(path) && rm(path)
+        isfile(legacy) && rm(legacy)
         return 0
     elseif Sys.islinux()
         apply && live && _systemd_disable()
         path = systemd_user_path(; home=home)
+        legacy = legacy_systemd_user_path(; home=home)
         isfile(path) && rm(path)
+        isfile(legacy) && rm(legacy)
         return 0
     end
     throw(ArgumentError("disable: macOS or Linux only"))
@@ -123,9 +137,11 @@ end
 
 function _launchctl_unload()
     uid = string(Libc.getuid())
-    try
-        run(pipeline(`launchctl bootout gui/$uid/$(SERVICE_LABEL)`; stdout=devnull, stderr=devnull))
-    catch
+    for label in (SERVICE_LABEL, LEGACY_SERVICE_LABEL)
+        try
+            run(pipeline(`launchctl bootout gui/$uid/$label`; stdout=devnull, stderr=devnull))
+        catch
+        end
     end
     return nothing
 end
@@ -137,9 +153,11 @@ function _systemd_enable()
 end
 
 function _systemd_disable()
-    try
-        run(pipeline(`systemctl --user disable --now $(SYSTEMD_UNIT)`; stdout=devnull, stderr=devnull))
-    catch
+    for unit in (SYSTEMD_UNIT, LEGACY_SYSTEMD_UNIT)
+        try
+            run(pipeline(`systemctl --user disable --now $unit`; stdout=devnull, stderr=devnull))
+        catch
+        end
     end
     return nothing
 end
@@ -159,7 +177,7 @@ function enable_main(args::Vector{String})::Cint
         elseif args[i] == "--project"
             throw(ArgumentError(
                 "enable: use --queue-env DIR, not --project. " *
-                "Julia `--project=` loads DistSSHKitQueue; project is cwd / DISTRIBUTED_PROJECT_ROOT.",
+                "Julia `--project=` loads DistSSHQueue; project is cwd / DISTRIBUTED_PROJECT_ROOT.",
             ))
         elseif args[i] == "--write-only"
             apply = false

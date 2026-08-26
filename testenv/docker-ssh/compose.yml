@@ -1,17 +1,17 @@
-# Linux SSH children for DistSSHKitQueue local Docker E2E.
+# Linux SSH children for DistSSHQueue local Docker E2E.
 # These are DistSSHKit go/drive targets (`child:NAME[:N]`). The queue host and the
 # serve run on the host, not here.
 #
 # Project name is not the directory (`docker-ssh`): DistSSHKit uses the same
 # folder name, and sharing the Compose project recreates Kit's children too.
-name: distsshkitqueue-docker-ssh
+name: distsshqueue-docker-ssh
 services:
   child-1:
     build:
       context: .
       dockerfile: Dockerfile
     image: local/dskq-linux-ssh-worker:latest
-    container_name: distsshkitqueue-child-1
+    container_name: distsshqueue-child-1
     ports:
       - "2222:22"
     volumes:
@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: local/dskq-linux-ssh-worker:latest
-    container_name: distsshkitqueue-child-2
+    container_name: distsshqueue-child-2
     ports:
       - "2223:22"
     volumes:

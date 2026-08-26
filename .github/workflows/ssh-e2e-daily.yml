@@ -147,7 +147,7 @@ jobs:
         shell: wsl-bash {0}
         run: |
           src="$(pwd)"
-          dest="$HOME/DistSSHKitQueue.jl"
+          dest="$HOME/DistSSHQueue.jl"
           cache="$src/.ci-cache/wsl-julia"
           export DSKQ_WORKER_IMAGE="ghcr.io/${{ github.repository_owner }}/dskq-linux-ssh-worker:${{ github.sha }}"
           export DSKQ_WORKER_PULL_RETRIES="8"
@@ -189,7 +189,7 @@ jobs:
         if: always()
         shell: wsl-bash {0}
         run: |
-          dest="$HOME/DistSSHKitQueue.jl"
+          dest="$HOME/DistSSHQueue.jl"
           if [[ -d "$dest" ]]; then
             (cd "$dest" && ./testenv/docker-ssh/scripts/down.sh) || true
           fi

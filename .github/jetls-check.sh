@@ -13,7 +13,7 @@ cd "$root"
 shopt -s nullglob
 
 files=(
-    src/DistSSHKitQueue.jl
+    src/DistSSHQueue.jl
     test/runtests.jl
     test/e2e.jl
 )

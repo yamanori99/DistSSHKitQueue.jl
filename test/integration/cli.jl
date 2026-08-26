@@ -1,26 +1,26 @@
-# Child CLI (`julia -m DistSSHKitQueue`) + parent:1. Not SSH.
+# Child CLI (`julia -m DistSSHQueue`) + parent:1. Not SSH.
 # Fake `ssh` only checks `qhost:` argv. Real OpenSSH client path is test/e2e.jl.
 
 using Test
-using DistSSHKitQueue
+using DistSSHQueue
 
 const QUEUE_ROOT = abspath(joinpath(@__DIR__, "..", ".."))
-const JULIA = DistSSHKitQueue.default_julia_bin()
+const JULIA = DistSSHQueue.default_julia_bin()
 
-qcli(args) = DistSSHKitQueue.with_serve_tag(
-    `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHKitQueue $(String[string(a) for a in args])`,
+qcli(args) = DistSSHQueue.with_serve_tag(
+    `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHQueue $(String[string(a) for a in args])`,
 )
 
 function store_jobs(env)
     # `read_jobs`: `load_jobs` would treat a live `:running` row without `kit.pid`
     # yet as a restart and report `:failed` in-memory (and tests would pass/fail on a lie).
-    return DistSSHKitQueue.read_jobs(env["DISTSSHKITQUEUE_STORE"])
+    return DistSSHQueue.read_jobs(env["DISTSSHQUEUE_STORE"])
 end
 
 function wait_job(env, id, states; tries=900, sleep_s=0.2)
     want = Set{Symbol}(states)
     sid = String(id)
-    last = DistSSHKitQueue.Job[]
+    last = DistSSHQueue.Job[]
     for _ = 1:tries
         last = store_jobs(env)
         i = findfirst(j -> j.id == sid, last)
@@ -50,18 +50,18 @@ function cli_env(d::AbstractString)
     write(joinpath(jobdir, "hold.jl"), "while true; sleep(1); end\n")
     write(cfg, "store = $(repr(store))\n\n[env]\nDISTSSHKIT_YES = \"1\"\n")
     env = Dict(
-        "DISTSSHKITQUEUE_CONFIG" => cfg,
-        "DISTSSHKITQUEUE_STORE" => store,
+        "DISTSSHQUEUE_CONFIG" => cfg,
+        "DISTSSHQUEUE_STORE" => store,
         "DISTSSHKIT_YES" => "1",
     )
-    withenv(env..., "DISTSSHKITQUEUE_NO_AUTOSERVE" => "1") do
-        DistSSHKitQueue.main(["setup", "--config", cfg]) == 0 || error("setup failed")
+    withenv(env..., "DISTSSHQUEUE_NO_AUTOSERVE" => "1") do
+        DistSSHQueue.main(["setup", "--config", cfg]) == 0 || error("setup failed")
     end
     return env, cfg, store, jobdir
 end
 
 function stop_store_serve(store::AbstractString)
-    DistSSHKitQueue.stop_serve!(store)
+    DistSSHQueue.stop_serve!(store)
     return nothing
 end
 
@@ -76,7 +76,7 @@ function write_fake_ssh(path::AbstractString, log::AbstractString)
     printf '%s\\n' "\$a"
   done
   printf '%s\\n' "---"
-} >> $(DistSSHKitQueue.sh_single_quote(log))
+} >> $(DistSSHQueue.sh_single_quote(log))
 for a in "\$@"; do
   if [ "\$a" = "--version" ]; then
     printf '%s\\n' "julia version 1.12.7"
@@ -94,7 +94,7 @@ end
     @testset "setup submit status parent:1 (explicit serve)" begin
         mktempdir() do d
             base, _, store, jobdir = cli_env(d)
-            env = merge(base, Dict("DISTSSHKITQUEUE_NO_AUTOSERVE" => "1"))
+            env = merge(base, Dict("DISTSSHQUEUE_NO_AUTOSERVE" => "1"))
             serve_cmd = addenv(qcli(["serve", "--interval", "0.1"]), env...)
             proc = run(serve_cmd; wait=false)
             try
@@ -106,14 +106,14 @@ end
                     @test isfile(joinpath(jobdir, "hello.ran"))
                     out = read(addenv(qcli(["status"]), env...), String)
                     @test occursin(id, out)
-                    wout = read(addenv(qcli(["watch", "--interval", "0.05"]), env..., "DISTSSHKITQUEUE_WATCH_TICKS" => "1"), String)
-                    @test occursin("DistSSHKitQueue watch", wout)
+                    wout = read(addenv(qcli(["watch", "--interval", "0.05"]), env..., "DISTSSHQUEUE_WATCH_TICKS" => "1"), String)
+                    @test occursin("DistSSHQueue watch", wout)
                     @test occursin(id, wout)
                     @test occursin("done", wout)
                     @test occursin("Ctrl-C stops watch", wout)
                 end
             finally
-                DistSSHKitQueue.stop_serve!(store)
+                DistSSHQueue.stop_serve!(store)
                 try
                     kill(proc)
                     wait(proc)
@@ -145,7 +145,7 @@ end
                     @test occursin("cancelled", listed)
                 end
             finally
-                DistSSHKitQueue.stop_serve!(store)
+                DistSSHQueue.stop_serve!(store)
             end
         end
     end
@@ -167,7 +167,7 @@ end
                     @test done.state === :cancelled
                 end
             finally
-                DistSSHKitQueue.stop_serve!(store)
+                DistSSHQueue.stop_serve!(store)
             end
         end
     end
@@ -180,22 +180,22 @@ end
             write_fake_ssh(joinpath(fake, "ssh"), log)
             path = fake * ":" * get(ENV, "PATH", "")
             withenv(env..., "PATH" => path) do
-                @test DistSSHKitQueue.main([
+                @test DistSSHQueue.main([
                     "qhost:qbox",
                     "--remote-julia", JULIA,
                     "status",
                 ]) == 0
-                @test DistSSHKitQueue.main([
+                @test DistSSHQueue.main([
                     "qhost:qbox",
                     "--remote-julia", JULIA,
                     "watch",
                 ]) == 0
-                @test DistSSHKitQueue.main([
+                @test DistSSHQueue.main([
                     "qhost:qbox",
                     "--remote-julia", JULIA,
                     "list-host",
                 ]) == 0
-                @test DistSSHKitQueue.main([
+                @test DistSSHQueue.main([
                     "qhost:qbox",
                     "--remote-julia", JULIA,
                     "--hosts",
@@ -206,13 +206,13 @@ end
             withenv(
                 env...,
                 "PATH" => path,
-                DistSSHKitQueue.QHOST_DEFAULT_ENV => "qbox",
+                DistSSHQueue.QHOST_DEFAULT_ENV => "qbox",
             ) do
-                @test DistSSHKitQueue.main(["--remote-julia", JULIA, "status"]) == 0
+                @test DistSSHQueue.main(["--remote-julia", JULIA, "status"]) == 0
             end
             dumped = read(log, String)
             @test occursin("qbox", dumped)
-            @test occursin("DistSSHKitQueue", dumped)
+            @test occursin("DistSSHQueue", dumped)
             @test occursin("status", dumped)
             @test occursin("watch", dumped)
             @test occursin("list-host", dumped)
@@ -221,26 +221,26 @@ end
             @test occursin("child:w:2", dumped)
             @test occursin("hello.jl", dumped)
             @test occursin("--startup-file=no", dumped)
-            @test occursin("--project=~/.distsshkitqueue/env", dumped)
+            @test occursin("--project=~/.distsshqueue/env", dumped)
             @test !occursin("add-host", dumped)
-            @test occursin("DISTSSHKITQUEUE_QHOST", dumped)
+            @test occursin("DISTSSHQUEUE_QHOST", dumped)
             @test !occursin("--via", dumped)
         end
     end
 
     @testset "teardown -y after setup" begin
         mktempdir() do home
-            data = joinpath(home, ".distsshkitqueue")
+            data = joinpath(home, ".distsshqueue")
             bindir = joinpath(home, ".local", "bin")
             mkpath(bindir)
             leftover = joinpath(bindir, "dskq")
             write(leftover, "#!/bin/sh\n")
-            withenv("DISTSSHKITQUEUE_CONFIG" => nothing, "DISTSSHKITQUEUE_STORE" => nothing) do
-                @test DistSSHKitQueue.main([
+            withenv("DISTSSHQUEUE_CONFIG" => nothing, "DISTSSHQUEUE_STORE" => nothing) do
+                @test DistSSHQueue.main([
                     "setup",
                     "--config", joinpath(data, "config.toml"),
                 ]) == 0
-                @test DistSSHKitQueue.main([
+                @test DistSSHQueue.main([
                     "teardown",
                     "--home", home,
                     "-y",
