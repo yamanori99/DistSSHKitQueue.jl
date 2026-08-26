@@ -24,6 +24,7 @@ makedocs(;
             "Overview" => "manual/index.md",
             "submit" => "manual/submit.md",
             "status" => "manual/status.md",
+            "fetch" => "manual/fetch.md",
             "hosts" => "manual/hosts.md",
             "serve" => "manual/serve.md",
             "setup" => "manual/setup.md",

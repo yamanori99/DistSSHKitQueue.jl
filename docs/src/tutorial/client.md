@@ -3,7 +3,7 @@
 Submit from a **client** after the queue host is up
 ([Prepare](@ref Tutorial-Prepare)). Also see
 [User Guide · submit](@ref Manual-submit), [status](@ref Manual-status),
-[Where files live](@ref Layout).
+[fetch](@ref Manual-fetch), [Where files live](@ref Layout).
 
 ## Point at the queue host
 
@@ -39,13 +39,16 @@ julia --project=. -m DistSSHQueue qhost:mini submit go child:host1:4 SCRIPT.jl
 julia --project=. -m DistSSHQueue qhost:mini status
 julia --project=. -m DistSSHQueue qhost:mini watch
 julia --project=. -m DistSSHQueue qhost:mini cancel <id>
+julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 ```
 
 `submit` starts `serve` if none is running. `status` / `watch` print
 `qhost` (or `local (hostname)` when you omitted it). `watch` redraws
 until Ctrl-C; it does not stop `serve`. Job ids print as a bare
 stdout line. `submit` also prints `Queued  N` on stderr unless
-`DISTSSHKIT_QUIET` is set.
+`DISTSSHKIT_QUIET` is set. `fetch` copies the finished Kit leaf onto
+this job tree (inverse of the `qhost:` rsync, which excludes
+`.distsshkit/`). Run it from the same directory as `submit`.
 
 Bare `go` / `drive` alias `submit go` / `submit drive`. A Kit-shaped
 line with a `.jl` and no Queue verb is `go`.

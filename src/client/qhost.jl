@@ -160,6 +160,7 @@ const QUEUE_CLI_VERBS = (
     "go",
     "drive",
     "cancel",
+    "fetch",
     "teardown",
 )
 

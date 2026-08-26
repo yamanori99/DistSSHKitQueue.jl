@@ -17,6 +17,7 @@ install_serve_reaper!()
         include(joinpath(@__DIR__, "unit", "queue.jl"))
         include(joinpath(@__DIR__, "unit", "config.jl"))
         include(joinpath(@__DIR__, "unit", "stage.jl"))
+        include(joinpath(@__DIR__, "unit", "fetch.jl"))
     end
     @testset "integration" verbose=true begin
         include(joinpath(@__DIR__, "integration", "cli.jl"))

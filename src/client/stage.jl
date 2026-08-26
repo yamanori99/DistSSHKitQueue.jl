@@ -17,25 +17,48 @@ function remote_stage_root(id::AbstractString; home::AbstractString="~")::String
     return string(h, "/.distsshqueue/stage/", id)
 end
 
-"""Home the hop Julia sees (`--remote-julia` wrapper ENV), not only SSH login `\$HOME`."""
-function queue_host_homedir(host::AbstractString, rjulia::AbstractString)::String
+"""Captured `ssh` + remote Julia `-e` stdout (not `maybe_remote` / `main`).
+
+`queue_env === nothing`: `--startup-file=no` only (homedir). Else hop `--project=`.
+"""
+function hop_print(
+    host::AbstractString,
+    rjulia::AbstractString,
+    expr::AbstractString;
+    queue_env::Union{Nothing,AbstractString}=nothing,
+)::String
     spec = strip(String(rjulia))
     auto = isempty(spec) || spec == "auto"
-    ssh = String["ssh"]
-    append!(ssh, DistSSHKit.ssh_opts())
-    cmd = if auto
-        Cmd(vcat(ssh, [String(host), "printf %s \"\$HOME\""]))
-    else
-        inner = string(
-            sh_single_quote(spec),
-            " --startup-file=no -e ",
-            sh_single_quote("print(homedir())"),
-        )
-        Cmd(vcat(ssh, [String(host), inner]))
+    prefix = queue_env === nothing ? String["--startup-file=no"] : hop_julia_prefix(queue_env)
+    argv = vcat(prefix, String["-e", String(expr)])
+    mktemp() do path, io
+        redirect_stdout(io) do
+            proc = DistSSHKit.run_on_host(
+                host,
+                argv;
+                julia=auto ? nothing : spec,
+                detect=auto,
+                tty=false,
+            )
+            code = Int(something(proc.exitcode, 1))
+            if code == 127
+                throw(ArgumentError(
+                    "no Julia on $(host) (ssh PATH is often empty; Kit tries juliaup then Homebrew). " *
+                    "Pass --remote-julia PATH or set JULIA_DISTRIBUTED_EXE, like Kit --julia.",
+                ))
+            end
+            code == 0 || throw(ArgumentError("qhost hop failed on $(host) (exit $(code))"))
+        end
+        flush(io)
+        out = strip(read(path, String))
+        isempty(out) && throw(ArgumentError("qhost hop: empty stdout on $(host)"))
+        return out
     end
-    out = strip(read(pipeline(cmd; stderr=stderr), String))
-    isempty(out) && throw(ArgumentError("qhost submit: empty homedir() on $(host)"))
-    return out
+end
+
+"""Home the hop Julia sees (`--remote-julia` wrapper ENV), not only SSH login `\$HOME`."""
+function queue_host_homedir(host::AbstractString, rjulia::AbstractString)::String
+    return hop_print(host, rjulia, "print(homedir())")
 end
 
 """Stable dir name for one client job tree (canonical path). Same tree re-submits here.
@@ -197,6 +220,30 @@ function rsync_to_qhost!(
             ),
         )
     end
+    return nothing
+end
+
+"""Pull one remote directory into `local_dest` (`--delete` stays inside that leaf)."""
+function rsync_from_qhost!(
+    host::AbstractString,
+    remote_abs::AbstractString,
+    local_dest::AbstractString,
+)
+    remote = rstrip(replace(String(remote_abs), '\\' => '/'), '/')
+    dest = DistSSHKit.canonical_local_path(local_dest)
+    mkpath(dest)
+    src = string(host, ":", remote, "/")
+    run(
+        pipeline(
+            Cmd(
+                vcat(
+                    _rsync_bin(),
+                    String["-az", "--delete", "-e", _ssh_transport(), src, dest * "/"],
+                ),
+            );
+            stderr=stderr,
+        ),
+    )
     return nothing
 end
 

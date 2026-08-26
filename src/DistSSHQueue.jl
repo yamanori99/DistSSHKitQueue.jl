@@ -37,6 +37,7 @@ include("DistSSHQueue/queue.jl")
 include("client/qhost.jl")
 include("client/submit.jl")
 include("client/stage.jl")
+include("client/fetch.jl")
 include("client/status.jl")
 include("client/list_host.jl")
 include("client/size.jl")
@@ -112,6 +113,8 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             r = maybe_remote(qhost, gjulia, "drive", rest; queue_env=gqenv)
             r === nothing || return r
             return submit_drive(rest)
+        elseif sub == "fetch"
+            return fetch_cli(qhost, gjulia, gqenv, rest)
         elseif sub == "cancel"
             r = maybe_remote(qhost, gjulia, "cancel", rest; queue_env=gqenv)
             r === nothing || return r

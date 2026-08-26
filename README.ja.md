@@ -16,7 +16,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に走らせるものである。
-ジョブの投入、状態の確認、取り消しができる。
+ジョブの投入、状態の確認、成果物の取得、取り消しができる。
 実行は [DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) が担う。
 対応は **macOS、Linux、WSL2 Ubuntu** (ネイティブ Windows は対象外)。
 
@@ -28,17 +28,17 @@ General にはまだ無い。Julia **1.12+**、DistSSHKit **0.4.2+**。
 Julia REPL で `]` を押して Pkg モードに入り、次を実行する。
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2
 ```
 
 同じことを `Pkg` API で書くと次のとおり。
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.1")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.2")
 ```
 
 General にはまだ無い。DistSSHKit **0.4.2+** は General から付いてくる。
-通常の Queue 作業で Kit を `Pkg.develop` しない。ピンは `v0.2.0-beta.1`。
+通常の Queue 作業で Kit を `Pkg.develop` しない。ピンは `v0.2.0-beta.2`。
 git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わない。
 
 キューホストには **`ssh`**、**`rsync`**、および (git デプロイを使うときだけ) **`git`** も必要。
@@ -56,7 +56,7 @@ git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わな�
 - **キューホスト** — `~/.distsshqueue` を持ち、`serve` を動かす常時起動の
   **macOS または Linux** (VM でよい)。スリープするラップトップはこれではない。
   WSL2 はクライアントまたはワーカーであり、この役ではない。
-- **クライアント** — 投入・一覧・監視・取消をする開発マシン。台数に上限はない。
+- **クライアント** — 投入・一覧・監視・取消・成果物の取得をする開発マシン。台数に上限はない。
   Kit のマスターになってはならない。
 - **serve** — キューホスト上の FIFO プロセス。DistSSHKit
   (`execute!(…; detached=true)`) を起動する。止めても、既に走っている
@@ -72,7 +72,7 @@ git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わな�
        │  julia -m DistSSHQueue         add-host / remove-host
        │    qhost:NAME                     serve    now, this terminal
        │    submit | status | list-host    enable   again after reboot
-       │    watch | cancel | …
+       │    watch | cancel | fetch | …
        └────────────────────────────────►  then DistSSHKit go/drive
                                            → workers (Kit tokens)
 ```
@@ -90,7 +90,7 @@ git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わな�
 `qhost:` はキューホストの SSH 名であり、保存先の接頭辞ではない。表と Kit の
 結果ディレクトリは **そのマシン** に残る。クライアントに
 `~/.distsshqueue` は無い。`qhost:` submit はクライアントのジョブ木を
-`~/.distsshqueue/stage/<id>` へ rsync する。Kit はキューホストから worker へコピーする。
+`~/.distsshqueue/stage/<id>` へ rsync する (`.distsshkit/` は除外)。Kit はキューホストから worker へコピーする。`fetch` は終わった Kit leaf を戻す。
 
 #### クライアント
 
@@ -99,6 +99,7 @@ git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わな�
   Project.toml          DistSSHQueue (CLI)
   Manifest.toml
   SCRIPT.jl             qhost: submit で rsync
+  .distsshkit/go/       fetch のあと
 ```
 
 #### キューホスト
@@ -158,10 +159,12 @@ julia --project=. -m DistSSHQueue qhost:mini submit go child:host1:4 SCRIPT.jl
 julia --project=. -m DistSSHQueue qhost:mini status
 julia --project=. -m DistSSHQueue qhost:mini watch
 julia --project=. -m DistSSHQueue qhost:mini cancel <id>
+julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 ```
 
 `submit` は、`serve` が無ければキューホスト上で起動する。ジョブ id は
 stdout 1 行。stderr に `Queued  N` (`DISTSSHKIT_QUIET` で隠す)。
+`fetch` は終わった Kit leaf をこのジョブ木へ戻す。
 
 **キューホスト** で一度だけ:
 

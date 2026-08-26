@@ -22,7 +22,7 @@ julia --project=.
 ```
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2
 ```
 
 That pulls DistSSHKit **0.4.2+** from General. `setup` does not create

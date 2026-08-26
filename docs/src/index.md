@@ -1,7 +1,8 @@
 # [DistSSHQueue.jl](@id DistSSHQueue.jl)
 
 DistSSHQueue runs jobs one after another on machines that several
-people share. You can submit a job, check its status, and cancel.
+people share. You can submit a job, check its status, fetch a finished
+leaf, and cancel.
 [DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) does the run.
 Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
@@ -32,18 +33,18 @@ How you call it:
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2
 ```
 
 Or, equivalently, via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.1")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.2")
 ```
 
 Not on General yet. DistSSHKit **0.4.2+** comes from
 General with it. Do not `Pkg.develop` Kit for ordinary Queue work.
-Pin `v0.2.0-beta.1`. Git tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID);
+Pin `v0.2.0-beta.2`. Git tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID);
 do not use it.
 
 Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);
@@ -54,7 +55,7 @@ Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);
 - **Queue host** — the always-on **macOS or Linux** box that holds
   `~/.distsshqueue` and runs `serve`. A sleeping laptop is not this
   box (WSL2 is a client or worker, not this role).
-- **Client** — a dev machine that submits, lists, watches, or cancels. No
+- **Client** — a dev machine that submits, lists, watches, fetches, or cancels. No
   cap. It must not become the Kit master.
 - **serve** — FIFO process on the queue host. It starts DistSSHKit
   (`execute!(…; detached=true)`). Stopping it does not cancel a
@@ -72,7 +73,7 @@ Trees (client / queue host / workers): [Where files live](@ref Layout).
        │  julia -m DistSSHQueue         add-host / remove-host
        │    qhost:NAME                     serve    now, this terminal
        │    submit | status | list-host    enable   again after reboot
-       │    watch | cancel | …
+       │    watch | cancel | fetch | …
        └────────────────────────────────►  then DistSSHKit go/drive
                                            → workers (Kit tokens)
 ```

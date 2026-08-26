@@ -5,6 +5,16 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+## 0.2.0-beta.2 (2026-08-27)
+
+### Client `fetch`
+
+- `fetch <id>` copies one finished Kit `.distsshkit` leaf onto this job
+  tree (inverse of `qhost:` stage, which excludes that dir). Same
+  `relpath` as the stage mapping. Exact UUID. Refuses queued / running /
+  missing path / `--output-dir` leaves that do not contain the id.
+  stdout is the dest path. Not forwarded as a whole (`maybe_remote`).
+
 ## 0.2.0-beta.1 (2026-08-26)
 
 **DistSSHQueue** (new UUID). First pin is git tag `v0.2.0-beta.1`. DistSSHKitQueue

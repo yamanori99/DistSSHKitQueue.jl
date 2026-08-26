@@ -44,3 +44,4 @@ testenv/example-job/demos/
 # Kit go collect. Not in example-job/.gitignore: setup rsync honors that file
 # and would drop slot artifacts (`go_out/` was ignored, so pi_file never landed).
 testenv/example-job/e2e_kit_out/
+testenv/example-job/.distsshkit/
