@@ -23,7 +23,9 @@ re-reads config `hosts`. Library [`submit!`](@ref) uses
 
 With `qhost:`, the client **rsync**s the job project (`cwd` /
 `DISTRIBUTED_PROJECT_ROOT`) to `~/.distsshqueue/stage/<id>` on the
-queue host, then enqueue resolves `SCRIPT.jl` there. Omit `qhost:`:
+queue host (`.distsshkit/` is excluded), then enqueue resolves
+`SCRIPT.jl` there. [`fetch`](@ref Manual-fetch) copies one finished
+Kit leaf back onto that same tree. Omit `qhost:`:
 the script is checked on this machine. Job id prints as a bare stdout line. CLI `submit` also prints
 `Queued  N` on stderr (`(R running)` when a job is already running);
 `DISTSSHKIT_QUIET` hides that. Library [`submit!`](@ref) does not.

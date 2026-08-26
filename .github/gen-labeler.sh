@@ -102,6 +102,7 @@ EOF
       - any-glob-to-any-file:
           - "src/client/**"
           - "test/unit/stage.jl"
+          - "test/unit/fetch.jl"
           - "test/e2e.jl"
 
 "area:qhost":

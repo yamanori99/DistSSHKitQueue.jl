@@ -13,6 +13,7 @@ Kit `go` / `drive` / `size` flags stay in the
 | --- | --- |
 | [submit](@ref Manual-submit) | Enqueue DistSSHKit `go` / `drive` |
 | [status](@ref Manual-status) | `status` / `watch` / `cancel` |
+| [fetch](@ref Manual-fetch) | Copy a finished Kit leaf onto this job tree |
 | [hosts](@ref Manual-hosts) | `add-host` / `remove-host` / `list-host` / `size` |
 | [serve](@ref Manual-serve) | `serve` / `stop` / `enable` / `disable` |
 | [setup](@ref Manual-setup) | `setup` / `teardown` / `config.toml` |
@@ -24,7 +25,8 @@ host, omit it.
 
 Refuse `qhost:`: `setup`, `serve`, `enable`, `disable`, `add-host`,
 `remove-host`. Forward: `submit`, `status`, `list-host`, `size`,
-`watch`, `cancel`, `stop`, `teardown`.
+`watch`, `cancel`, `stop`, `teardown`. Client (not forwarded as a
+whole): `fetch` (inverse of stage).
 
 `--hosts` / `--julia` belong to Kit `go` / `drive`. Queue-host Julia is
 `--remote-julia` / `JULIA_DISTRIBUTED_EXE`. `--queue-env DIR` is

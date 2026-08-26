@@ -65,6 +65,7 @@ function print_queue_usage(io::IO=stdout)
         "  submit go [Kit go argv]        Enqueue DistSSHKit go (parent[:N] / child:NAME[:N])",
         "  submit drive [Kit drive argv]  Enqueue DistSSHKit drive (stderr: queued count)",
         "  cancel <id>                    Drop a :queued row, or stop :running (Kit output dir)",
+        "  fetch <id>                     Copy a finished Kit leaf onto this job tree",
         "  teardown -y                    Stop serve and remove queue-host files",
     )
     DistSSHKit.print_help_blank(io)
@@ -111,6 +112,7 @@ function print_queue_usage(io::IO=stdout)
         "  enable --queue-env DIR is julia --project= in the OS unit.",
         "  Project is cwd / DISTRIBUTED_PROJECT_ROOT, not enable --queue-env.",
         "  qhost: submit rsyncs the client job tree to ~/.distsshqueue/stage/<id> (same tree reuses it).",
+        "  fetch is the inverse: one finished .distsshkit leaf, same relpath. Not forwarded as a whole.",
         "  One Kit clone per job on the queue host (unique ~/org/Repo.jl); not a Queue job name.",
         "  submit refuses two projects Kit would deploy to the same worker path (no rename, no --delete).",
         "  Job ids are a bare stdout line. submit stderr is `Queued  N` (and running).",

@@ -6,7 +6,7 @@ Prerequisites for [Introduction](@ref DistSSHQueue.jl) and
 still apply to workers. This page is Queue: queue host vs client.
 
 `pkg> add DistSSHQueue` does not install **`ssh`**, **`rsync`**, or
-**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1`.)
+**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2`.)
 
 ## All machines
 
@@ -44,7 +44,7 @@ machine. WSL2 is Linux for a **client** or a worker; do not use it as
 the always-on queue host.
 
 Install Queue in **`~/.distsshqueue/env`** (`julia --project=.` there;
-pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1`).
+pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2`).
 `qhost:` uses that path (`--queue-env`). The table lives at
 `~/.distsshqueue/jobs.toml`.
 
@@ -60,16 +60,19 @@ That name is a **client** default for `qhost:`.
 
 ## Client
 
-A dev laptop. Nothing is written there (no `~/.distsshqueue` on the
-client). Queue must be loadable from the job env (`julia --project=.`).
+A dev laptop. No `~/.distsshqueue` on the client. After `fetch`, Kit
+leaves land under the job tree's `.distsshkit/`. Queue must be loadable
+from the job env (`julia --project=.`).
 
 - Passwordless SSH from the client to the **queue host** (`qhost:NAME`)
-- `rsync` on the client (`qhost:` submit)
+- `rsync` on the client (`qhost:` submit and `fetch`)
 - Queue-host Julia: auto, or `--remote-julia` /
   `JULIA_DISTRIBUTED_EXE` (same detection as DistSSHKit)
 
-`qhost:` submit copies the client job tree onto the queue host. Placement
-tokens are interpreted **on the queue host**. Omit `qhost:`: no copy.
+`qhost:` submit copies the client job tree onto the queue host (and
+excludes `.distsshkit/`). `fetch` copies one finished Kit leaf back.
+Placement tokens are interpreted **on the queue host**. Omit `qhost:`:
+no copy.
 
 ## Workers
 
@@ -151,6 +154,7 @@ CLI.
   Project.toml          DistSSHQueue (CLI)
   Manifest.toml
   SCRIPT.jl             rsync'd on qhost submit
+  .distsshkit/go/       after fetch (same relpath as the stage leaf)
 ```
 
 ### Queue-host tree

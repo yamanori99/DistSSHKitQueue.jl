@@ -7,10 +7,11 @@ queue host.
 julia --project=. -m DistSSHQueue [qhost:HOST] status [-q]
 julia --project=. -m DistSSHQueue [qhost:HOST] watch [-q] [--interval S]
 julia --project=. -m DistSSHQueue [qhost:HOST] cancel <id>
+julia --project=. -m DistSSHQueue [qhost:HOST] fetch <id>
 ```
 
 Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
-[User Guide](@ref Manual).
+[User Guide](@ref Manual), [fetch](@ref Manual-fetch).
 
 `status` / `watch` print `qhost` from `DISTSSHQUEUE_QHOST` (set on
 the `qhost:` ssh), or `local (hostname)` when omitted. No `--via`. Not the
@@ -39,3 +40,8 @@ the Kit output dir is known (allocated at start if submit omitted
 `cannot be cancelled` (exit 1). A successful cancel prints the id.
 
 An `ERROR` column appears on `status` when a job has failed.
+
+## fetch
+
+After the row is `:done` / `:failed` / `:cancelled` with a Kit leaf,
+[`fetch`](@ref Manual-fetch) copies that leaf onto this job tree.

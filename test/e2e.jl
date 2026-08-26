@@ -7,7 +7,7 @@
 # DistSSHKit `execute!(…; detached=true)`.
 #
 # Also: `julia -m DistSSHQueue` on the queue host (omit `qhost:HOST`) and as a
-# client (`qhost:HOST` over loopback OpenSSH). Kit slots on docker-ssh (`child:dskq-w1:1`).
+# client (`qhost:HOST` over loopback OpenSSH, including `fetch`). Kit slots on docker-ssh (`child:dskq-w1:1`).
 # Three roles, one suite: client = loopback, qhost = this host, child = containers.
 # Do not treat a container as qhost. `parent:1` only occupies FIFO here.
 # Not a laptop + `parent:N` topology. `enable` / `disable` / `teardown` use
@@ -647,6 +647,16 @@ end
                         @test occursin("  done  ", listed)
                         wout = read_cli(addenv(qh(["watch", "--interval", "0.05"]), client_env...))
                         @test occursin(id1, wout)
+
+                        id_f = read_cli(addenv(qh(["submit", "go", token, script, GO_N...]), client_env...))
+                        @test !isempty(id_f)
+                        wait_status(addenv(qh(["status"]), client_env...)) do out
+                            occursin(id_f, out) && occursin("  done  ", out) && !occursin("  running  ", out)
+                        end
+                        fetched = read_cli(addenv(qh(["fetch", id_f]), client_env...))
+                        @test occursin(id_f, fetched)
+                        @test isfile(joinpath(fetched, "kit.result"))
+                        rm(fetched; recursive=true, force=true)
 
                         # Occupy serve on this box (`parent:1`); a worker
                         # `pi_echo` finishes before cancel. Submit the queued row
