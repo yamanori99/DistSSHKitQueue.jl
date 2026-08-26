@@ -6,7 +6,7 @@ Prerequisites for [Introduction](@ref DistSSHQueue.jl) and
 still apply to workers. This page is Queue: queue host vs client.
 
 `pkg> add DistSSHQueue` does not install **`ssh`**, **`rsync`**, or
-**`git`**.
+**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2`.)
 
 ## All machines
 
@@ -44,7 +44,7 @@ machine. WSL2 is Linux for a **client** or a worker; do not use it as
 the always-on queue host.
 
 Install Queue in **`~/.distsshqueue/env`** (`julia --project=.` there;
-`pkg> add DistSSHQueue`).
+pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2`).
 `qhost:` uses that path (`--queue-env`). The table lives at
 `~/.distsshqueue/jobs.toml`.
 

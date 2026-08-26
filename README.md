@@ -23,26 +23,26 @@ leaf, and cancel.
 Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
 Even small labs and individuals can keep one always-on machine, add
-SSH hosts, and use them together as a small set of compute nodes.
-Julia **1.12+**, DistSSHKit **0.4.2+**.
+SSH hosts, and use them together as a small set of compute nodes. Not
+on General yet. Julia **1.12+**, DistSSHKit **0.4.2+**.
 
 ## Install
 
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> add DistSSHQueue
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2
 ```
 
 Or, equivalently, via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add("DistSSHQueue")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.2")
 ```
 
-DistSSHKit **0.4.2+** comes from General with it. Do not `Pkg.develop` Kit
-for ordinary Queue work. Git tag `v0.1.0-beta.1` is DistSSHKitQueue (old
-UUID); do not use it. Pre-General pin `v0.2.0-beta.2` remains a prerelease.
+Not on General yet. DistSSHKit **0.4.2+** comes from General with it.
+Do not `Pkg.develop` Kit for ordinary Queue work. Pin `v0.2.0-beta.2`.
+Git tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
 
 The queue host also needs **`ssh`**, **`rsync`**, and (only for git
 deploys) **`git`** — `pkg> add` does not install them. Full requirements:
@@ -67,16 +67,16 @@ For everything else, see the
   the queue host, `child:NAME[:N]` on SSH machines.
 
 ```text
-  clients = dev machines (no cap)          one queue host (always on)
-  ───────────────────────────────          ──────────────────────────
-  yours / a colleague's / …                FIFO     one Kit job at a time
-       │                                   table    ~/.distsshqueue
-       │  julia -m DistSSHQueue         add-host / remove-host
-       │    qhost:NAME                     serve    now, this terminal
-       │    submit | status | list-host    enable   again after reboot
-       │    watch | cancel | fetch | …
-       └────────────────────────────────►  then DistSSHKit go/drive
-                                           → workers (Kit tokens)
+  clients = dev machines (no cap)         one queue host (always on)
+  -------------------------------         --------------------------
+  yours / a colleague's / ...             FIFO     one Kit job at a time
+       |                                  table    ~/.distsshqueue
+       |  julia -m DistSSHQueue           add-host / remove-host
+       |    qhost:NAME                    serve    now, this terminal
+       |    submit | status | list-host   enable   again after reboot
+       |    watch | cancel | fetch | ...
+       +--------------------------------> then DistSSHKit go/drive
+                                          -> workers (Kit tokens)
 ```
 
 `qhost:NAME` is the SSH name of the queue host (same idea as Kit

@@ -22,26 +22,25 @@ DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に�
 対応は **macOS、Linux、WSL2 Ubuntu** (ネイティブ Windows は対象外)。
 
 小さな研究室や個人でも、常時起動のマシンを 1 台置き、SSH接続したマシンとまとめて小さな計算ノードとして使うことが出来る。
-Julia **1.12+**、DistSSHKit **0.4.2+**。
+General にはまだ無い。Julia **1.12+**、DistSSHKit **0.4.2+**。
 
 ## インストール
 
 Julia REPL で `]` を押して Pkg モードに入り、次を実行する。
 
 ```julia
-pkg> add DistSSHQueue
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.2
 ```
 
 同じことを `Pkg` API で書くと次のとおり。
 
 ```julia
-julia> import Pkg; Pkg.add("DistSSHQueue")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.2")
 ```
 
-DistSSHKit **0.4.2+** は General から付いてくる。
-通常の Queue 作業で Kit を `Pkg.develop` しない。
+General にはまだ無い。DistSSHKit **0.4.2+** は General から付いてくる。
+通常の Queue 作業で Kit を `Pkg.develop` しない。ピンは `v0.2.0-beta.2`。
 git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わない。
-General 前のピン `v0.2.0-beta.2` は prerelease のまま。
 
 キューホストには **`ssh`**、**`rsync`**、および (git デプロイを使うときだけ) **`git`** も必要。
 `pkg> add` では入らない。詳細な利用条件については以下:
@@ -67,16 +66,16 @@ General 前のピン `v0.2.0-beta.2` は prerelease のまま。
   キューホスト上は `parent[:N]`、SSH 先は `child:NAME[:N]`。
 
 ```text
-  clients = dev machines (no cap)          one queue host (always on)
-  ───────────────────────────────          ──────────────────────────
-  yours / a colleague's / …                FIFO     one Kit job at a time
-       │                                   table    ~/.distsshqueue
-       │  julia -m DistSSHQueue         add-host / remove-host
-       │    qhost:NAME                     serve    now, this terminal
-       │    submit | status | list-host    enable   again after reboot
-       │    watch | cancel | fetch | …
-       └────────────────────────────────►  then DistSSHKit go/drive
-                                           → workers (Kit tokens)
+  clients = dev machines (no cap)         one queue host (always on)
+  -------------------------------         --------------------------
+  yours / a colleague's / ...             FIFO     one Kit job at a time
+       |                                  table    ~/.distsshqueue
+       |  julia -m DistSSHQueue           add-host / remove-host
+       |    qhost:NAME                    serve    now, this terminal
+       |    submit | status | list-host   enable   again after reboot
+       |    watch | cancel | fetch | ...
+       +--------------------------------> then DistSSHKit go/drive
+                                          -> workers (Kit tokens)
 ```
 
 `qhost:NAME` はキューホストの SSH 名である (Kit の `child:NAME` と同じ形だが、
