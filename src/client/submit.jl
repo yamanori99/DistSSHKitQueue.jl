@@ -1,4 +1,4 @@
-"""Client `submit go` / `submit drive` (Kit parsers). Runs on the queue host after ssh."""
+"""Client `submit go` / `submit drive` (Kit parsers). After `qhost:` ssh, on the staged tree."""
 
 function drop_nothing(d::Dict{String,Any})
     out = Dict{String,Any}()

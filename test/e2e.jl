@@ -168,7 +168,14 @@ function run_cli(cmd::Cmd)
 end
 
 function read_cli(cmd::Cmd)::String
-    return strip(read(pipeline(cmd; stderr=devnull), String))
+    err = IOBuffer()
+    try
+        return strip(read(pipeline(cmd; stderr=err), String))
+    catch
+        msg = strip(String(take!(err)))
+        isempty(msg) || println(stderr, msg)
+        rethrow()
+    end
 end
 
 function ssh_login_user()
@@ -613,9 +620,6 @@ end
                             "DISTSSHKIT_YES" => "1",
                             "DISTSSHKIT_QUIET" => get(ENV, "DISTSSHKIT_QUIET", "1"),
                             "DISTRIBUTED_SSH_OPTS" => "-F $(SSH_CONFIG)",
-                            # `qhost:` submit runs in the login HOME; pin the Kit
-                            # project so `job_project()` does not fall back to it.
-                            "DISTRIBUTED_PROJECT_ROOT" => JOB_PROJECT,
                             "DISTRIBUTED_REMOTE_PROJECT_ROOT" => REMOTE_ROOT,
                         )
                         wrapper = write_remote_julia(joinpath(d, "remote-julia"), remote_env)
@@ -623,6 +627,7 @@ end
                             "DISTSSHKIT_YES" => "1",
                             "DISTSSHQUEUE_WATCH_TICKS" => "1",
                             "DISTRIBUTED_SSH_OPTS" => "-F $ssh_cfg",
+                            "DISTRIBUTED_PROJECT_ROOT" => JOB_PROJECT,
                         )
                         qh(rest) = qcmd(["qhost:dskq-qh", "--remote-julia", wrapper, "--queue-env", test_project, rest...])
 

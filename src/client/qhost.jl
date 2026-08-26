@@ -189,11 +189,15 @@ function remote_dispatch(
     tty::Bool=false,
     qhost_display::Union{Nothing,AbstractString}=nothing,
     queue_env::AbstractString=HOP_QUEUE_ENV_DEFAULT,
+    extra_env::Dict{String,String}=Dict{String,String}(),
 )::Cint
     label = qhost_display === nothing ? nothing : strip(String(qhost_display))
     assigns = String[]
     if label !== nothing && !isempty(label)
         push!(assigns, "ENV[$(repr(QHOST_DISPLAY_ENV))] = $(repr(label))")
+    end
+    for (k, v) in extra_env
+        push!(assigns, "ENV[$(repr(k))] = $(repr(v))")
     end
     ticks = strip(get(ENV, WATCH_TICKS_ENV, ""))
     if !isempty(ticks)
@@ -252,5 +256,12 @@ function maybe_remote(
     dest === nothing && return nothing
     disp = label_qhost ? dest : nothing
     q = coalesce_queue_env(queue_env, qenv)
-    return remote_dispatch(dest, spec, sub, payload; tty=tty, qhost_display=disp, queue_env=q)
+    extra = Dict{String,String}()
+    hop = payload
+    if should_stage(sub, payload)
+        hop, extra = stage_job_tree!(dest, spec, sub, payload)
+    end
+    return remote_dispatch(
+        dest, spec, sub, hop; tty=tty, qhost_display=disp, queue_env=q, extra_env=extra,
+    )
 end

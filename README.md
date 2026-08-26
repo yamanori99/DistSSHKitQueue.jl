@@ -89,7 +89,8 @@ see the [kit docs](https://yamanori99.github.io/DistSSHKit.jl/stable/).
 
 `qhost:` is the SSH name of the queue host, not a storage prefix. The
 table and Kit result dirs stay **on that box**. The client has no
-`~/.distsshqueue`. Queue does not copy Kit trees.
+`~/.distsshqueue`. `qhost:` submit rsyncs the client job tree to
+`~/.distsshqueue/stage/<id>`; Kit still copies queue host → workers.
 
 #### Client
 
@@ -97,14 +98,14 @@ table and Kit result dirs stay **on that box**. The client has no
 ~/my-job/
   Project.toml          DistSSHQueue (CLI)
   Manifest.toml
-  SCRIPT.jl             interpreted on the queue host
+  SCRIPT.jl             rsync'd on qhost: submit
 ```
 
 #### Queue host
 
-`~/.distsshqueue` plus **one Kit clone per job** (unique
-`~/org/Repo.jl`). Not `--queue-env`. `SCRIPT.jl` is that clone on the
-queue host. Do
+`~/.distsshqueue` plus **one Kit tree per job** (`qhost:`:
+`stage/<id>/`, or omit `qhost:`: unique `~/org/Repo.jl`). Not `--queue-env`.
+Do
 not set `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`.
 `submit` errors if a second project would land on the same worker path.
 
@@ -118,8 +119,9 @@ not set `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`.
   env/                  --queue-env / enable default
     Project.toml
     Manifest.toml
+  stage/<id>/           client tree after qhost: submit
 
-~/org/Repo.jl/          one clone per job (cwd / DISTRIBUTED_PROJECT_ROOT)
+~/org/Repo.jl/          omit qhost: (cwd / DISTRIBUTED_PROJECT_ROOT)
   Project.toml          compute deps
   SCRIPT.jl
   .distsshkit/go/

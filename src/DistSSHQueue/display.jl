@@ -109,6 +109,7 @@ function print_queue_usage(io::IO=stdout)
         "  Ctrl-C on serve stops this process. A DistSSHKit job already running is not killed.",
         "  enable --queue-env DIR is julia --project= in the OS unit.",
         "  Project is cwd / DISTRIBUTED_PROJECT_ROOT, not enable --queue-env.",
+        "  qhost: submit rsyncs the client job tree to ~/.distsshqueue/stage/<id> (same tree reuses it).",
         "  One Kit clone per job on the queue host (unique ~/org/Repo.jl); not a Queue job name.",
         "  submit refuses two projects Kit would deploy to the same worker path (no rename, no --delete).",
         "  Job ids are a bare stdout line. submit stderr is `Queued  N` (and running).",
