@@ -39,5 +39,5 @@ deploydocs(;
     repo="github.com/yamanori99/DistSSHQueue.jl.git",
     devbranch="main",
     push_preview=true,
-    versions=["dev" => "dev"],
+    versions=["stable" => "v^", "v#.#", "dev" => "dev"],
 )

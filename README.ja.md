@@ -11,8 +11,9 @@
 [![E2E weekly](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/ssh-e2e-weekly.yml?branch=main&label=E2E%20weekly)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/ssh-e2e-weekly.yml)
 [![CI weekly](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/ci-weekly.yml?branch=main&label=CI%20weekly)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/ci-weekly.yml)
 
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
-[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/)
+[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に走らせるものである。
@@ -43,9 +44,9 @@ git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わな�
 
 キューホストには **`ssh`**、**`rsync`**、および (git デプロイを使うときだけ) **`git`** も必要。
 `pkg> add` では入らない。詳細な利用条件については以下:
-[Requirements](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/)。
+[Requirements](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)。
 
-パッケージの詳細は **[ドキュメント](https://yamanori99.github.io/DistSSHQueue.jl/dev/)** を参照。
+パッケージの詳細は **[ドキュメント](https://yamanori99.github.io/DistSSHQueue.jl/stable/)** を参照。
 
 公式ドキュメント本体は英語である。
 
@@ -65,16 +66,16 @@ git タグ `v0.1.0-beta.1` は旧 DistSSHKitQueue (旧 UUID) なので使わな�
   キューホスト上は `parent[:N]`、SSH 先は `child:NAME[:N]`。
 
 ```text
-  clients = dev machines (no cap)          one queue host (always on)
-  ───────────────────────────────          ──────────────────────────
-  yours / a colleague's / …                FIFO     one Kit job at a time
-       │                                   table    ~/.distsshqueue
-       │  julia -m DistSSHQueue         add-host / remove-host
-       │    qhost:NAME                     serve    now, this terminal
-       │    submit | status | list-host    enable   again after reboot
-       │    watch | cancel | fetch | …
-       └────────────────────────────────►  then DistSSHKit go/drive
-                                           → workers (Kit tokens)
+  clients = dev machines (no cap)         one queue host (always on)
+  -------------------------------         --------------------------
+  yours / a colleague's / ...             FIFO     one Kit job at a time
+       |                                  table    ~/.distsshqueue
+       |  julia -m DistSSHQueue           add-host / remove-host
+       |    qhost:NAME                    serve    now, this terminal
+       |    submit | status | list-host   enable   again after reboot
+       |    watch | cancel | fetch | ...
+       +--------------------------------> then DistSSHKit go/drive
+                                          -> workers (Kit tokens)
 ```
 
 `qhost:NAME` はキューホストの SSH 名である (Kit の `child:NAME` と同じ形だが、
@@ -177,16 +178,16 @@ julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
 
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` は
 `qhost:` を受け付けない。コマンド参照:
-[User Guide](https://yamanori99.github.io/DistSSHQueue.jl/dev/manual/)。
+[User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/)。
 
 ## ドキュメント
 
 | | |
 | --- | --- |
-| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/dev/) |
-| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/dev/requirements/) |
-| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/dev/manual/) |
-| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/dev/api/) |
+| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/stable/) |
+| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/) |
+| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/) |
+| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/stable/api/) |
 | News | [NEWS.md](NEWS.md) |
 
 ## 貢献

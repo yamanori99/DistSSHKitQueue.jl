@@ -66,16 +66,16 @@ Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);
 Trees (client / queue host / workers): [Where files live](@ref Layout).
 
 ```text
-  clients = dev machines (no cap)          one queue host (always on)
-  ───────────────────────────────          ──────────────────────────
-  yours / a colleague's / …                FIFO     one Kit job at a time
-       │                                   table    ~/.distsshqueue
-       │  julia -m DistSSHQueue         add-host / remove-host
-       │    qhost:NAME                     serve    now, this terminal
-       │    submit | status | list-host    enable   again after reboot
-       │    watch | cancel | fetch | …
-       └────────────────────────────────►  then DistSSHKit go/drive
-                                           → workers (Kit tokens)
+  clients = dev machines (no cap)         one queue host (always on)
+  -------------------------------         --------------------------
+  yours / a colleague's / ...             FIFO     one Kit job at a time
+       |                                  table    ~/.distsshqueue
+       |  julia -m DistSSHQueue           add-host / remove-host
+       |    qhost:NAME                    serve    now, this terminal
+       |    submit | status | list-host   enable   again after reboot
+       |    watch | cancel | fetch | ...
+       +--------------------------------> then DistSSHKit go/drive
+                                          -> workers (Kit tokens)
 ```
 
 Queue is not a bigger Kit and does not keep a lab-wide slot ceiling.
