@@ -6,7 +6,7 @@ Prerequisites for [Introduction](@ref DistSSHQueue.jl) and
 still apply to workers. This page is Queue: queue host vs client.
 
 `pkg> add DistSSHQueue` does not install **`ssh`**, **`rsync`**, or
-**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl`.)
+**`git`**. (Pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1`.)
 
 ## All machines
 
@@ -25,7 +25,7 @@ runs jobs.
     usual OS path ([Checks](@ref)) or set `--remote-julia` /
     `JULIA_DISTRIBUTED_EXE`. Missing path or a related bug:
     [open an Issue](https://github.com/yamanori99/DistSSHQueue.jl/issues).
-- **DistSSHKit 0.4.1+** from General. Do not `Pkg.develop` Kit for
+- **DistSSHKit 0.4.2+** from General. Do not `Pkg.develop` Kit for
   ordinary Queue work
 
 WSL2 is Linux, with DistSSHKit's extra rules:
@@ -38,11 +38,13 @@ WSL2 is Linux, with DistSSHKit's extra rules:
 
 ## Queue host
 
-Always-on box (Mac mini, Linux VM). A sleeping laptop is not this
-machine.
+The always-on **queue host** is **macOS or Linux** (Mac mini, Linux VM;
+`enable` is LaunchAgent / systemd). A sleeping laptop is not this
+machine. WSL2 is Linux for a **client** or a worker; do not use it as
+the always-on queue host.
 
 Install Queue in **`~/.distsshqueue/env`** (`julia --project=.` there;
-pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl`).
+pre-General: `pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1`).
 `qhost:` uses that path (`--queue-env`). The table lives at
 `~/.distsshqueue/jobs.toml`.
 

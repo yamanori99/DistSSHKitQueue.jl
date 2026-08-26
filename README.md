@@ -22,25 +22,25 @@ Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
 Even small labs and individuals can keep one always-on machine, add
 SSH hosts, and use them together as a small set of compute nodes. Not
-on General yet. Julia **1.12+**, DistSSHKit **0.4.1+**.
+on General yet. Julia **1.12+**, DistSSHKit **0.4.2+**.
 
 ## Install
 
 From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHQueue.jl
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1
 ```
 
 Or, equivalently, via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl")
+julia> import Pkg; Pkg.add(url="https://github.com/yamanori99/DistSSHQueue.jl", rev="v0.2.0-beta.1")
 ```
 
-Not on General yet. DistSSHKit **0.4.1+** comes from General with it.
-Do not `Pkg.develop` Kit for ordinary Queue work. Git tag `v0.1.0-beta.1`
-is DistSSHKitQueue (old UUID); do not pin it for DistSSHQueue.
+Not on General yet. DistSSHKit **0.4.2+** comes from General with it.
+Do not `Pkg.develop` Kit for ordinary Queue work. Pin `v0.2.0-beta.1`.
+Git tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
 
 The queue host also needs **`ssh`**, **`rsync`**, and (only for git
 deploys) **`git`** — `pkg> add` does not install them. Full requirements:
@@ -53,9 +53,9 @@ For everything else, see the
 
 ### Basic terms
 
-- **Queue host** — the always-on machine that holds `~/.distsshqueue` and
-  runs `serve` (macOS or Linux; a VM is fine). A sleeping laptop is not
-  this box.
+- **Queue host** — the always-on **macOS or Linux** box that holds
+  `~/.distsshqueue` and runs `serve` (a VM is fine). A sleeping laptop
+  is not this box. WSL2 is a client or worker, not this role.
 - **Client** — a dev machine that submits, lists, watches, or cancels. No
   cap. It must not become the Kit master.
 - **serve** — FIFO process on the queue host. It starts DistSSHKit

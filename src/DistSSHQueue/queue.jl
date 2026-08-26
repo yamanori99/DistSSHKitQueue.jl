@@ -39,14 +39,26 @@ function job_project(; cwd::AbstractString=pwd())::String
     return DistSSHKit.canonical_local_path(root)
 end
 
-"""Worker path Kit would use for this queue-host project (`remote=` or Kit default / ENV)."""
+"""Worker path Kit would use for this queue-host project (`remote=` or Kit default / ENV).
+
+Matches DistSSHKit 0.4.2 detached `execute!` (`remote_env_project_root`):
+`~…` stays a remote-shell layout; an absolute path is canonical. Empty `remote=`
+falls through to Kit's default / `DISTRIBUTED_REMOTE_PROJECT_ROOT`.
+"""
 function kit_worker_root(project::AbstractString, kw::AbstractDict)::String
     r = get(kw, "remote", nothing)
-    if r isa AbstractString
+    raw = if r isa AbstractString
         s = strip(String(r))
-        !isempty(s) && return s
+        isempty(s) ? nothing : s
+    else
+        nothing
     end
-    return DistSSHKit.resolve_remote_project_root(DistSSHKit.canonical_local_path(project))
+    layout = if raw !== nothing
+        raw
+    else
+        DistSSHKit.resolve_remote_project_root(DistSSHKit.canonical_local_path(project))
+    end
+    return DistSSHKit.remote_env_project_root(layout)
 end
 
 """Refuse two different queue-host projects that Kit would place on the same worker path.

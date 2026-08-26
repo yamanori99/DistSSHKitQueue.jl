@@ -5,9 +5,12 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
-**DistSSHQueue** (new UUID). DistSSHKitQueue stopped at git tag `v0.1.0-beta.1`
-(old UUID / old module). Do not pin that tag for this package. Not on General.
-[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) **0.4.1+** comes from General.
+## 0.2.0-beta.1 (2026-08-26)
+
+**DistSSHQueue** (new UUID). First pin is git tag `v0.2.0-beta.1`. DistSSHKitQueue
+stopped at `v0.1.0-beta.1` (old UUID / old module); do not pin that tag for this
+package. Not on General.
+[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) **0.4.2+** comes from General.
 Do not `Pkg.develop` Kit for ordinary Queue work.
 Julia **1.12+**. `julia -m DistSSHQueue` (no `dskq` shim).
 Home is `~/.distsshqueue`, ENV is `DISTSSHQUEUE_*`, OS unit is
@@ -61,7 +64,8 @@ Home is `~/.distsshqueue`, ENV is `DISTSSHQUEUE_*`, OS unit is
   on the queue host (`~/org/Repo.jl`); not a Queue job name. Do not pin
   `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`. Kit worker
   path is `~/parent/Repo.jl`. `submit` refuses a second project that Kit
-  would deploy to the same worker path (no rename, no `setup --delete`).
+  would deploy to the same worker path (`remote_env_project_root`: `~` is
+  not expanduser on the queue host; no rename, no `setup --delete`).
   `enable --julia` is the unit binary.
   Queue-host Julia for jobs is `--remote-julia` /
   `JULIA_DISTRIBUTED_EXE`.
@@ -90,3 +94,4 @@ Home is `~/.distsshqueue`, ENV is `DISTSSHQUEUE_*`, OS unit is
 - English README is the landing page. Japanese: `README.ja.md`. Documenter
   First Steps / User Guide cover Queue verbs; Kit `go` / `drive` stay in
   the kit docs. Requirements show client / queue-host / worker trees.
+  The always-on queue host is macOS or Linux (WSL2 is a client or worker).

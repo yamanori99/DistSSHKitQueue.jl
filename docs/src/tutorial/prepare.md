@@ -1,7 +1,8 @@
 # [Prepare](@id Tutorial-Prepare)
 
 First-time **queue host** before a [First job](@ref Tutorial-Client).
-Clients can skip this page if someone already set that box up.
+This box is always-on **macOS or Linux**. Clients can skip this page if
+someone already set that box up.
 
 Also see [Requirements](@ref), [Where files live](@ref Layout),
 [User Guide · setup](@ref Manual-setup),
@@ -21,10 +22,10 @@ julia --project=.
 ```
 
 ```julia
-pkg> add https://github.com/yamanori99/DistSSHQueue.jl
+pkg> add https://github.com/yamanori99/DistSSHQueue.jl#v0.2.0-beta.1
 ```
 
-That pulls DistSSHKit **0.4.1+** from General. `setup` does not create
+That pulls DistSSHKit **0.4.2+** from General. `setup` does not create
 that env (it would run `Pkg` as a side effect). A different dir is
 `--queue-env DIR` on `enable` and on client `qhost:`. `--queue-env @` is
 the remote default Julia env (no `--project=`).
