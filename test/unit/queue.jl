@@ -505,6 +505,7 @@ end
                 @test occursin("--queue-env", help)
                 @test occursin("Project is cwd", help)
                 @test occursin("One Kit clone per job", help)
+                @test occursin("rsyncs the client job tree", help)
                 @test occursin("same worker path", help)
                 @test occursin("--queue-env DIR is julia --project=", help)
                 @test occursin("Not the client's --project=", help)

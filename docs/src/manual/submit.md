@@ -21,8 +21,10 @@ CLI `submit` uses `Queue(; follow_config=true)` so each enqueue
 re-reads config `hosts`. Library [`submit!`](@ref) uses
 `Queue(; allowed=…)` unless `follow_config=true`.
 
-The script is checked to exist **before** enqueue (path resolved on the
-queue host). Job id prints as a bare stdout line. CLI `submit` also prints
+With `qhost:`, the client **rsync**s the job project (`cwd` /
+`DISTRIBUTED_PROJECT_ROOT`) to `~/.distsshqueue/stage/<id>` on the
+queue host, then enqueue resolves `SCRIPT.jl` there. Omit `qhost:`:
+the script is checked on this machine. Job id prints as a bare stdout line. CLI `submit` also prints
 `Queued  N` on stderr (`(R running)` when a job is already running);
 `DISTSSHKIT_QUIET` hides that. Library [`submit!`](@ref) does not.
 Two different projects

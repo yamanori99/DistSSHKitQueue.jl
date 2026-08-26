@@ -62,11 +62,12 @@ A dev laptop. Nothing is written there (no `~/.distsshqueue` on the
 client). Queue must be loadable from the job env (`julia --project=.`).
 
 - Passwordless SSH from the client to the **queue host** (`qhost:NAME`)
+- `rsync` on the client (`qhost:` submit)
 - Queue-host Julia: auto, or `--remote-julia` /
   `JULIA_DISTRIBUTED_EXE` (same detection as DistSSHKit)
 
-`SCRIPT.jl` and placement tokens are interpreted **on the queue host**,
-not on the client.
+`qhost:` submit copies the client job tree onto the queue host. Placement
+tokens are interpreted **on the queue host**. Omit `qhost:`: no copy.
 
 ## Workers
 
@@ -81,7 +82,7 @@ does not run them. Timeouts need not match DistSSHKit (`ConnectTimeout` here is
 `5`; the kit uses `10` plus keepalives). Worker probes are DistSSHKit's
 (`setup --check` from the queue host).
 
-### Queue host
+### Probe the queue host
 
 - `julia --version`
 - `uname -s` — Darwin or Linux
@@ -109,7 +110,7 @@ ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new HOS
 
 `--remote-julia` / `JULIA_DISTRIBUTED_EXE` if the binary is elsewhere.
 
-### Workers
+### Probe workers
 
 From the **queue host**, DistSSHKit [Checks](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/#Checks)
 (passwordless SSH, Julia path / version). Example:
@@ -122,13 +123,14 @@ julia --project=$HOME/.distsshqueue/env -m DistSSHKit setup --check USER@HOST
 
 Typical paths. `qhost:` is the SSH name of the queue host, not a
 storage prefix. The table and Kit result dirs accumulate **on that
-box**. Queue does not copy Kit trees. `teardown` removes
-`~/.distsshqueue`, not a git clone or `.distsshkit/`.
+box**. `qhost:` submit rsyncs the client job tree to
+`~/.distsshqueue/stage/<id>`. Kit still copies that tree to workers.
+`teardown` removes `~/.distsshqueue` (including `stage/`), not a git
+clone or `.distsshkit/`.
 
 One Kit clone per job on the queue host, with a unique path
-(`~/org/Repo.jl`, same layout DistSSHKit uses). Queue has no extra job
-name. `SCRIPT.jl` is that clone on the queue host, not the laptop
-cwd. Do not pin `DISTRIBUTED_REMOTE_PROJECT_ROOT` in the shared
+(`~/org/Repo.jl` or a stage dir). Queue has no extra job
+name. Do not pin `DISTRIBUTED_REMOTE_PROJECT_ROOT` in the shared
 `config.toml` `[env]`: Kit's default worker path is
 `~/basename(parent)/basename(project)`. Same parent name plus same
 repo name collide on workers even if the queue-host absolute paths
@@ -146,7 +148,7 @@ CLI.
 ~/my-job/
   Project.toml          DistSSHQueue (CLI)
   Manifest.toml
-  SCRIPT.jl             interpreted on the queue host
+  SCRIPT.jl             rsync'd on qhost submit
 ```
 
 ### Queue-host tree
@@ -164,8 +166,9 @@ unit; skip that file if you only `serve` in a terminal.
   env/                  --queue-env / enable default
     Project.toml
     Manifest.toml
+  stage/<id>/           client tree after qhost: submit
 
-~/org/Repo.jl/          one clone per job (cwd / DISTRIBUTED_PROJECT_ROOT)
+~/org/Repo.jl/          omit qhost: (cwd / DISTRIBUTED_PROJECT_ROOT)
   Project.toml          compute deps
   Manifest.toml
   SCRIPT.jl

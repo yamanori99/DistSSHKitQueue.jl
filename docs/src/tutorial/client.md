@@ -10,9 +10,11 @@ Submit from a **client** after the queue host is up
 Run from a directory where Queue is loadable (`julia --project=.`).
 That `--project=.` stays on the **client**. `qhost:` loads Queue from
 `~/.distsshqueue/env` (`--queue-env DIR` if you used another dir).
-`SCRIPT.jl` must exist **on the queue host** in that job's clone
-(`~/org/Repo.jl`), not only on the laptop. `qhost:` does not send the client
-cwd.
+`qhost:` **rsync**s the client job tree (`cwd` /
+`DISTRIBUTED_PROJECT_ROOT`) to `~/.distsshqueue/stage/<id>` on the
+queue host. `SCRIPT.jl` must exist on the **client** in that tree.
+Omit `qhost:`: no rsync; the script is on this machine. Kit still
+copies queue host → workers.
 
 ```bash
 julia --project=. -m DistSSHQueue qhost:mini list-host

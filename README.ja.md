@@ -88,7 +88,8 @@ General にはまだ無い。DistSSHKit **0.4.1+** は General から付いて�
 
 `qhost:` はキューホストの SSH 名であり、保存先の接頭辞ではない。表と Kit の
 結果ディレクトリは **そのマシン** に残る。クライアントに
-`~/.distsshqueue` は無い。Queue は Kit の木をコピーしない。
+`~/.distsshqueue` は無い。`qhost:` submit はクライアントのジョブ木を
+`~/.distsshqueue/stage/<id>` へ rsync する。Kit はキューホストから worker へコピーする。
 
 #### クライアント
 
@@ -96,13 +97,13 @@ General にはまだ無い。DistSSHKit **0.4.1+** は General から付いて�
 ~/my-job/
   Project.toml          DistSSHQueue (CLI)
   Manifest.toml
-  SCRIPT.jl             解釈はキューホスト側
+  SCRIPT.jl             qhost: submit で rsync
 ```
 
 #### キューホスト
 
-`~/.distsshqueue` と **ジョブごとに一つの Kit クローン** (パスは
-`~/org/Repo.jl` で一意)。`--queue-env` とは別。`SCRIPT.jl` はそのクローン。
+`~/.distsshqueue` と **ジョブごとに一つの Kit 木** (`qhost:` なら
+`stage/<id>/`、省略なら `~/org/Repo.jl`)。`--queue-env` とは別。
 共有 `config.toml` に `DISTRIBUTED_REMOTE_PROJECT_ROOT` は書かない。
 二本目のプロジェクトが同じ worker パスなら `submit` はエラー。
 
@@ -113,11 +114,12 @@ General にはまだ無い。DistSSHKit **0.4.1+** は General から付いて�
   jobs.toml.log
   jobs.toml.pid         serve 中
   jobs.toml.stopped     stop 後、serve まで
-  env/                  --queue-env / enable の既定
+    env/                  --queue-env / enable の既定
     Project.toml
     Manifest.toml
+  stage/<id>/           qhost: submit 後のクライアント木
 
-~/org/Repo.jl/          ジョブごとに一つのクローン (cwd / DISTRIBUTED_PROJECT_ROOT)
+~/org/Repo.jl/          qhost: 省略 (cwd / DISTRIBUTED_PROJECT_ROOT)
   Project.toml          計算の依存
   SCRIPT.jl
   .distsshkit/go/
