@@ -101,6 +101,7 @@ EOF
   - changed-files:
       - any-glob-to-any-file:
           - "src/client/**"
+          - "test/unit/stage.jl"
           - "test/e2e.jl"
 
 "area:qhost":
