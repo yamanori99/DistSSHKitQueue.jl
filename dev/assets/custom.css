@@ -7,12 +7,16 @@
   documenter-light.css is unscoped: `.docs-dark-only { display: none !important }`
   applies on every theme. Dark theme sheets hide `.docs-light-only` but never
   restore `.docs-dark-only`.
+  Use `block` (not `inline-block`): the light logo is a centered block; inline
+  would sit on the left of the sidebar, which is obvious with a wide wordmark.
 */
-html.theme--documenter-dark .docs-dark-only,
-html.theme--catppuccin-frappe .docs-dark-only,
-html.theme--catppuccin-macchiato .docs-dark-only,
-html.theme--catppuccin-mocha .docs-dark-only {
-  display: inline-block !important;
+html.theme--documenter-dark .docs-sidebar .docs-dark-only,
+html.theme--catppuccin-frappe .docs-sidebar .docs-dark-only,
+html.theme--catppuccin-macchiato .docs-sidebar .docs-dark-only,
+html.theme--catppuccin-mocha .docs-sidebar .docs-dark-only {
+  display: block !important;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Version selector: Documenter puts it at the bottom of the sidebar. */
