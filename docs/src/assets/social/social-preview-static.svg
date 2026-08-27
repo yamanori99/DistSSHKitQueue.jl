@@ -2,7 +2,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
   <!-- social-preview-static: 1280×640; safe 100×60; mark | title lockup -->
   <rect width="1280" height="640" fill="#ffffff"/>
-  <svg x="100" y="135.33333333333331" width="340" height="340" viewBox="0 0 340 340">
+  <svg x="144" y="135.333" width="340" height="340" viewBox="0 0 340 340">
 
 <path fill-rule="nonzero" fill="rgb(58.4%, 34.5%, 69.8%)" fill-opacity="1" d="M 45.59375 145.683594 L 85.792969 145.683594 C 88.121094 145.683594 90.007812 147.570312 90.007812 149.898438 L 90.007812 183.617188 L 79.308594 194.316406 L 45.59375 194.316406 C 43.265625 194.316406 41.378906 192.429688 41.378906 190.101562 L 41.378906 149.898438 C 41.378906 147.570312 43.265625 145.683594 45.59375 145.683594 Z M 45.59375 145.683594 "/>
 <path fill="none" stroke-width="2" stroke-linecap="butt" stroke-linejoin="round" stroke="rgb(7%, 8%, 10%)" stroke-opacity="1" stroke-miterlimit="10" d="M 97.140625 147.304688 L 97.140625 188.480469 C 97.140625 190.808594 99.027344 192.695312 101.355469 192.695312 L 138.316406 192.695312 C 140.644531 192.695312 142.53125 190.808594 142.53125 188.480469 L 142.53125 147.304688 "/>
@@ -11,7 +11,7 @@
 <path fill-rule="nonzero" fill="rgb(7%, 8%, 10%)" fill-opacity="1" d="M 257.945312 145.683594 L 306.578125 170 L 257.945312 194.316406 Z M 257.945312 145.683594 "/>
 
   </svg>
-  <text x="480" y="276" dominant-baseline="middle" fill="#0f172a" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="76" font-weight="800">DistSSHQueue.jl</text>
-  <text x="480" y="340" dominant-baseline="middle" fill="#475569" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" font-weight="500">A Julia queue that runs jobs one at a time</text>
-  <text x="480" y="378" dominant-baseline="middle" fill="#475569" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" font-weight="500">on local and SSH hosts.</text>
+  <text x="524" y="276" dominant-baseline="middle" fill="#0f172a" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="76" font-weight="800">DistSSHQueue.jl</text>
+  <text x="524" y="340" dominant-baseline="middle" fill="#475569" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" font-weight="500">A Julia queue that runs jobs one at a time</text>
+  <text x="524" y="378" dominant-baseline="middle" fill="#475569" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" font-weight="500">on local and SSH hosts.</text>
 </svg>

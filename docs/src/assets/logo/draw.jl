@@ -32,10 +32,6 @@ const SOCIAL_W, SOCIAL_H = 1280, 640
 const SAFE_X, SAFE_Y = 100, 60
 const MARK_SIZE = 340
 const MARK_GAP = 40
-const TEXT_W = 700
-const GROUP_W = MARK_SIZE + MARK_GAP + TEXT_W
-const MARK_X = clamp((SOCIAL_W - GROUP_W) ÷ 2, SAFE_X, SOCIAL_W - SAFE_X - MARK_SIZE)
-const TEXT_X = MARK_X + MARK_SIZE + MARK_GAP
 const MARK_Y = clamp((SOCIAL_H - MARK_SIZE) ÷ 2, SAFE_Y, SOCIAL_H - SAFE_Y - MARK_SIZE)
 const TITLE = "DistSSHQueue.jl"
 const TAGLINE_1 = "A Julia queue that runs jobs one at a time"
@@ -48,6 +44,10 @@ const TAGLINE_Y2 = TAGLINE_Y1 + 38
 const TITLE_SIZE = 76
 const TAGLINE_SIZE = 28
 const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif"
+# Helvetica Neue Heavy 76 / Medium 28 (macOS). Pinned so CI does not remetric.
+const TITLE_ADV = 570.223
+const TAGLINE_ADV = 536.228
+const TEXT_ADV = max(TITLE_ADV, TAGLINE_ADV)
 # Square slot is MARK_SIZE. The strip is inset so it does not fill the
 # slot width; the leftover is the gap to the type (Kit's nested logo
 # also has padding inside 340).
@@ -202,6 +202,16 @@ function install_documenter!()
     end
 end
 
+function social_lockup_x()
+    g = layout_mark()
+    s = MARK_SIZE * MARK_FIT / g.w
+    ink_left = MARK_SIZE / 2 + s * g.x0
+    group_w = MARK_SIZE + MARK_GAP + TEXT_ADV - ink_left
+    side = (SOCIAL_W - group_w) / 2
+    mark_x = round(Int, side - ink_left)
+    return (; mark_x, text_x=mark_x + MARK_SIZE + MARK_GAP)
+end
+
 function svg_inner(svg::AbstractString)
     s = strip(svg)
     if startswith(s, "<?xml")
@@ -226,16 +236,18 @@ function write_mark_slot(path)
 end
 
 function build_social(inner)
+    x = social_lockup_x()
+    slot_y = round(MARK_SLOT_Y; digits=3)
     return """<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="$(SOCIAL_W)" height="$(SOCIAL_H)" viewBox="0 0 $(SOCIAL_W) $(SOCIAL_H)">
   <!-- social-preview-static: 1280×640; safe $(SAFE_X)×$(SAFE_Y); mark | title lockup -->
   <rect width="$(SOCIAL_W)" height="$(SOCIAL_H)" fill="#ffffff"/>
-  <svg x="$(MARK_X)" y="$(MARK_SLOT_Y)" width="$(MARK_SIZE)" height="$(MARK_SIZE)" viewBox="0 0 $(MARK_SIZE) $(MARK_SIZE)">
+  <svg x="$(x.mark_x)" y="$(slot_y)" width="$(MARK_SIZE)" height="$(MARK_SIZE)" viewBox="0 0 $(MARK_SIZE) $(MARK_SIZE)">
 $(inner)
   </svg>
-  <text x="$(TEXT_X)" y="$(TITLE_Y)" dominant-baseline="middle" fill="#0f172a" font-family="$(FONT)" font-size="$(TITLE_SIZE)" font-weight="800">$(TITLE)</text>
-  <text x="$(TEXT_X)" y="$(TAGLINE_Y1)" dominant-baseline="middle" fill="#475569" font-family="$(FONT)" font-size="$(TAGLINE_SIZE)" font-weight="500">$(TAGLINE_1)</text>
-  <text x="$(TEXT_X)" y="$(TAGLINE_Y2)" dominant-baseline="middle" fill="#475569" font-family="$(FONT)" font-size="$(TAGLINE_SIZE)" font-weight="500">$(TAGLINE_2)</text>
+  <text x="$(x.text_x)" y="$(TITLE_Y)" dominant-baseline="middle" fill="#0f172a" font-family="$(FONT)" font-size="$(TITLE_SIZE)" font-weight="800">$(TITLE)</text>
+  <text x="$(x.text_x)" y="$(TAGLINE_Y1)" dominant-baseline="middle" fill="#475569" font-family="$(FONT)" font-size="$(TAGLINE_SIZE)" font-weight="500">$(TAGLINE_1)</text>
+  <text x="$(x.text_x)" y="$(TAGLINE_Y2)" dominant-baseline="middle" fill="#475569" font-family="$(FONT)" font-size="$(TAGLINE_SIZE)" font-weight="500">$(TAGLINE_2)</text>
 </svg>
 """
 end
