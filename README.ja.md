@@ -198,3 +198,10 @@ julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
 ## ライセンス
 
 ソースコードは [MIT](LICENSE)。
+
+<!-- markdownlint-disable MD033 -->
+<p align="center">
+  <img src="docs/src/assets/logo/logo-static.svg#gh-light-mode-only" width="180" alt="DistSSHQueue.jl logo"/>
+  <img src="docs/src/assets/logo/logo-dark-static.svg#gh-dark-mode-only" width="180" alt="DistSSHQueue.jl logo"/>
+</p>
+<!-- markdownlint-enable MD033 -->
