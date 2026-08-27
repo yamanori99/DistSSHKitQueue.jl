@@ -1,5 +1,5 @@
 # DistSSHQueue mark (static). Light PNG has paper; SVG is transparent.
-# Pin: docs/src/assets/logo/Project.toml + Manifest.toml
+# Pin: docs/src/assets/logo/Project.toml + Manifest.toml (Julia 1.12, same as CI min)
 #   julia --project=docs/src/assets/logo -e 'using Pkg; Pkg.instantiate()'
 #   julia --project=docs/src/assets/logo docs/src/assets/logo/draw.jl
 #   julia --project=docs/src/assets/logo docs/src/assets/logo/draw.jl --png
@@ -34,19 +34,19 @@ const MARK_SIZE = 340
 const MARK_GAP = 40
 const MARK_Y = clamp((SOCIAL_H - MARK_SIZE) ÷ 2, SAFE_Y, SOCIAL_H - SAFE_Y - MARK_SIZE)
 const TITLE = "DistSSHQueue.jl"
-const TAGLINE_1 = "A Julia job queue"
-const TAGLINE_2 = "for shared machines over SSH."
+const TAGLINE_1 = "A Julia job queue for shared machines"
+const TAGLINE_2 = "connected over SSH."
 const TEXT_BLOCK_H = 168
 const TEXT_TOP = MARK_Y + (MARK_SIZE - TEXT_BLOCK_H) ÷ 2
 const TITLE_Y = TEXT_TOP + 40
-const TAGLINE_Y1 = TITLE_Y + 52
-const TAGLINE_Y2 = TAGLINE_Y1 + 34
+const TAGLINE_Y1 = TITLE_Y + 64
+const TAGLINE_Y2 = TAGLINE_Y1 + 38
 const TITLE_SIZE = 76
 const TAGLINE_SIZE = 28
 const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif"
 # Helvetica Neue Heavy 76 / Medium 28 (macOS). Pinned so CI does not remetric.
 const TITLE_ADV = 570.223
-const TAGLINE_ADV = 400.456
+const TAGLINE_ADV = 495.292
 const TEXT_ADV = max(TITLE_ADV, TAGLINE_ADV)
 # SVG font-weight 800 reads a bit wider than the pinned Heavy advance, so
 # the lockup sits slightly right; nudge left.
@@ -54,9 +54,9 @@ const LOCKUP_DX = -14
 # Square slot is MARK_SIZE. The strip is inset so it does not fill the
 # slot width; the leftover is the gap to the type (Kit's nested logo
 # also has padding inside 340).
-const MARK_FIT = 0.86
-# Wide mark + short first tagline: sit on the title–tagline block, not the slot.
-const MARK_CY = (TITLE_Y + TAGLINE_Y2) / 2
+const MARK_FIT = 0.78
+# Slot center reads a little low; title center reads high. Weight toward the slot.
+const MARK_CY = (TITLE_Y + 2 * (MARK_Y + MARK_SIZE / 2)) / 3
 const MARK_SLOT_Y = MARK_CY - MARK_SIZE / 2
 
 pal_light() = (; dark=false, bg=PAPER, q=PLUM, ue=INK, last=INK)
