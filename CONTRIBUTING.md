@@ -47,6 +47,8 @@ Run this on slot **min** and **max** (and **tip** if you have nightly). Layout: 
 ./testenv/docker-ssh/scripts/up.sh --e2e
 julia --project=docs -e 'using Pkg; Pkg.instantiate()'
 julia --project=docs --color=yes docs/make.jl
+julia --project=docs/src/assets/logo -e 'using Pkg; Pkg.instantiate()'
+julia --project=docs/src/assets/logo docs/src/assets/logo/draw.jl   # SVG; add --png for rasters
 gitleaks detect --source .
 ```
 
@@ -72,7 +74,7 @@ When a new RC lands, change `JULIA_SLOT_MAX` only. If that RC is a new **major.m
 
 ### PR CI
 
-Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed; otherwise that job is skipped.
+Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. `Assets` (`draw SVG`) runs if `docs/src/assets/` or that workflow changed. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed; otherwise that job is skipped.
 
 These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
 
