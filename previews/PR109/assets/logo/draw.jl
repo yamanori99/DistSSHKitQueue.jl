@@ -34,8 +34,8 @@ const MARK_SIZE = 340
 const MARK_GAP = 40
 const MARK_Y = clamp((SOCIAL_H - MARK_SIZE) ÷ 2, SAFE_Y, SOCIAL_H - SAFE_Y - MARK_SIZE)
 const TITLE = "DistSSHQueue.jl"
-const TAGLINE_1 = "A Julia queue where jobs take turns"
-const TAGLINE_2 = "on shared machines over SSH."
+const TAGLINE_1 = "A Julia job queue"
+const TAGLINE_2 = "for shared machines over SSH."
 const TEXT_BLOCK_H = 168
 const TEXT_TOP = MARK_Y + (MARK_SIZE - TEXT_BLOCK_H) ÷ 2
 const TITLE_Y = TEXT_TOP + 40
@@ -46,7 +46,7 @@ const TAGLINE_SIZE = 28
 const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif"
 # Helvetica Neue Heavy 76 / Medium 28 (macOS). Pinned so CI does not remetric.
 const TITLE_ADV = 570.223
-const TAGLINE_ADV = 461.552
+const TAGLINE_ADV = 400.456
 const TEXT_ADV = max(TITLE_ADV, TAGLINE_ADV)
 # SVG font-weight 800 reads a bit wider than the pinned Heavy advance, so
 # the lockup sits slightly right; nudge left.
