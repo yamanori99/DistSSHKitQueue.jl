@@ -13,5 +13,5 @@
   </svg>
   <text x="510" y="276" dominant-baseline="middle" fill="#0f172a" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="76" font-weight="800">DistSSHQueue.jl</text>
   <text x="510" y="340" dominant-baseline="middle" fill="#475569" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" font-weight="500">A Julia queue that runs jobs one at a time</text>
-  <text x="510" y="378" dominant-baseline="middle" fill="#475569" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" font-weight="500">on local and SSH hosts.</text>
+  <text x="510" y="378" dominant-baseline="middle" fill="#475569" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="28" font-weight="500">on the queue host and SSH hosts.</text>
 </svg>
