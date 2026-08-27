@@ -21,4 +21,5 @@ julia --project=docs docs/make.jl
 Output: `docs/build/`. Use `--project=docs` (not the package root).
 
 Logos and social preview: see [`src/assets/README.md`](src/assets/README.md).
-Regenerate with `julia docs/src/assets/logo/draw.jl` (needs Luxor).
+Regenerate with `julia --project=docs/src/assets/logo docs/src/assets/logo/draw.jl`
+(pinned Luxor; add `--png` for rasters).

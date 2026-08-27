@@ -1,9 +1,13 @@
 # DistSSHQueue mark (static). Light PNG has paper; SVG is transparent.
-# Run: julia docs/src/assets/logo/draw.jl  (needs Luxor)
-# Writes logo-static / logo-dark-static here, copies SVG for Documenter,
-# and social/social-preview-static.svg|.png (GitHub OG 1280×640).
+# Pin: docs/src/assets/logo/Project.toml + Manifest.toml
+#   julia --project=docs/src/assets/logo -e 'using Pkg; Pkg.instantiate()'
+#   julia --project=docs/src/assets/logo docs/src/assets/logo/draw.jl
+#   julia --project=docs/src/assets/logo docs/src/assets/logo/draw.jl --png
+# SVG is the reproducible deliverable. --png needs Cairo / rsvg locally.
 
 using Luxor
+
+const WANT_PNG = "--png" in ARGS
 
 const OUT = @__DIR__
 const ASSETS = dirname(OUT)
@@ -172,10 +176,12 @@ function mark!(; pal, canvas=CANVAS, margin=MARGIN, paint_bg=true)
 end
 
 function save_mark(name, pal)
-    Drawing(CANVAS, CANVAS, joinpath(OUT, "$name.png"))
-    origin()
-    mark!(; pal, paint_bg=true)
-    finish()
+    if WANT_PNG
+        Drawing(CANVAS, CANVAS, joinpath(OUT, "$name.png"))
+        origin()
+        mark!(; pal, paint_bg=true)
+        finish()
+    end
     Drawing(CANVAS, CANVAS, joinpath(OUT, "$name.svg"))
     origin()
     mark!(; pal, paint_bg=false)
@@ -257,7 +263,7 @@ function save_social()
     svg_path = joinpath(SOCIAL, "social-preview-static.svg")
     write(svg_path, build_social(svg_inner(read(slot, String))))
     rm(slot)
-    raster_social!(svg_path, joinpath(SOCIAL, "social-preview-static.png"))
+    WANT_PNG && raster_social!(svg_path, joinpath(SOCIAL, "social-preview-static.png"))
     println("wrote social-preview-static")
 end
 
