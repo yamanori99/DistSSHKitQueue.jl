@@ -48,6 +48,9 @@ const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif"
 const TITLE_ADV = 570.223
 const TAGLINE_ADV = 536.228
 const TEXT_ADV = max(TITLE_ADV, TAGLINE_ADV)
+# SVG font-weight 800 reads a bit wider than the pinned Heavy advance, so
+# the lockup sits slightly right; nudge left.
+const LOCKUP_DX = -14
 # Square slot is MARK_SIZE. The strip is inset so it does not fill the
 # slot width; the leftover is the gap to the type (Kit's nested logo
 # also has padding inside 340).
@@ -208,7 +211,7 @@ function social_lockup_x()
     ink_left = MARK_SIZE / 2 + s * g.x0
     group_w = MARK_SIZE + MARK_GAP + TEXT_ADV - ink_left
     side = (SOCIAL_W - group_w) / 2
-    mark_x = round(Int, side - ink_left)
+    mark_x = round(Int, side - ink_left + LOCKUP_DX)
     return (; mark_x, text_x=mark_x + MARK_SIZE + MARK_GAP)
 end
 
