@@ -39,8 +39,8 @@ const TAGLINE_2 = "for shared machines over SSH."
 const TEXT_BLOCK_H = 168
 const TEXT_TOP = MARK_Y + (MARK_SIZE - TEXT_BLOCK_H) ÷ 2
 const TITLE_Y = TEXT_TOP + 40
-const TAGLINE_Y1 = TITLE_Y + 64
-const TAGLINE_Y2 = TAGLINE_Y1 + 38
+const TAGLINE_Y1 = TITLE_Y + 52
+const TAGLINE_Y2 = TAGLINE_Y1 + 34
 const TITLE_SIZE = 76
 const TAGLINE_SIZE = 28
 const FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif"
@@ -54,9 +54,9 @@ const LOCKUP_DX = -14
 # Square slot is MARK_SIZE. The strip is inset so it does not fill the
 # slot width; the leftover is the gap to the type (Kit's nested logo
 # also has padding inside 340).
-const MARK_FIT = 0.78
-# Slot center reads a little low; title center reads high. Weight toward the slot.
-const MARK_CY = (TITLE_Y + 2 * (MARK_Y + MARK_SIZE / 2)) / 3
+const MARK_FIT = 0.86
+# Wide mark + short first tagline: sit on the title–tagline block, not the slot.
+const MARK_CY = (TITLE_Y + TAGLINE_Y2) / 2
 const MARK_SLOT_Y = MARK_CY - MARK_SIZE / 2
 
 pal_light() = (; dark=false, bg=PAPER, q=PLUM, ue=INK, last=INK)
