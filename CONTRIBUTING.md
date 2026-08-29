@@ -81,7 +81,7 @@ Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Docum
 
 These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
 
-`README.md`, `README.ja.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`.
+`README.md`, `README.ja.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`, `.coderabbit.yaml`.
 
 A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. macOS / WSL stay on `E2E weekly`, not the PR.
 
@@ -115,6 +115,15 @@ Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure.
 - Branch from `main`. Squash-merge only. Merged heads are deleted.
 - One reviewable change per PR. Split unless `main` would be broken in between.
 - Large plans: discuss in an issue first, then small PRs.
+
+### CodeRabbit (experimental)
+
+Open PRs may get an optional [CodeRabbit](https://docs.coderabbit.ai) pass.
+Config is [`.coderabbit.yaml`](.coderabbit.yaml) on the **PR head** (not a
+merge gate). JETLS / tests / e2e stay the gate. Treat inline comments as
+hints; do not apply Autofix or generated tests unless you want that change.
+`@coderabbitai pause` / `review` as needed. Settings will move as we learn
+what is useful.
 
 ## Release
 
@@ -183,7 +192,7 @@ Every tracked path must match some `area:*` glob (`gen-labeler.sh --check`). Glo
 | `test/e2e.jl` | `area:client` and `area:qhost` as well |
 | `docs/**` | `area:docs` |
 | `README.md`, `README.ja.md`, `NEWS.md`, `CONTRIBUTING.md`, `SECURITY.md` | `area:project-docs` |
-| `.github/**`, `codecov.yml` | `area:ci` |
+| `.github/**`, `codecov.yml`, `.coderabbit.yaml` | `area:ci` |
 
 New leftover queue test file: edit the script, regenerate, create the GitHub label.
 
