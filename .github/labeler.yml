@@ -20,6 +20,7 @@
       - any-glob-to-any-file:
           - ".github/**"
           - "codecov.yml"
+          - ".coderabbit.yaml"
 
 "area:test":
   - changed-files:
