@@ -7,10 +7,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## 0.2.0 (2026-08-27)
 
-First General cut. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
-**0.4.2+**). Install pin stays git `v0.2.0-beta.2` until General; do not
-register that prerelease tag. Tag `v0.1.0-beta.1` is DistSSHKitQueue
-(old UUID); do not use it.
+First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
+**0.4.2+**). Tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
 
 ## 0.2.0-beta.2 (2026-08-27)
 

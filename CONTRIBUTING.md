@@ -1,6 +1,9 @@
 # Contributing
 
-Internals of this repo. Users: [README.md](README.md), [README.ja.md](README.ja.md), [NEWS.md](NEWS.md), [docs](https://yamanori99.github.io/DistSSHQueue.jl/dev/) (`docs/`; [docs/README.md](docs/README.md)).
+Internals of this repo.
+
+- Users: [stable docs](https://yamanori99.github.io/DistSSHQueue.jl/stable/) (`docs/`), [README.md](README.md), [README.ja.md](README.ja.md), [NEWS.md](NEWS.md)
+- Dev docs: [dev](https://yamanori99.github.io/DistSSHQueue.jl/dev/) ([docs/README.md](docs/README.md))
 
 This is a **separate** package from DistSSHKit: FIFO `serve` in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
 
@@ -130,19 +133,23 @@ If Queue cannot implement something without a kit hook, open a DistSSHKit Enhanc
 
 ### When to cut
 
-**Not on General yet.** Cut when DistSSHKit compat must move, or when we need a version pin ourselves. Do not register.
-
-**After the first General release**, same rule as DistSSHKit: cut when [NEWS.md](NEWS.md) **Unreleased** has something General users should get.
+Not a calendar. Cut when [NEWS.md](NEWS.md) **Unreleased** has something General users should get.
 
 | Unreleased is… | Cut? |
 | --- | --- |
 | Happy-path bug (FIFO enqueue / `serve`) | Yes, that patch promptly |
 | Opt-in flags, docs, CI | When someone needs it on General, **or** those items have sat in Unreleased for **two weeks** |
 
-### After a cut on General
+### After a cut merges
 
-1. `@JuliaRegistrator register` on the **merge commit** (not the PR body).
-2. Paste the NEWS section under `Release notes:`.
+1. Run **E2E weekly** on the **merge commit** (`gh workflow run "E2E weekly" --ref <sha>`). Do not register until Linux, macOS Intel, and WSL are green. The PR already ran Linux E2E; this is the other controllers plus a fresh image. A same-day green run on that SHA is enough; do not wait for the Sunday cron if you dispatched.
+2. `@JuliaRegistrator register` on the **merge commit** (not the PR body).
+3. Paste the NEWS section under `Release notes:`.
+4. TagBot tags once General has the release. Date NEWS `YYYY-MM-DD` UTC on the tag day.
+
+TagBot uses SSH deploy key secret `DOCUMENTER_KEY` (write deploy key on this repo) so the `vX.Y.Z` tag starts Docs and `stable` updates. Docs still deploy with `GITHUB_TOKEN`. Do not add a `+doc1` tag unless that path failed. Manual rebuild: `gh workflow run Docs --ref vX.Y.Z`.
+
+Repo Settings → Actions → Workflow permissions: **Read and write** (`GITHUB_TOKEN`).
 
 ## Issues
 
@@ -196,7 +203,7 @@ CI infers, in order:
 1. A unique type on a closing issue (`Fixes #N`)
 2. Else the branch prefix: `feat/` → enhancement, `fix/` → bug, `breaking/` → breaking, `chore/` / `docs/` / `ci/` / `test/` / anything else → chore
 
-`fix/` plus `Fixes` an enhancement issue gets `enhancement`. `breaking` may sit next to the type label. After merge a human registers; TagBot tags (once on General).
+`fix/` plus `Fixes` an enhancement issue gets `enhancement`. `breaking` may sit next to the type label. After merge a human registers; TagBot tags.
 
 Ruleset `main` requires check `PR label` (workflow `Type`). Type labels (`bug` / `enhancement` / `breaking` / `chore` / `cut`) and each `area:*` must exist (`gh label create` if missing).
 
