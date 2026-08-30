@@ -73,6 +73,8 @@ jobs:
         run: julia --version
 
       - uses: julia-actions/cache@v3
+        with:
+          cache-scratchspaces: false
 
       - uses: julia-actions/julia-buildpkg@v1
         with:
