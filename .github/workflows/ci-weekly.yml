@@ -157,7 +157,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           title='CI weekly failed'
-          gh label create ci --description "CI tracking" --color "ededed" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+          gh label create ci --description "CI tracking" --color "000000" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
           existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label ci --search "in:title $title" --json number --jq '.[0].number // empty')"
           if [ "$FAILED" = "true" ]; then
             body="Latest run: $RUN_URL

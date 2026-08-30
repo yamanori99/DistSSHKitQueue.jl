@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- DistSSHKit floor is **0.4.3+** (collect / `go` SSH failures are not empty
+  success; missing `ssh` / `rsync` / `git` / `scp` prints a Requirements hint).
+
 ## 0.2.0 (2026-08-27)
 
 First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
