@@ -11,7 +11,7 @@ makedocs(;
         prettyurls=get(ENV, "CI", nothing) == "true",
         canonical="https://yamanori99.github.io/DistSSHQueue.jl",
         edit_link="main",
-        assets=["assets/custom.css"],
+        assets=["assets/custom.css", "assets/favicon.ico"],
     ),
     pages=[
         "Introduction" => "index.md",

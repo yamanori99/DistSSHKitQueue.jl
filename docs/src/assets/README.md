@@ -10,6 +10,7 @@ Luxor into the package or docs project.
 assets/
   custom.css
   README.md
+  favicon.ico           Documenter tab icon (`draw.jl --png` from logo-static)
   logo.svg              Documenter light (copy of logo/logo-static.svg)
   logo-dark.svg         Documenter dark (copy of logo/logo-dark-static.svg)
   logo/

@@ -255,13 +255,111 @@ $(inner)
 """
 end
 
-function raster_social!(svg_path, png_path)
-    rsvg = Sys.which("rsvg-convert")
-    if rsvg === nothing
-        for p in ("/opt/homebrew/bin/rsvg-convert", "/usr/local/bin/rsvg-convert")
-            isfile(p) && (rsvg = p; break)
+function png_ihdr_size(path::AbstractString)
+    isfile(path) || return nothing
+    open(path, "r") do io
+        sig = read(io, 8)
+        sig == UInt8[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] || return nothing
+        ntoh(read(io, UInt32)) == 13 || return nothing
+        String(read(io, 4)) == "IHDR" || return nothing
+        w = Int(ntoh(read(io, UInt32)))
+        h = Int(ntoh(read(io, UInt32)))
+        return (w, h)
+    end
+end
+
+png_matches_size(path, w, h) = png_ihdr_size(path) == (w, h)
+
+function write_png_ico!(dest::AbstractString, pngs::Vector{Pair{Int, String}})
+    payloads = Vector{Tuple{Int, Vector{UInt8}}}(undef, length(pngs))
+    for (i, (sz, path)) in enumerate(pngs)
+        png_matches_size(path, sz, sz) || error("favicon PNG is not $(sz)×$(sz): $path")
+        payloads[i] = (sz, read(path))
+    end
+    n = length(payloads)
+    header = 6 + 16 * n
+    open(dest, "w") do io
+        write(io, htol(UInt16(0)))
+        write(io, htol(UInt16(1)))
+        write(io, htol(UInt16(n)))
+        off = header
+        for (sz, data) in payloads
+            wbyte = sz >= 256 ? 0x00 : UInt8(sz)
+            write(io, wbyte)
+            write(io, wbyte)
+            write(io, UInt8(0))
+            write(io, UInt8(0))
+            write(io, htol(UInt16(1)))
+            write(io, htol(UInt16(32)))
+            write(io, htol(UInt32(length(data))))
+            write(io, htol(UInt32(off)))
+            off += length(data)
+        end
+        for (_, data) in payloads
+            write(io, data)
         end
     end
+    return dest
+end
+
+function find_rsvg()
+    w = Sys.which("rsvg-convert")
+    w !== nothing && return w
+    for p in ("/opt/homebrew/bin/rsvg-convert", "/usr/local/bin/rsvg-convert")
+        isfile(p) && return p
+    end
+    return nothing
+end
+
+function downscale_png!(src::AbstractString, dest::AbstractString; w::Int, h::Int)
+    sips = Sys.which("sips")
+    if sips !== nothing
+        try
+            run(pipeline(`$sips -z $h $w $src --out $dest`; stdout=devnull, stderr=devnull))
+            return isfile(dest) && filesize(dest) > 0
+        catch
+        end
+    end
+    return false
+end
+
+function raster_square!(svg_path, png_path; size::Int)
+    rsvg = find_rsvg()
+    if rsvg !== nothing
+        run(`$rsvg -w $size -h $size -o $png_path $svg_path`)
+        return png_matches_size(png_path, size, size)
+    end
+    Drawing(size, size, png_path)
+    origin()
+    mark!(; pal=pal_light(), canvas=size, paint_bg=false)
+    finish()
+    return png_matches_size(png_path, size, size)
+end
+
+function save_favicon()
+    WANT_PNG || return
+    svg = joinpath(OUT, "logo-static.svg")
+    ico = joinpath(ASSETS, "favicon.ico")
+    d = mktempdir(ASSETS; prefix=".favicon-")
+    try
+        src32 = joinpath(d, "32.png")
+        raster_square!(svg, src32; size=32) || error("favicon 32px raster failed")
+        pngs = Pair{Int, String}[32 => src32]
+        src16 = joinpath(d, "16.png")
+        if downscale_png!(src32, src16; w=16, h=16) && png_matches_size(src16, 16, 16)
+            pushfirst!(pngs, 16 => src16)
+        elseif raster_square!(svg, src16; size=16)
+            pushfirst!(pngs, 16 => src16)
+        end
+        write_png_ico!(ico, pngs)
+        println("wrote favicon.ico ($(filesize(ico)) bytes)")
+    finally
+        rm(d; recursive=true, force=true)
+    end
+end
+
+function raster_social!(svg_path, png_path)
+    rsvg = find_rsvg()
     if rsvg !== nothing
         run(`$rsvg -w $(SOCIAL_W) -h $(SOCIAL_H) -o $png_path $svg_path`)
         return
@@ -287,6 +385,7 @@ function main()
     save_mark("logo-dark-static", pal_dark())
     install_documenter!()
     save_social()
+    save_favicon()
 end
 
 main()

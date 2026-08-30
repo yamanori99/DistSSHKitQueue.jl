@@ -67,4 +67,5 @@ jobs:
           }
           warn_if_stale logo/logo-static.png logo/draw.jl
           warn_if_stale logo/logo-dark-static.png logo/draw.jl
+          warn_if_stale favicon.ico logo/draw.jl
           warn_if_stale social/social-preview-static.png logo/draw.jl social/social-preview-static.svg
