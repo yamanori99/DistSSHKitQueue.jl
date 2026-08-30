@@ -27,6 +27,8 @@ const OPTICAL_DX = 0.015
 const BEZ = 0.5522847498
 const CANVAS = 512
 const MARGIN = 0.18
+# Q tile in logo-static.svg (512 canvas). Tab icon crops to this, not the wide strip.
+const FAVICON_VIEWBOX = "88 216 80 80"
 
 const SOCIAL_W, SOCIAL_H = 1280, 640
 const SAFE_X, SAFE_Y = 100, 60
@@ -336,20 +338,39 @@ function raster_square!(svg_path, png_path; size::Int)
     return png_matches_size(png_path, size, size)
 end
 
+function save_favicon_svg!()
+    src = read(joinpath(OUT, "logo-static.svg"), String)
+    s = strip(src)
+    if startswith(s, "<?xml")
+        i = findfirst("?>", s)
+        i !== nothing && (s = lstrip(s[last(i) + 1:end]))
+    end
+    m = match(r"^<svg[^>]*>([\s\S]*)</svg>\s*$", s)
+    m === nothing && error("could not strip outer <svg> for favicon")
+    path = joinpath(ASSETS, "favicon.svg")
+    write(
+        path,
+        """<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="$(FAVICON_VIEWBOX)">
+$(m.captures[1])
+</svg>
+""",
+    )
+    println("wrote favicon.svg")
+end
+
 function save_favicon()
+    svg = joinpath(ASSETS, "favicon.svg")
+    isfile(svg) || save_favicon_svg!()
     WANT_PNG || return
-    svg = joinpath(OUT, "logo-static.svg")
     ico = joinpath(ASSETS, "favicon.ico")
     d = mktempdir(ASSETS; prefix=".favicon-")
     try
-        src32 = joinpath(d, "32.png")
-        raster_square!(svg, src32; size=32) || error("favicon 32px raster failed")
-        pngs = Pair{Int, String}[32 => src32]
-        src16 = joinpath(d, "16.png")
-        if downscale_png!(src32, src16; w=16, h=16) && png_matches_size(src16, 16, 16)
-            pushfirst!(pngs, 16 => src16)
-        elseif raster_square!(svg, src16; size=16)
-            pushfirst!(pngs, 16 => src16)
+        pngs = Pair{Int, String}[]
+        for px in (32, 48)
+            src = joinpath(d, "$(px).png")
+            raster_square!(svg, src; size=px) || error("favicon $(px)px raster failed")
+            push!(pngs, px => src)
         end
         write_png_ico!(ico, pngs)
         println("wrote favicon.ico ($(filesize(ico)) bytes)")
@@ -385,6 +406,7 @@ function main()
     save_mark("logo-dark-static", pal_dark())
     install_documenter!()
     save_social()
+    save_favicon_svg!()
     save_favicon()
 end
 
