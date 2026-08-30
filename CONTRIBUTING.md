@@ -156,7 +156,7 @@ Not a calendar. Cut when [NEWS.md](NEWS.md) **Unreleased** has something General
 1. Run **E2E weekly** on the **merge commit** (`gh workflow run "E2E weekly" --ref <sha>`). Do not register until Linux, macOS Intel, and WSL are green. The PR already ran Linux E2E; this is the other controllers plus a fresh image. A same-day green run on that SHA is enough; do not wait for the Sunday cron if you dispatched.
 2. `@JuliaRegistrator register` on the **merge commit** (not the PR body).
 3. Paste the NEWS section under `Release notes:`.
-4. TagBot tags once General has the release. Date NEWS `YYYY-MM-DD` UTC on the tag day.
+4. TagBot tags once General has the release.
 
 TagBot uses SSH deploy key secret `DOCUMENTER_KEY` (write deploy key on this repo) so the `vX.Y.Z` tag starts Docs and `stable` updates. Docs still deploy with `GITHUB_TOKEN`. Do not add a `+doc1` tag unless that path failed. Manual rebuild: `gh workflow run Docs --ref vX.Y.Z`.
 
@@ -230,4 +230,4 @@ Colors match DistSSHKit: type is "what", area is "where". Do not give each `area
 
 ## Language
 
-`.jl` comments, docstrings, and errors: English. Install or Docs links: `docs/src`, [README.md](README.md), and [README.ja.md](README.ja.md). User-visible behavior: NEWS (date the section when tagged). Generative AI is allowed; you own the diff. Keep docs plain.
+`.jl` comments, docstrings, and errors: English. Install or Docs links: `docs/src`, [README.md](README.md), and [README.ja.md](README.ja.md). User-visible behavior: NEWS. Generative AI is allowed; you own the diff. Keep docs plain.
