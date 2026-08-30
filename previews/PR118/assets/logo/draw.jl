@@ -360,6 +360,11 @@ $(q.match)
 """,
     )
     println("wrote favicon.svg")
+    dst = joinpath(dirname(ASSETS), "favicon.svg")
+    ispath(dst) && rm(dst)
+    cd(dirname(ASSETS)) do
+        symlink(joinpath("assets", "favicon.svg"), "favicon.svg")
+    end
 end
 
 function save_favicon()
@@ -380,6 +385,14 @@ function save_favicon()
         cp(pngs[1][2], png32; force=true)
         println("wrote favicon.ico ($(filesize(ico)) bytes)")
         println("wrote favicon.png ($(filesize(png32)) bytes)")
+        srcroot = dirname(ASSETS)
+        for name in ("favicon.ico", "favicon.png")
+            dst = joinpath(srcroot, name)
+            ispath(dst) && rm(dst)
+            cd(srcroot) do
+                symlink(joinpath("assets", name), name)
+            end
+        end
     finally
         rm(d; recursive=true, force=true)
     end
