@@ -28,8 +28,9 @@ const BEZ = 0.5522847498
 const CANVAS = 512
 const MARGIN = 0.18
 # Q tile in logo-static.svg (512 canvas). Tab icon crops to this, not the wide strip.
-# Bounding box of the plum Q in logo-static.svg (512 canvas), plus a hair of pad.
-const FAVICON_VIEWBOX = "94.5 223.5 65 65"
+# Plum Q (~60) on an opaque white 96×96 tile so dark chrome still shows a badge.
+const FAVICON_VIEWBOX = "79 208 96 96"
+const FAVICON_PX = (16, 32, 48)
 
 const SOCIAL_W, SOCIAL_H = 1280, 640
 const SAFE_X, SAFE_Y = 100, 60
@@ -351,10 +352,13 @@ function save_favicon_svg!()
     q = match(r"<path\b[^/]*/>", m.captures[1])
     q === nothing && error("missing Q path for favicon")
     path = joinpath(ASSETS, "favicon.svg")
+    vb = split(FAVICON_VIEWBOX)
+    vx, vy, vw, vh = vb[1], vb[2], vb[3], vb[4]
     write(
         path,
         """<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="$(FAVICON_VIEWBOX)">
+<rect x="$(vx)" y="$(vy)" width="$(vw)" height="$(vh)" fill="#ffffff"/>
 $(q.match)
 </svg>
 """,
@@ -375,14 +379,15 @@ function save_favicon()
     d = mktempdir(ASSETS; prefix=".favicon-")
     try
         pngs = Pair{Int, String}[]
-        for px in (32, 48)
+        for px in FAVICON_PX
             src = joinpath(d, "$(px).png")
             raster_square!(svg, src; size=px) || error("favicon $(px)px raster failed")
             push!(pngs, px => src)
         end
         write_png_ico!(ico, pngs)
         png32 = joinpath(ASSETS, "favicon.png")
-        cp(pngs[1][2], png32; force=true)
+        src32 = first(p for p in pngs if p[1] == 32)
+        cp(src32[2], png32; force=true)
         println("wrote favicon.ico ($(filesize(ico)) bytes)")
         println("wrote favicon.png ($(filesize(png32)) bytes)")
         srcroot = dirname(ASSETS)

@@ -10,7 +10,7 @@ Luxor into the package or docs project.
 assets/
   custom.css
   README.md
-  favicon.svg / favicon.ico   tab icon (plum Q, tight; not the wide QUEUE strip)
+  favicon.svg / favicon.ico   tab icon (plum Q on white; not the wide QUEUE strip)
   logo.svg              Documenter light (copy of logo/logo-static.svg)
   logo-dark.svg         Documenter dark (copy of logo/logo-dark-static.svg)
   logo/
