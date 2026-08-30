@@ -28,7 +28,8 @@ const BEZ = 0.5522847498
 const CANVAS = 512
 const MARGIN = 0.18
 # Q tile in logo-static.svg (512 canvas). Tab icon crops to this, not the wide strip.
-const FAVICON_VIEWBOX = "88 216 80 80"
+# Bounding box of the plum Q in logo-static.svg (512 canvas), plus a hair of pad.
+const FAVICON_VIEWBOX = "94.5 223.5 65 65"
 
 const SOCIAL_W, SOCIAL_H = 1280, 640
 const SAFE_X, SAFE_Y = 100, 60
@@ -347,12 +348,14 @@ function save_favicon_svg!()
     end
     m = match(r"^<svg[^>]*>([\s\S]*)</svg>\s*$", s)
     m === nothing && error("could not strip outer <svg> for favicon")
+    q = match(r"<path\b[^/]*/>", m.captures[1])
+    q === nothing && error("missing Q path for favicon")
     path = joinpath(ASSETS, "favicon.svg")
     write(
         path,
         """<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="$(FAVICON_VIEWBOX)">
-$(m.captures[1])
+$(q.match)
 </svg>
 """,
     )
