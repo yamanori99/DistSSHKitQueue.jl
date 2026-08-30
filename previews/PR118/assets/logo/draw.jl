@@ -28,7 +28,7 @@ const BEZ = 0.5522847498
 const CANVAS = 512
 const MARGIN = 0.18
 # Q tile in logo-static.svg (512 canvas). Tab icon crops to this, not the wide strip.
-# Plum Q (~60) on an opaque white 96×96 tile so dark chrome still shows a badge.
+# Transparent 96×96; dark variant adds a light edge so chrome still reads.
 const FAVICON_VIEWBOX = "79 208 96 96"
 const FAVICON_PX = (16, 32, 48)
 
@@ -351,47 +351,53 @@ function save_favicon_svg!()
     m === nothing && error("could not strip outer <svg> for favicon")
     q = match(r"<path\b[^/]*/>", m.captures[1])
     q === nothing && error("missing Q path for favicon")
-    path = joinpath(ASSETS, "favicon.svg")
-    vb = split(FAVICON_VIEWBOX)
-    vx, vy, vw, vh = vb[1], vb[2], vb[3], vb[4]
-    write(
-        path,
-        """<?xml version="1.0" encoding="UTF-8"?>
+    light = q.match
+    dark = replace(light, "fill-opacity=\"1\"" => "fill-opacity=\"1\" stroke=\"rgb(96.1%, 97.3%, 98%)\" stroke-width=\"4\"")
+    srcroot = dirname(ASSETS)
+    for (name, inner) in (("favicon.svg", light), ("favicon-dark.svg", dark))
+        path = joinpath(ASSETS, name)
+        write(
+            path,
+            """<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="$(FAVICON_VIEWBOX)">
-<rect x="$(vx)" y="$(vy)" width="$(vw)" height="$(vh)" fill="#ffffff"/>
-$(q.match)
+$(inner)
 </svg>
 """,
-    )
-    println("wrote favicon.svg")
-    dst = joinpath(dirname(ASSETS), "favicon.svg")
-    ispath(dst) && rm(dst)
-    cd(dirname(ASSETS)) do
-        symlink(joinpath("assets", "favicon.svg"), "favicon.svg")
+        )
+        println("wrote $name")
+        dst = joinpath(srcroot, name)
+        ispath(dst) && rm(dst)
+        cd(srcroot) do
+            symlink(joinpath("assets", name), name)
+        end
     end
 end
 
 function save_favicon()
-    svg = joinpath(ASSETS, "favicon.svg")
-    isfile(svg) || save_favicon_svg!()
+    save_favicon_svg!()
     WANT_PNG || return
     ico = joinpath(ASSETS, "favicon.ico")
     d = mktempdir(ASSETS; prefix=".favicon-")
     try
-        pngs = Pair{Int, String}[]
-        for px in FAVICON_PX
-            src = joinpath(d, "$(px).png")
-            raster_square!(svg, src; size=px) || error("favicon $(px)px raster failed")
-            push!(pngs, px => src)
+        function raster_one(svg_name, png32_name)
+            svg = joinpath(ASSETS, svg_name)
+            pngs = Pair{Int, String}[]
+            for px in FAVICON_PX
+                src = joinpath(d, "$(first(splitext(svg_name)))-$(px).png")
+                raster_square!(svg, src; size=px) || error("$svg_name $(px)px raster failed")
+                push!(pngs, px => src)
+            end
+            dest = joinpath(ASSETS, png32_name)
+            cp(first(p for p in pngs if p[1] == 32)[2], dest; force=true)
+            println("wrote $png32_name ($(filesize(dest)) bytes)")
+            return pngs
         end
-        write_png_ico!(ico, pngs)
-        png32 = joinpath(ASSETS, "favicon.png")
-        src32 = first(p for p in pngs if p[1] == 32)
-        cp(src32[2], png32; force=true)
+        light = raster_one("favicon.svg", "favicon.png")
+        raster_one("favicon-dark.svg", "favicon-dark.png")
+        write_png_ico!(ico, light)
         println("wrote favicon.ico ($(filesize(ico)) bytes)")
-        println("wrote favicon.png ($(filesize(png32)) bytes)")
         srcroot = dirname(ASSETS)
-        for name in ("favicon.ico", "favicon.png")
+        for name in ("favicon.ico", "favicon.png", "favicon-dark.png")
             dst = joinpath(srcroot, name)
             ispath(dst) && rm(dst)
             cd(srcroot) do
