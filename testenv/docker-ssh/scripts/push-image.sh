@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Tag LOCAL_IMAGE (default local/dskq-linux-ssh-worker:latest) and push with retries.
+# Tag LOCAL_IMAGE (default local/distsshqueue-linux-ssh-worker:latest) and push with retries.
 # GHCR often fails a single push with "unknown blob" after layers uploaded.
 set -euo pipefail
 
 image="${1:?usage: $0 <registry/image:tag>}"
-local_image="${DSKQ_LOCAL_IMAGE:-local/dskq-linux-ssh-worker:latest}"
-retries="${DSKQ_WORKER_PUSH_RETRIES:-8}"
+local_image="${DISTSSHQUEUE_LOCAL_IMAGE:-local/distsshqueue-linux-ssh-worker:latest}"
+retries="${DISTSSHQUEUE_WORKER_PUSH_RETRIES:-8}"
 
 remote_ok() {
   if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then

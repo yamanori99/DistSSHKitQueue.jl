@@ -9,18 +9,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 QUEUE_ROOT="$(cd "${ROOT}/../.." && pwd)"
 RUN_E2E=0
-LOCAL_IMAGE="local/dskq-linux-ssh-worker:latest"
+LOCAL_IMAGE="local/distsshqueue-linux-ssh-worker:latest"
 
 for arg in "$@"; do
   case "$arg" in
     --e2e) RUN_E2E=1 ;;
     -h|--help)
       echo "usage: $0 [--e2e]"
-      echo "  DSKQ_WORKER_IMAGE  pull this tag (skip compose build)"
-      echo "  DSKQ_WORKER_PULL_RETRIES  pull attempts (default 1; daily CI uses 8)"
-      echo "  DSKQ_PUSH_IMAGE  after local build, tag and push this name"
-      echo "  DSKQ_SKIP_UP=1     skip compose up (push-only)"
-      echo "  DSKQ_CODE_COVERAGE=1  e2e with --code-coverage=user"
+      echo "  DISTSSHQUEUE_WORKER_IMAGE  pull this tag (skip compose build)"
+      echo "  DISTSSHQUEUE_WORKER_PULL_RETRIES  pull attempts (default 1; daily CI uses 8)"
+      echo "  DISTSSHQUEUE_PUSH_IMAGE  after local build, tag and push this name"
+      echo "  DISTSSHQUEUE_SKIP_UP=1     skip compose up (push-only)"
+      echo "  DISTSSHQUEUE_CODE_COVERAGE=1  e2e with --code-coverage=user"
       exit 0
       ;;
     *)
@@ -45,7 +45,7 @@ fi
 
 pull_worker_image() {
   local image="$1"
-  local retries="${DSKQ_WORKER_PULL_RETRIES:-1}"
+  local retries="${DISTSSHQUEUE_WORKER_PULL_RETRIES:-1}"
   local attempt=1
   while true; do
     if docker pull "$image"; then
@@ -62,18 +62,18 @@ pull_worker_image() {
   done
 }
 
-if [[ -n "${DSKQ_WORKER_IMAGE:-}" ]]; then
-  pull_worker_image "$DSKQ_WORKER_IMAGE"
+if [[ -n "${DISTSSHQUEUE_WORKER_IMAGE:-}" ]]; then
+  pull_worker_image "$DISTSSHQUEUE_WORKER_IMAGE"
 else
   # Build a single service so logs are not interleaved (both share the image).
   "${COMPOSE[@]}" -f compose.yml build child-1
-  if [[ -n "${DSKQ_PUSH_IMAGE:-}" ]]; then
-    DSKQ_LOCAL_IMAGE="$LOCAL_IMAGE" ./scripts/push-image.sh "$DSKQ_PUSH_IMAGE"
+  if [[ -n "${DISTSSHQUEUE_PUSH_IMAGE:-}" ]]; then
+    DISTSSHQUEUE_LOCAL_IMAGE="$LOCAL_IMAGE" ./scripts/push-image.sh "$DISTSSHQUEUE_PUSH_IMAGE"
   fi
 fi
 
-if [[ "${DSKQ_SKIP_UP:-}" == "1" ]]; then
-  echo "DSKQ_SKIP_UP=1: image ready, not starting workers"
+if [[ "${DISTSSHQUEUE_SKIP_UP:-}" == "1" ]]; then
+  echo "DISTSSHQUEUE_SKIP_UP=1: image ready, not starting workers"
   exit 0
 fi
 
@@ -82,11 +82,11 @@ fi
 rm -f "${ROOT}/.generated/known_hosts"
 "${COMPOSE[@]}" -f compose.yml up -d --no-build
 ./scripts/wait-ready.sh
-echo "Workers ready: dskq-w1 (2222), dskq-w2 (2223)"
+echo "Workers ready: distsshqueue-w1 (2222), distsshqueue-w2 (2223)"
 echo "SSH config: ${ROOT}/.generated/ssh_config"
 
 if [[ "$RUN_E2E" -eq 1 ]]; then
-  export DSKQ_SSH_E2E=1
+  export DISTSSHQUEUE_SSH_E2E=1
   cd "${QUEUE_ROOT}"
   # WSL weekly has no julia-buildpkg; a restored `.julia` tarball can have a
   # stale General (Kit 0.4.2 while Queue wants 0.4.3). linux/macOS already
@@ -95,7 +95,7 @@ if [[ "$RUN_E2E" -eq 1 ]]; then
   # errors instead of resolving.
   julia --project=test --color=yes -e 'using Pkg; Pkg.Registry.update(); Pkg.resolve(); Pkg.instantiate()'
   julia_e2e=(julia --project=test --color=yes)
-  if [[ "${DSKQ_CODE_COVERAGE:-}" == "1" ]]; then
+  if [[ "${DISTSSHQUEUE_CODE_COVERAGE:-}" == "1" ]]; then
     julia_e2e+=(--code-coverage=user)
   fi
   e2e_status=0

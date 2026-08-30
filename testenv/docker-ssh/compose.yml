@@ -10,7 +10,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: local/dskq-linux-ssh-worker:latest
+    image: local/distsshqueue-linux-ssh-worker:latest
     container_name: distsshqueue-child-1
     ports:
       - "2222:22"
@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: local/dskq-linux-ssh-worker:latest
+    image: local/distsshqueue-linux-ssh-worker:latest
     container_name: distsshqueue-child-2
     ports:
       - "2223:22"

@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 # DistSSHQueue Pkg.test() entry: unit + integration.
-# Does not include test/e2e.jl (real SSH; DSKQ_SSH_E2E=1 / up.sh --e2e).
+# Does not include test/e2e.jl (real SSH; DISTSSHQUEUE_SSH_E2E=1 / up.sh --e2e).
 # From a checkout of this directory as the active project:
 #   julia --project=. -e 'using Pkg; Pkg.test()'
 #

@@ -1,14 +1,17 @@
 # Child CLI (`julia -m DistSSHQueue`) + parent:1. Not SSH.
 # Fake `ssh` only checks `qhost:` argv. Real OpenSSH client path is test/e2e.jl.
+# `--project` is the Pkg.test env (writable), not `pkgdir` (Registry trees are mode 444).
 
 using Test
 using DistSSHQueue
 
-const QUEUE_ROOT = abspath(joinpath(@__DIR__, "..", ".."))
+const TEST_PROJECT = let p = Base.active_project()
+    p === nothing ? dirname(@__DIR__) : dirname(p)
+end
 const JULIA = DistSSHQueue.default_julia_bin()
 
 qcli(args) = DistSSHQueue.with_serve_tag(
-    `$JULIA --startup-file=no --project=$QUEUE_ROOT -m DistSSHQueue $(String[string(a) for a in args])`,
+    `$JULIA --startup-file=no --project=$TEST_PROJECT -m DistSSHQueue $(String[string(a) for a in args])`,
 )
 
 function store_jobs(env)

@@ -44,6 +44,8 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 Run this on slot **min** and **max** (and **tip** if you have nightly). Layout: [test/README.md](test/README.md).
 
+Checkout `Pkg.test()` is not a Registry tarball. After changing those gates (child CLI project, `ssh` spawn), and before a General cut, run the disposable copy in [test/README.md](test/README.md#registry-tree). CI runs that shape on heavy PRs, **main**, and **cut** (slot tip; not a required check).
+
 ```bash
 ./.github/jetls-check.sh    # hint+; same files as CI
 ./.github/aqua-check.sh     # latest registry Aqua; not part of Pkg.test()
@@ -83,13 +85,13 @@ These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS /
 
 `README.md`, `README.ja.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`, `.coderabbit.yaml`.
 
-A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. macOS / WSL stay on `E2E weekly`, not the PR.
+A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. `Pkg.test - registry tree` runs on heavy PRs, **main**, and when `cut` is added (slot tip; not required to merge). macOS / WSL stay on `E2E weekly`, not the PR.
 
 CI uploads Codecov on **main push** only (`Pkg.test` max slot, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E weekly** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
 
 ```bash
 julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
-DSKQ_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
+DISTSSHQUEUE_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
 Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. Path-gated E2E skips the job `ubuntu-latest → ubuntu-24.04` (Actions: Skipped; GitHub still treats a skipped required check as pass). E2E weekly and CI weekly are not required.

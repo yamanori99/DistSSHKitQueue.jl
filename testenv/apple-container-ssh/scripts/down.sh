@@ -7,8 +7,9 @@ if ! command -v container >/dev/null 2>&1; then
   exit 1
 fi
 
-for name in dskq-child-1 dskq-child-2 dskq-worker-1 dskq-worker-2; do
+for name in distsshqueue-child-1 distsshqueue-child-2 distsshqueue-worker-1 distsshqueue-worker-2 \
+            dskq-child-1 dskq-child-2 dskq-worker-1 dskq-worker-2; do
   container stop "${name}" >/dev/null 2>&1 || true
   container rm "${name}" >/dev/null 2>&1 || true
 done
-echo "Removed dskq-child-1 and dskq-child-2 (and leftover dskq-worker-*, if they existed)"
+echo "Removed distsshqueue-child-* (and leftover dskq-* names, if they existed)"

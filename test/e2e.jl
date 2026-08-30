@@ -7,7 +7,7 @@
 # DistSSHKit `execute!(…; detached=true)`.
 #
 # Also: `julia -m DistSSHQueue` on the queue host (omit `qhost:HOST`) and as a
-# client (`qhost:HOST` over loopback OpenSSH, including `fetch`). Kit slots on docker-ssh (`child:dskq-w1:1`).
+# client (`qhost:HOST` over loopback OpenSSH, including `fetch`). Kit slots on docker-ssh (`child:distsshqueue-w1:1`).
 # Three roles, one suite: client = loopback, qhost = this host, child = containers.
 # Do not treat a container as qhost. `parent:1` only occupies FIFO here.
 # Not a laptop + `parent:N` topology. `enable` / `disable` / `teardown` use
@@ -21,7 +21,7 @@
 #
 #   testenv/docker-ssh/scripts/up.sh --e2e
 #   testenv/apple-container-ssh/scripts/up.sh --e2e   # macOS Apple silicon, not CI
-#   DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl
+#   DISTSSHQUEUE_SSH_E2E=1 julia --project=test test/e2e.jl
 
 using Test
 using Dates
@@ -32,13 +32,13 @@ using DistSSHQueue
 const QUEUE_ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCKER_SSH = joinpath(QUEUE_ROOT, "testenv", "docker-ssh")
 const JOB_PROJECT = joinpath(QUEUE_ROOT, "testenv", "example-job")
-const REMOTE_ROOT = "/home/dev/dskq-e2e"
+const REMOTE_ROOT = "/home/dev/distsshqueue-e2e"
 const E2E_JULIA = DistSSHQueue.default_julia_bin()
 
-_e2e_enabled() = get(ENV, "DSKQ_SSH_E2E", "") == "1"
+_e2e_enabled() = get(ENV, "DISTSSHQUEUE_SSH_E2E", "") == "1"
 
 if !_e2e_enabled()
-    @info "Skipping Queue SSH E2E (set DSKQ_SSH_E2E=1 to enable)"
+    @info "Skipping Queue SSH E2E (set DISTSSHQUEUE_SSH_E2E=1 to enable)"
     exit(0)
 end
 
@@ -291,7 +291,7 @@ function write_ssh_config_with_qhost(
         path,
         body * """
 
-Host dskq-qh
+Host distsshqueue-qh
   HostName 127.0.0.1
   User $(user)
   Port $(port)
@@ -605,11 +605,11 @@ end
                             SSH_CONFIG, controller_key,
                         )
                         probe_err = IOBuffer()
-                        probe = run(pipeline(ignorestatus(`ssh -F $ssh_cfg -o ConnectTimeout=5 -o LogLevel=ERROR dskq-qh true`); stdout=devnull, stderr=probe_err))
+                        probe = run(pipeline(ignorestatus(`ssh -F $ssh_cfg -o ConnectTimeout=5 -o LogLevel=ERROR distsshqueue-qh true`); stdout=devnull, stderr=probe_err))
                         if probe.exitcode != 0
                             client = String(take!(probe_err))
                             server = read(joinpath(sshd_dir, "sshd.log"), String)
-                            error("loopback ssh to dskq-qh failed: $client$server")
+                            error("loopback ssh to distsshqueue-qh failed: $client$server")
                         end
                         remote_env = Dict{String,String}(
                             "HOME" => e2e_home,
@@ -629,7 +629,7 @@ end
                             "DISTRIBUTED_SSH_OPTS" => "-F $ssh_cfg",
                             "DISTRIBUTED_PROJECT_ROOT" => JOB_PROJECT,
                         )
-                        qh(rest) = qcmd(["qhost:dskq-qh", "--remote-julia", wrapper, "--queue-env", test_project, rest...])
+                        qh(rest) = qcmd(["qhost:distsshqueue-qh", "--remote-julia", wrapper, "--queue-env", test_project, rest...])
 
                         reject_err = IOBuffer()
                         rejected = run(pipeline(ignorestatus(addenv(qh(["setup"]), client_env...)); stdout=devnull, stderr=reject_err))

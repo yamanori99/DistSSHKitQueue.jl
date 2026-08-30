@@ -4,9 +4,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SSH_CONFIG="${ROOT}/.generated/ssh_config"
-HOSTS=(dskq-w1 dskq-w2)
-MAX_ATTEMPTS="${DSKQ_SSH_WAIT_ATTEMPTS:-60}"
-SLEEP_SEC="${DSKQ_SSH_WAIT_SLEEP:-2}"
+HOSTS=(distsshqueue-w1 distsshqueue-w2)
+MAX_ATTEMPTS="${DISTSSHQUEUE_SSH_WAIT_ATTEMPTS:-60}"
+SLEEP_SEC="${DISTSSHQUEUE_SSH_WAIT_SLEEP:-2}"
 
 if [[ ! -f "${SSH_CONFIG}" ]]; then
   echo "missing ${SSH_CONFIG}; run scripts/gen-keys.sh first" >&2
