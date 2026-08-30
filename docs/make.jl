@@ -13,7 +13,7 @@ makedocs(;
         edit_link="main",
         assets=[
             "assets/custom.css",
-            # SVG/PNG first: Arc/Safari often skip PNG-in-ICO and then use sidebar logo.svg.
+            # Firefox: see rewrite_favicon_types! below (Documenter duplicates type=).
             Documenter.asset(
                 "assets/favicon.svg";
                 class=:ico,
@@ -50,6 +50,34 @@ makedocs(;
     checkdocs=:none,
     warnonly=[:missing_docs, :docs_block, :cross_references],
 )
+
+function rewrite_favicon_types!(build)
+    rx_svg = r"""<link href="([^"]*favicon\.svg)" rel="icon" type="image/x-icon" type="image/svg\+xml"/>"""
+    rx_png = r"""<link href="([^"]*favicon\.png)" rel="icon" type="image/x-icon" type="image/png" sizes="32x32"/>"""
+    n = 0
+    for (root, _, files) in walkdir(build)
+        for f in files
+            endswith(f, ".html") || continue
+            path = joinpath(root, f)
+            html = read(path, String)
+            html2 = replace(
+                html,
+                rx_svg => s"""<link href="\1" rel="icon" type="image/svg+xml" sizes="any"/>""",
+            )
+            html2 = replace(
+                html2,
+                rx_png => s"""<link href="\1" rel="icon" type="image/png" sizes="32x32"/>""",
+            )
+            if html2 != html
+                write(path, html2)
+                n += 1
+            end
+        end
+    end
+    println("rewrote favicon type on $n HTML pages")
+end
+
+rewrite_favicon_types!(joinpath(@__DIR__, "build"))
 
 deploydocs(;
     repo="github.com/yamanori99/DistSSHQueue.jl.git",
