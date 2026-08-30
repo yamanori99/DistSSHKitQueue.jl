@@ -376,7 +376,10 @@ function save_favicon()
             push!(pngs, px => src)
         end
         write_png_ico!(ico, pngs)
+        png32 = joinpath(ASSETS, "favicon.png")
+        cp(pngs[1][2], png32; force=true)
         println("wrote favicon.ico ($(filesize(ico)) bytes)")
+        println("wrote favicon.png ($(filesize(png32)) bytes)")
     finally
         rm(d; recursive=true, force=true)
     end

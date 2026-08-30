@@ -11,7 +11,23 @@ makedocs(;
         prettyurls=get(ENV, "CI", nothing) == "true",
         canonical="https://yamanori99.github.io/DistSSHQueue.jl",
         edit_link="main",
-        assets=["assets/custom.css", "assets/favicon.ico"],
+        assets=[
+            "assets/custom.css",
+            # SVG/PNG first: Arc/Safari often skip PNG-in-ICO and then use sidebar logo.svg.
+            Documenter.asset(
+                "assets/favicon.svg";
+                class=:ico,
+                islocal=true,
+                attributes=Dict(:type => "image/svg+xml"),
+            ),
+            Documenter.asset(
+                "assets/favicon.png";
+                class=:ico,
+                islocal=true,
+                attributes=Dict(:type => "image/png", :sizes => "32x32"),
+            ),
+            "assets/favicon.ico",
+        ],
     ),
     pages=[
         "Introduction" => "index.md",
