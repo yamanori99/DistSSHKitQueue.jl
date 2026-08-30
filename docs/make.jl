@@ -1,7 +1,11 @@
 using Documenter
 using DistSSHQueue
+using Base64
 
 DocMeta.setdocmeta!(DistSSHQueue, :DocTestSetup, :(using DistSSHQueue); recursive=true)
+
+const FAVICON_PNG_B64 = base64encode(read(joinpath(@__DIR__, "src", "assets", "favicon.png")))
+const FAVICON_DARK_PNG_B64 = base64encode(read(joinpath(@__DIR__, "src", "assets", "favicon-dark.png")))
 
 makedocs(;
     modules=[DistSSHQueue],
@@ -13,19 +17,8 @@ makedocs(;
         edit_link="main",
         assets=[
             "assets/custom.css",
-            # Firefox uses the last rel=icon. Keep ICO off this list (file still
-            # at ./favicon.ico). PNG last so Firefox does not need SVG/ICO.
-            Documenter.asset(
-                "assets/favicon.svg";
-                class=:ico,
-                islocal=true,
-                attributes=Dict(:type => "image/svg+xml"),
-            ),
-            Documenter.asset(
-                "assets/favicon.png";
-                class=:ico,
-                islocal=true,
-                attributes=Dict(:type => "image/png", :sizes => "32x32"),
+            RawHTMLHeadContent(
+                """<link rel="icon" type="image/png" sizes="32x32" media="(prefers-color-scheme: light)" href="data:image/png;base64,$(FAVICON_PNG_B64)"/><link rel="icon" type="image/png" sizes="32x32" media="(prefers-color-scheme: dark)" href="data:image/png;base64,$(FAVICON_DARK_PNG_B64)"/>""",
             ),
         ],
     ),
