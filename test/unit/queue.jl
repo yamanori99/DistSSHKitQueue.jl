@@ -50,7 +50,7 @@ end
         write(joinpath(a, "x.jl"), "1\n")
         write(joinpath(b, "x.jl"), "1\n")
         q = Queue(; runner=_ -> nothing)
-        shared = "/tmp/dskq-shared-remote"
+        shared = "/tmp/distsshqueue-shared-remote"
         withenv("DISTRIBUTED_REMOTE_PROJECT_ROOT" => shared) do
             id = submit!(q, joinpath(a, "x.jl"), "parent:1"; project=a)
             @test DistSSHKit.canonical_local_path(String(job(q, id).kwargs["project"])) ==

@@ -7,20 +7,20 @@ using DistSSHQueue
         cfg = joinpath(d, "config.toml")
         store_cfg = joinpath(d, "from_config.toml")
         store_env = joinpath(d, "from_env.toml")
-        write(cfg, "store = $(repr(store_cfg))\n\n[env]\nDSKQ_TEST_FROM_CFG = \"cfg\"\nDSKQ_TEST_KEEP = \"cfg\"\n")
+        write(cfg, "store = $(repr(store_cfg))\n\n[env]\nDISTSSHQUEUE_TEST_FROM_CFG = \"cfg\"\nDISTSSHQUEUE_TEST_KEEP = \"cfg\"\n")
         withenv(
             "DISTSSHQUEUE_CONFIG" => cfg,
             "DISTSSHQUEUE_STORE" => nothing,
-            "DSKQ_TEST_FROM_CFG" => nothing,
-            "DSKQ_TEST_KEEP" => "env",
+            "DISTSSHQUEUE_TEST_FROM_CFG" => nothing,
+            "DISTSSHQUEUE_TEST_KEEP" => "env",
         ) do
             @test DistSSHQueue.config_path() == cfg
             loaded = DistSSHQueue.load_config()
             @test DistSSHQueue.config_store_path(loaded) == store_cfg
             @test DistSSHQueue.store_path() == store_cfg
             DistSSHQueue.apply_config_env!(loaded)
-            @test ENV["DSKQ_TEST_FROM_CFG"] == "cfg"
-            @test ENV["DSKQ_TEST_KEEP"] == "env"
+            @test ENV["DISTSSHQUEUE_TEST_FROM_CFG"] == "cfg"
+            @test ENV["DISTSSHQUEUE_TEST_KEEP"] == "env"
         end
         withenv("DISTSSHQUEUE_CONFIG" => cfg, "DISTSSHQUEUE_STORE" => store_env) do
             @test DistSSHQueue.store_path() == store_env
@@ -30,8 +30,8 @@ using DistSSHQueue
             @test DistSSHQueue.load_config() == Dict{String,Any}()
             @test DistSSHQueue.store_path() == DistSSHQueue.default_store_path()
         end
-        pop!(ENV, "DSKQ_TEST_FROM_CFG", nothing)
-        pop!(ENV, "DSKQ_TEST_KEEP", nothing)
+        pop!(ENV, "DISTSSHQUEUE_TEST_FROM_CFG", nothing)
+        pop!(ENV, "DISTSSHQUEUE_TEST_KEEP", nothing)
     end
 end
 
@@ -71,9 +71,9 @@ end
         @test occursin("nohup", script)
         @test !occursin("DISTSSHQUEUE_SERVE_TAG=", script)
     end
-    withenv("DISTSSHQUEUE_SERVE_TAG" => "dskq-test-tag") do
+    withenv("DISTSSHQUEUE_SERVE_TAG" => "distsshqueue-test-tag") do
         tagged = DistSSHQueue.detached_serve_script("/julia", "/proj", "/tmp/q.log")
-        @test occursin("DISTSSHQUEUE_SERVE_TAG='dskq-test-tag'", tagged)
+        @test occursin("DISTSSHQUEUE_SERVE_TAG='distsshqueue-test-tag'", tagged)
         @test occursin("nohup", tagged)
     end
 end

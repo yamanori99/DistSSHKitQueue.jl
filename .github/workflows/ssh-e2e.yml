@@ -83,7 +83,7 @@ jobs:
       - name: docker-ssh up + SSH E2E
         id: e2e
         env:
-          DSKQ_CODE_COVERAGE: ${{ needs.e2e-gate.outputs.coverage == 'true' && '1' || '' }}
+          DISTSSHQUEUE_CODE_COVERAGE: ${{ needs.e2e-gate.outputs.coverage == 'true' && '1' || '' }}
         run: ./testenv/docker-ssh/scripts/up.sh --e2e
 
       - uses: ./.github/actions/e2e-codecov

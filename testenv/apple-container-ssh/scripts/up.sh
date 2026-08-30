@@ -4,14 +4,14 @@
 #
 # Writes testenv/docker-ssh/.generated/ssh_config so test/e2e.jl works unchanged.
 # Do not run docker-ssh compose workers at the same time (shared ssh_config).
-# Container names are dskq-child-* so DistSSHKit's child-1 / child-2 can coexist.
+# Container names are distsshqueue-child-* so DistSSHKit's child-1 / child-2 can coexist.
 set -euo pipefail
 
 APPLE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DOCKER_ROOT="$(cd "${APPLE_ROOT}/../docker-ssh" && pwd)"
 QUEUE_ROOT="$(cd "${APPLE_ROOT}/../.." && pwd)"
-LOCAL_IMAGE="local/dskq-linux-ssh-worker:latest"
-NAMES=(dskq-child-1 dskq-child-2)
+LOCAL_IMAGE="local/distsshqueue-linux-ssh-worker:latest"
+NAMES=(distsshqueue-child-1 distsshqueue-child-2)
 RUN_E2E=0
 
 for arg in "$@"; do
@@ -19,9 +19,9 @@ for arg in "$@"; do
     --e2e) RUN_E2E=1 ;;
     -h|--help)
       echo "usage: $0 [--e2e]"
-      echo "  Same E2E as docker-ssh (dskq-w1 / dskq-w2)."
+      echo "  Same E2E as docker-ssh (distsshqueue-w1 / distsshqueue-w2)."
       echo "  Needs macOS 26+ Apple silicon and the container CLI."
-      echo "  DSKQ_CODE_COVERAGE=1  e2e with --code-coverage=user"
+      echo "  DISTSSHQUEUE_CODE_COVERAGE=1  e2e with --code-coverage=user"
       exit 0
       ;;
     *)
@@ -65,7 +65,7 @@ write_ssh_config() {
   mkdir -p "${gen}"
   umask 077
   cat > "${gen}/ssh_config" <<EOF
-Host dskq-w1
+Host distsshqueue-w1
   HostName ${ip1}
   User dev
   Port 22
@@ -79,7 +79,7 @@ Host dskq-w1
   ServerAliveCountMax 10
   TCPKeepAlive yes
 
-Host dskq-w2
+Host distsshqueue-w2
   HostName ${ip2}
   User dev
   Port 22
@@ -99,9 +99,9 @@ inject_child_hosts() {
   local ip1="$1" ip2="$2"
   local cfg="${DOCKER_ROOT}/.generated/ssh_config"
   # Apple default network does not resolve peer names; Kit drive may use child-*.
-  ssh -F "${cfg}" dskq-w1 \
+  ssh -F "${cfg}" distsshqueue-w1 \
     "grep -q ' child-2\$' /etc/hosts || echo '${ip2} child-2' | sudo tee -a /etc/hosts >/dev/null"
-  ssh -F "${cfg}" dskq-w2 \
+  ssh -F "${cfg}" distsshqueue-w2 \
     "grep -q ' child-1\$' /etc/hosts || echo '${ip1} child-1' | sudo tee -a /etc/hosts >/dev/null"
 }
 
@@ -120,8 +120,8 @@ echo "Building ${LOCAL_IMAGE} from docker-ssh/Dockerfile..."
 rm -f "${DOCKER_ROOT}/.generated/known_hosts"
 MOUNT="type=bind,source=${DOCKER_ROOT}/mounted-keys,target=/mounted-keys,readonly"
 # Sized to match one ubuntu-latest CI runner shared by both workers (2 CPU / 7GB).
-WORKER_CPUS="${DSKQ_APPLE_WORKER_CPUS:-1}"
-WORKER_MEMORY="${DSKQ_APPLE_WORKER_MEMORY:-3584M}"
+WORKER_CPUS="${DISTSSHQUEUE_APPLE_WORKER_CPUS:-1}"
+WORKER_MEMORY="${DISTSSHQUEUE_APPLE_WORKER_MEMORY:-3584M}"
 for name in "${NAMES[@]}"; do
   container create -d --name "${name}" --network default \
     -c "${WORKER_CPUS}" -m "${WORKER_MEMORY}" \
@@ -132,8 +132,8 @@ done
 echo "Waiting for worker IPs..."
 IP1="" IP2=""
 for ((i = 1; i <= 30; i++)); do
-  IP1="$(container_ipv4 dskq-child-1 2>/dev/null || true)"
-  IP2="$(container_ipv4 dskq-child-2 2>/dev/null || true)"
+  IP1="$(container_ipv4 distsshqueue-child-1 2>/dev/null || true)"
+  IP2="$(container_ipv4 distsshqueue-child-2 2>/dev/null || true)"
   if [[ -n "${IP1}" && -n "${IP2}" ]]; then
     break
   fi
@@ -146,26 +146,26 @@ if [[ -z "${IP1}" || -z "${IP2}" ]]; then
 fi
 
 write_ssh_config "${IP1}" "${IP2}"
-echo "Workers: dskq-w1 -> ${IP1}:22  dskq-w2 -> ${IP2}:22"
+echo "Workers: distsshqueue-w1 -> ${IP1}:22  distsshqueue-w2 -> ${IP2}:22"
 echo "SSH config: ${DOCKER_ROOT}/.generated/ssh_config"
 
 "${DOCKER_ROOT}/scripts/wait-ready.sh"
 inject_child_hosts "${IP1}" "${IP2}"
 echo "Inter-child DNS: child-1 / child-2 in each /etc/hosts"
 # First peer SSH needs accept-new (BatchMode cannot prompt).
-ssh -F "${DOCKER_ROOT}/.generated/ssh_config" dskq-w1 \
+ssh -F "${DOCKER_ROOT}/.generated/ssh_config" distsshqueue-w1 \
   "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o LogLevel=ERROR -o ConnectTimeout=5 dev@child-2 true"
-ssh -F "${DOCKER_ROOT}/.generated/ssh_config" dskq-w2 \
+ssh -F "${DOCKER_ROOT}/.generated/ssh_config" distsshqueue-w2 \
   "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o LogLevel=ERROR -o ConnectTimeout=5 dev@child-1 true"
 
 if [[ "$RUN_E2E" -eq 1 ]]; then
-  export DSKQ_SSH_E2E=1
+  export DISTSSHQUEUE_SSH_E2E=1
   cd "${QUEUE_ROOT}"
   # Workspace Manifest is gitignored. A root-only instantiate can omit
   # test's path dep; Julia 1.13 `instantiate` then errors instead of resolving.
   julia --project=test --color=yes -e 'using Pkg; Pkg.resolve(); Pkg.instantiate()'
   julia_e2e=(julia --project=test --color=yes)
-  if [[ "${DSKQ_CODE_COVERAGE:-}" == "1" ]]; then
+  if [[ "${DISTSSHQUEUE_CODE_COVERAGE:-}" == "1" ]]; then
     julia_e2e+=(--code-coverage=user)
   fi
   e2e_status=0

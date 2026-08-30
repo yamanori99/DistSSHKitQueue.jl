@@ -14,7 +14,7 @@ Optional Mac-only path (same image and `test/e2e.jl`):
 
 ## What the E2E proves
 
-The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `child:NAME[:N]` workers only. Do not add a container named `qhost`; the client `qhost:` is loopback `qhost:dskq-qh`. SSH Host `dskq-w1` / `dskq-w2` is not Compose `child-1` / `child-2` (naming: issue #35). Roles: [test/README.md](../../test/README.md#ssh-e2e-roles).
+The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSHKit `child:NAME[:N]` workers only. Do not add a container named `qhost`; the client `qhost:` is loopback `qhost:distsshqueue-qh`. SSH Host `distsshqueue-w1` / `distsshqueue-w2` is not Compose `child-1` / `child-2` (so Kit's stack can coexist). Roles: [test/README.md](../../test/README.md#ssh-e2e-roles).
 
 [`test/e2e.jl`](../../test/e2e.jl):
 
@@ -27,9 +27,9 @@ The host during `--e2e` is the **queue host**. docker-ssh containers are DistSSH
 5. Cancel the middle queued row; `serve` skips it and runs the next.
 6. `result_path` is Kit’s collected tree; peek it on the queue host, or `fetch` it onto the client job tree.
 7. Queue-host CLI (omit `qhost:`, fake `HOME`): `setup`, `enable --write-only`,
-   `disable --write-only`, foreground `serve`, `submit go child:dskq-w1:1 SCRIPT.jl`, `status`,
+   `disable --write-only`, foreground `serve`, `submit go child:distsshqueue-w1:1 SCRIPT.jl`, `status`,
    `watch` (harness `DISTSSHQUEUE_WATCH_TICKS=1`), `stop`.
-8. Client `qhost:dskq-qh` over a **loopback OpenSSH** (not a fake `ssh` binary):
+8. Client `qhost:distsshqueue-qh` over a **loopback OpenSSH** (not a fake `ssh` binary):
    `submit` / `status` / `watch` / `fetch` / `cancel` / `stop` / `teardown -y --write-only`.
    `qhost:HOST setup` is refused.
 9. Does not `systemctl enable --now` or `launchctl bootstrap`. Does not treat
@@ -54,8 +54,8 @@ so DistSSHKit `setup --check` can run **without** `--ignore-julia-version`. Pins
 
 SSH Host aliases (written to `.generated/ssh_config`):
 
-- `dskq-w1` → `127.0.0.1:2222` user `dev`
-- `dskq-w2` → `127.0.0.1:2223` user `dev`
+- `distsshqueue-w1` → `127.0.0.1:2222` user `dev`
+- `distsshqueue-w2` → `127.0.0.1:2223` user `dev`
 
 On macOS, ports publish on `127.0.0.1` (Docker Desktop / Colima defaults) so
 macOS Local Network Privacy does not block SSH from the queue host.
@@ -86,7 +86,7 @@ julia --project=../.. -m DistSSHQueue setup
 # put SSH opts in ~/.distsshqueue/config.toml [env]
 
 # from a client
-julia --project=../.. -m DistSSHQueue qhost:HOST submit go child:dskq-w1:1 SCRIPT.jl
+julia --project=../.. -m DistSSHQueue qhost:HOST submit go child:distsshqueue-w1:1 SCRIPT.jl
 julia --project=../.. -m DistSSHQueue qhost:HOST status
 ```
 
@@ -94,20 +94,20 @@ Or probe a worker without Queue:
 
 ```bash
 ./scripts/up.sh
-ssh -F .generated/ssh_config dskq-w1 'echo ok; julia --version'
+ssh -F .generated/ssh_config distsshqueue-w1 'echo ok; julia --version'
 ```
 
 Run the suite by hand once workers are up:
 
 ```bash
 cd ../..                                   # repo root
-DSKQ_SSH_E2E=1 julia --project=test test/e2e.jl
+DISTSSHQUEUE_SSH_E2E=1 julia --project=test test/e2e.jl
 ```
 
-`DSKQ_WORKER_IMAGE=<tag> ./scripts/up.sh` pulls a prebuilt worker image instead
-of building locally (`DSKQ_WORKER_PULL_RETRIES` for wait-on-push). After a local
-build, `DSKQ_PUSH_IMAGE=<tag>` tags and pushes that image (`scripts/push-image.sh`,
-retries). `DSKQ_SKIP_UP=1` skips compose up (image job: build+push only).
+`DISTSSHQUEUE_WORKER_IMAGE=<tag> ./scripts/up.sh` pulls a prebuilt worker image instead
+of building locally (`DISTSSHQUEUE_WORKER_PULL_RETRIES` for wait-on-push). After a local
+build, `DISTSSHQUEUE_PUSH_IMAGE=<tag>` tags and pushes that image (`scripts/push-image.sh`,
+retries). `DISTSSHQUEUE_SKIP_UP=1` skips compose up (image job: build+push only).
 
 ## CI
 
@@ -121,12 +121,12 @@ retries). `DSKQ_SKIP_UP=1` skips compose up (image job: build+push only).
 `./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
 `test` / `testenv` / `Project.toml`, and `workflow_dispatch`. Otherwise the
 job `ubuntu-latest → ubuntu-24.04` is skipped (`e2e-gate` still runs). Ordinary
-PR E2E does not upload Codecov. A `cut` PR sets `DSKQ_CODE_COVERAGE=1` and
+PR E2E does not upload Codecov. A `cut` PR sets `DISTSSHQUEUE_CODE_COVERAGE=1` and
 uploads flag `e2e`. `Pkg.test()` still does not start Docker.
 
 [`.github/workflows/ssh-e2e-weekly.yml`](../../.github/workflows/ssh-e2e-weekly.yml)
 is **not** a PR check (Sunday 04:00 JST + `workflow_dispatch`). It builds
-`ghcr.io/<owner>/dskq-linux-ssh-worker:<sha>` (`DSKQ_SKIP_UP=1`), then E2E on
+`ghcr.io/<owner>/distsshqueue-linux-ssh-worker:<sha>` (`DISTSSHQUEUE_SKIP_UP=1`), then E2E on
 Ubuntu, `macos-15-intel` (Colima via [`scripts/setup-colima-ci.sh`](scripts/setup-colima-ci.sh)),
 and WSL2, then tags `latest`. Linux weekly uploads Codecov flag `e2e`. Make the
 GHCR package public after the first push so forks can pull if needed.

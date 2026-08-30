@@ -34,8 +34,8 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
       - name: docker-ssh build + push
         env:
-          DSKQ_PUSH_IMAGE: ghcr.io/${{ github.repository_owner }}/dskq-linux-ssh-worker:${{ github.sha }}
-          DSKQ_SKIP_UP: "1"
+          DISTSSHQUEUE_PUSH_IMAGE: ghcr.io/${{ github.repository_owner }}/distsshqueue-linux-ssh-worker:${{ github.sha }}
+          DISTSSHQUEUE_SKIP_UP: "1"
         run: ./testenv/docker-ssh/scripts/up.sh
       - name: Teardown workers
         if: always()
@@ -70,18 +70,18 @@ jobs:
       - name: docker-ssh up + SSH E2E
         id: e2e
         env:
-          DSKQ_WORKER_IMAGE: ghcr.io/${{ github.repository_owner }}/dskq-linux-ssh-worker:${{ github.sha }}
-          DSKQ_WORKER_PULL_RETRIES: "8"
-          DSKQ_CODE_COVERAGE: "1"
+          DISTSSHQUEUE_WORKER_IMAGE: ghcr.io/${{ github.repository_owner }}/distsshqueue-linux-ssh-worker:${{ github.sha }}
+          DISTSSHQUEUE_WORKER_PULL_RETRIES: "8"
+          DISTSSHQUEUE_CODE_COVERAGE: "1"
         run: ./testenv/docker-ssh/scripts/up.sh --e2e
       - uses: ./.github/actions/e2e-codecov
         if: ${{ always() && steps.e2e.outcome == 'success' }}
       # SHA from the image job; latest after this Linux suite (package should be public).
       - name: Push latest
         env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/dskq-linux-ssh-worker
+          IMAGE: ghcr.io/${{ github.repository_owner }}/distsshqueue-linux-ssh-worker
         run: |
-          docker tag "${IMAGE}:${{ github.sha }}" local/dskq-linux-ssh-worker:latest
+          docker tag "${IMAGE}:${{ github.sha }}" local/distsshqueue-linux-ssh-worker:latest
           ./testenv/docker-ssh/scripts/push-image.sh "${IMAGE}:latest"
       - name: Teardown workers
         if: always()
@@ -116,8 +116,8 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
       - name: docker-ssh up + SSH E2E
         env:
-          DSKQ_WORKER_IMAGE: ghcr.io/${{ github.repository_owner }}/dskq-linux-ssh-worker:${{ github.sha }}
-          DSKQ_WORKER_PULL_RETRIES: "8"
+          DISTSSHQUEUE_WORKER_IMAGE: ghcr.io/${{ github.repository_owner }}/distsshqueue-linux-ssh-worker:${{ github.sha }}
+          DISTSSHQUEUE_WORKER_PULL_RETRIES: "8"
         run: ./testenv/docker-ssh/scripts/up.sh --e2e
       - name: Teardown workers
         if: always()
@@ -153,8 +153,8 @@ jobs:
           src="$(pwd)"
           dest="$HOME/DistSSHQueue.jl"
           cache="$src/.ci-cache/wsl-julia"
-          export DSKQ_WORKER_IMAGE="ghcr.io/${{ github.repository_owner }}/dskq-linux-ssh-worker:${{ github.sha }}"
-          export DSKQ_WORKER_PULL_RETRIES="8"
+          export DISTSSHQUEUE_WORKER_IMAGE="ghcr.io/${{ github.repository_owner }}/distsshqueue-linux-ssh-worker:${{ github.sha }}"
+          export DISTSSHQUEUE_WORKER_PULL_RETRIES="8"
           mkdir -p "$cache"
           rm -rf "$dest"
           git clone "$src" "$dest"

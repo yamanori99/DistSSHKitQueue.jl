@@ -22,7 +22,7 @@ fi
 
 umask 077
 cat > "${SSH_CONFIG}" <<EOF
-Host dskq-w1
+Host distsshqueue-w1
   HostName 127.0.0.1
   User dev
   Port 2222
@@ -36,7 +36,7 @@ Host dskq-w1
   ServerAliveCountMax 10
   TCPKeepAlive yes
 
-Host dskq-w2
+Host distsshqueue-w2
   HostName 127.0.0.1
   User dev
   Port 2223
@@ -53,8 +53,8 @@ EOF
 
 cat > "${HOSTS_FILE}" <<'EOF'
 # DistSSHQueue docker-ssh workers (SSH config Host aliases)
-dskq-w1
-dskq-w2
+distsshqueue-w1
+distsshqueue-w2
 EOF
 
 echo "Wrote ${SSH_CONFIG}"

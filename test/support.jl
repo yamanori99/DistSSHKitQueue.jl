@@ -23,7 +23,7 @@ end
 # (product); atexit / parent-death SIGTERM must still find them.
 function install_serve_reaper!()
     Sys.iswindows() && return nothing
-    tag = "dskq-$(getpid())-$(time_ns())"
+    tag = "distsshqueue-$(getpid())-$(time_ns())"
     ENV["DISTSSHQUEUE_SERVE_TAG"] = tag
     pids = tempname()
     ENV["DISTSSHQUEUE_TEST_PIDS"] = pids
