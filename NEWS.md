@@ -1,21 +1,24 @@
 # News
 
-User-facing changes. Date a section `YYYY-MM-DD` (UTC) when that version is tagged.
+User-facing changes.
 GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator register`).
 
 ## Unreleased
 
-- DistSSHKit floor is **0.4.3+** (collect / `go` SSH failures are not empty
-  success; missing `ssh` / `rsync` / `git` / `scp` prints a Requirements hint).
-- E2E / docker-ssh names are `distsshqueue-w1` (not `dskq-*`). That stack's
-  ENV is `DISTSSHQUEUE_*`. `teardown` still removes a leftover `dskq` shim.
+## 0.2.1
 
-## 0.2.0 (2026-08-27)
+Patch after `0.2.0`. DistSSHKit **0.4.3+**.
+
+- Collect / `go` SSH failures are not empty success. Missing `ssh` /
+  `rsync` / `git` / `scp` prints a Requirements hint.
+- E2E names are `distsshqueue-*` (not `dskq-*`).
+
+## 0.2.0
 
 First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
 **0.4.2+**). Tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
 
-## 0.2.0-beta.2 (2026-08-27)
+## 0.2.0-beta.2
 
 ### Client `fetch`
 
@@ -25,7 +28,7 @@ First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
   missing path / `--output-dir` leaves that do not contain the id.
   stdout is the dest path. Not forwarded as a whole (`maybe_remote`).
 
-## 0.2.0-beta.1 (2026-08-26)
+## 0.2.0-beta.1
 
 **DistSSHQueue** (new UUID). First pin is git tag `v0.2.0-beta.1`. DistSSHKitQueue
 stopped at `v0.1.0-beta.1` (old UUID / old module); do not pin that tag for this
