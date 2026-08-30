@@ -29,7 +29,7 @@ const CANVAS = 512
 const MARGIN = 0.18
 # Q tile in logo-static.svg (512 canvas). Tab icon crops to this, not the wide strip.
 # Bounding box of the plum Q in logo-static.svg (512 canvas), plus a hair of pad.
-const FAVICON_VIEWBOX = "94.5 223.5 65 65"
+const FAVICON_VIEWBOX = "96.12 225 62 62"
 
 const SOCIAL_W, SOCIAL_H = 1280, 640
 const SAFE_X, SAFE_Y = 100, 60
