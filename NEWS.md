@@ -7,12 +7,11 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## 0.2.1
 
-Patch after `0.2.0`. DistSSHKit floor is **0.4.3+**.
+Patch after `0.2.0`. DistSSHKit **0.4.3+**.
 
 - Collect / `go` SSH failures are not empty success. Missing `ssh` /
   `rsync` / `git` / `scp` prints a Requirements hint.
-- E2E / docker-ssh names are `distsshqueue-w1` (not `dskq-*`). That stack's
-  ENV is `DISTSSHQUEUE_*`. `teardown` still removes a leftover `dskq` shim.
+- E2E names are `distsshqueue-*` (not `dskq-*`).
 
 ## 0.2.0
 
