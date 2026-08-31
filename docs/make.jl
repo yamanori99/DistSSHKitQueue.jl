@@ -18,8 +18,9 @@ makedocs(;
         assets=[
             "assets/custom.css",
             RawHTMLHeadContent(
-                """<link rel="icon" type="image/png" sizes="32x32" media="(prefers-color-scheme: dark)" href="data:image/png;base64,$(FAVICON_DARK_PNG_B64)"/><link rel="icon" type="image/png" sizes="32x32" media="(prefers-color-scheme: light)" href="data:image/png;base64,$(FAVICON_PNG_B64)"/>""",
+                """<link id="docs-favicon" rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,$(FAVICON_PNG_B64)" data-light="data:image/png;base64,$(FAVICON_PNG_B64)" data-dark="data:image/png;base64,$(FAVICON_DARK_PNG_B64)"/>""",
             ),
+            "assets/favicon-theme.js",
         ],
     ),
     pages=[
