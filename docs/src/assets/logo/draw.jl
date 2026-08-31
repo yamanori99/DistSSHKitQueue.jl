@@ -27,6 +27,10 @@ const OPTICAL_DX = 0.015
 const BEZ = 0.5522847498
 const CANVAS = 512
 const MARGIN = 0.18
+# Q tile in logo-static.svg (512 canvas). Tab icon crops to this, not the wide strip.
+# Transparent 96×96; dark variant adds a light edge so chrome still reads.
+const FAVICON_VIEWBOX = "79 208 96 96"
+const FAVICON_PX = (16, 32, 48)
 
 const SOCIAL_W, SOCIAL_H = 1280, 640
 const SAFE_X, SAFE_Y = 100, 60
@@ -255,13 +259,158 @@ $(inner)
 """
 end
 
-function raster_social!(svg_path, png_path)
-    rsvg = Sys.which("rsvg-convert")
-    if rsvg === nothing
-        for p in ("/opt/homebrew/bin/rsvg-convert", "/usr/local/bin/rsvg-convert")
-            isfile(p) && (rsvg = p; break)
+function png_ihdr_size(path::AbstractString)
+    isfile(path) || return nothing
+    open(path, "r") do io
+        sig = read(io, 8)
+        sig == UInt8[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] || return nothing
+        ntoh(read(io, UInt32)) == 13 || return nothing
+        String(read(io, 4)) == "IHDR" || return nothing
+        w = Int(ntoh(read(io, UInt32)))
+        h = Int(ntoh(read(io, UInt32)))
+        return (w, h)
+    end
+end
+
+png_matches_size(path, w, h) = png_ihdr_size(path) == (w, h)
+
+function write_png_ico!(dest::AbstractString, pngs::Vector{Pair{Int, String}})
+    payloads = Vector{Tuple{Int, Vector{UInt8}}}(undef, length(pngs))
+    for (i, (sz, path)) in enumerate(pngs)
+        png_matches_size(path, sz, sz) || error("favicon PNG is not $(sz)×$(sz): $path")
+        payloads[i] = (sz, read(path))
+    end
+    n = length(payloads)
+    header = 6 + 16 * n
+    open(dest, "w") do io
+        write(io, htol(UInt16(0)))
+        write(io, htol(UInt16(1)))
+        write(io, htol(UInt16(n)))
+        off = header
+        for (sz, data) in payloads
+            wbyte = sz >= 256 ? 0x00 : UInt8(sz)
+            write(io, wbyte)
+            write(io, wbyte)
+            write(io, UInt8(0))
+            write(io, UInt8(0))
+            write(io, htol(UInt16(1)))
+            write(io, htol(UInt16(32)))
+            write(io, htol(UInt32(length(data))))
+            write(io, htol(UInt32(off)))
+            off += length(data)
+        end
+        for (_, data) in payloads
+            write(io, data)
         end
     end
+    return dest
+end
+
+function find_rsvg()
+    w = Sys.which("rsvg-convert")
+    w !== nothing && return w
+    for p in ("/opt/homebrew/bin/rsvg-convert", "/usr/local/bin/rsvg-convert")
+        isfile(p) && return p
+    end
+    return nothing
+end
+
+function downscale_png!(src::AbstractString, dest::AbstractString; w::Int, h::Int)
+    sips = Sys.which("sips")
+    if sips !== nothing
+        try
+            run(pipeline(`$sips -z $h $w $src --out $dest`; stdout=devnull, stderr=devnull))
+            return isfile(dest) && filesize(dest) > 0
+        catch
+        end
+    end
+    return false
+end
+
+function raster_square!(svg_path, png_path; size::Int)
+    rsvg = find_rsvg()
+    if rsvg !== nothing
+        run(`$rsvg -w $size -h $size -o $png_path $svg_path`)
+        return png_matches_size(png_path, size, size)
+    end
+    Drawing(size, size, png_path)
+    origin()
+    mark!(; pal=pal_light(), canvas=size, paint_bg=false)
+    finish()
+    return png_matches_size(png_path, size, size)
+end
+
+function save_favicon_svg!()
+    src = read(joinpath(OUT, "logo-static.svg"), String)
+    s = strip(src)
+    if startswith(s, "<?xml")
+        i = findfirst("?>", s)
+        i !== nothing && (s = lstrip(s[last(i) + 1:end]))
+    end
+    m = match(r"^<svg[^>]*>([\s\S]*)</svg>\s*$", s)
+    m === nothing && error("could not strip outer <svg> for favicon")
+    q = match(r"<path\b[^/]*/>", m.captures[1])
+    q === nothing && error("missing Q path for favicon")
+    light = q.match
+    dark = replace(light, "fill-opacity=\"1\"" => "fill-opacity=\"1\" stroke=\"rgb(96.1%, 97.3%, 98%)\" stroke-width=\"4\"")
+    srcroot = dirname(ASSETS)
+    for (name, inner) in (("favicon.svg", light), ("favicon-dark.svg", dark))
+        path = joinpath(ASSETS, name)
+        write(
+            path,
+            """<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="$(FAVICON_VIEWBOX)">
+$(inner)
+</svg>
+""",
+        )
+        println("wrote $name")
+        dst = joinpath(srcroot, name)
+        ispath(dst) && rm(dst)
+        cd(srcroot) do
+            symlink(joinpath("assets", name), name)
+        end
+    end
+end
+
+function save_favicon()
+    save_favicon_svg!()
+    WANT_PNG || return
+    ico = joinpath(ASSETS, "favicon.ico")
+    d = mktempdir(ASSETS; prefix=".favicon-")
+    try
+        function raster_one(svg_name, png32_name)
+            svg = joinpath(ASSETS, svg_name)
+            pngs = Pair{Int, String}[]
+            for px in FAVICON_PX
+                src = joinpath(d, "$(first(splitext(svg_name)))-$(px).png")
+                raster_square!(svg, src; size=px) || error("$svg_name $(px)px raster failed")
+                push!(pngs, px => src)
+            end
+            dest = joinpath(ASSETS, png32_name)
+            cp(first(p for p in pngs if p[1] == 32)[2], dest; force=true)
+            println("wrote $png32_name ($(filesize(dest)) bytes)")
+            return pngs
+        end
+        light = raster_one("favicon.svg", "favicon.png")
+        raster_one("favicon-dark.svg", "favicon-dark.png")
+        write_png_ico!(ico, light)
+        println("wrote favicon.ico ($(filesize(ico)) bytes)")
+        srcroot = dirname(ASSETS)
+        for name in ("favicon.ico", "favicon.png", "favicon-dark.png")
+            dst = joinpath(srcroot, name)
+            ispath(dst) && rm(dst)
+            cd(srcroot) do
+                symlink(joinpath("assets", name), name)
+            end
+        end
+    finally
+        rm(d; recursive=true, force=true)
+    end
+end
+
+function raster_social!(svg_path, png_path)
+    rsvg = find_rsvg()
     if rsvg !== nothing
         run(`$rsvg -w $(SOCIAL_W) -h $(SOCIAL_H) -o $png_path $svg_path`)
         return
@@ -287,6 +436,8 @@ function main()
     save_mark("logo-dark-static", pal_dark())
     install_documenter!()
     save_social()
+    save_favicon_svg!()
+    save_favicon()
 end
 
 main()
