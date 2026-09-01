@@ -638,7 +638,9 @@ function serve!(q::Queue; interval::Real=0.2)
     flush(io)
     done = Ref(false)
     spin = if draw
-        @async begin
+        # SIGINT must hit the serve loop, not this sleep (else one Ctrl-C
+        # only kills the spinner and a second is needed to exit).
+        @async disable_sigint() do
             i = 1
             frames = DistSSHKit.SPINNER_FRAMES
             while !done[]
