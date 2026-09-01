@@ -27,6 +27,20 @@ function Queue(;
     return Queue(ReentrantLock(), Job[], st, runner, nothing, names, follow_config)
 end
 
+function _index_id(jobs::Vector{Job}, id::AbstractString)
+    for i in eachindex(jobs)
+        jobs[i].id == id && return i
+    end
+    return nothing
+end
+
+function _index_state(jobs::Vector{Job}, state::Symbol)
+    for i in eachindex(jobs)
+        jobs[i].state === state && return i
+    end
+    return nothing
+end
+
 """Kit project: `DISTRIBUTED_PROJECT_ROOT`, else the `Project.toml` above `cwd`, else `cwd`.
 
 Not the Julia `--project=` that loaded DistSSHQueue.
@@ -320,7 +334,7 @@ end
 function _live_running(q::Queue)::Union{Nothing,Job}
     live = q.live_id
     live === nothing && return nothing
-    i = findfirst(j -> j.id == live, q.jobs)
+    i = _index_id(q.jobs, live)
     i === nothing && return nothing
     j = q.jobs[i]
     return j.state === :running ? j : nothing
@@ -375,7 +389,7 @@ end
 """Copy of one row."""
 function job(q::Queue, id::AbstractString)::Job
     lock(q.lock) do
-        i = findfirst(j -> j.id == id, q.jobs)
+        i = _index_id(q.jobs, id)
         i === nothing && throw(ArgumentError("unknown job $(repr(id))"))
         return copy(q.jobs[i])
     end
@@ -429,7 +443,7 @@ function cancel!(q::Queue, id::AbstractString)::Bool
     action = _with_store(q) do
         lock(q.lock) do
             reload_keep_live!(q)
-            i = findfirst(j -> j.id == id, q.jobs)
+            i = _index_id(q.jobs, id)
             i === nothing && throw(ArgumentError("unknown job $(repr(id))"))
             j = q.jobs[i]
             if j.state === :queued
@@ -457,7 +471,7 @@ function _set_running_result_path!(q::Queue, id::AbstractString, path::AbstractS
     _with_store(q) do
         lock(q.lock) do
             reload_keep_live!(q)
-            i = findfirst(j -> j.id == id, q.jobs)
+            i = _index_id(q.jobs, id)
             i === nothing && return nothing
             j = q.jobs[i]
             j.state === :running || return nothing
@@ -472,7 +486,7 @@ function _finish!(q::Queue, id::AbstractString, state::Symbol, err; result_path=
     _with_store(q) do
         lock(q.lock) do
             reload_keep_live!(q)
-            i = findfirst(j -> j.id == id, q.jobs)
+            i = _index_id(q.jobs, id)
             i === nothing && return nothing
             j = q.jobs[i]
             # `:cancelled` must win a race with the spawn `_finish!(:failed)`
@@ -538,7 +552,7 @@ Does not spawn a second DistSSHKit child. Outcome from `kit.result` when present
 """
 function adopt_running!(q::Queue)
     snap = lock(q.lock) do
-        i = findfirst(j -> j.state === :running, q.jobs)
+        i = _index_state(q.jobs, :running)
         i === nothing && return nothing
         j = q.jobs[i]
         kit_child_alive(j) || return nothing
@@ -551,7 +565,7 @@ function adopt_running!(q::Queue)
     Threads.@spawn begin
         while true
             live = lock(q.lock) do
-                i = findfirst(j -> j.id == id, q.jobs)
+                i = _index_id(q.jobs, id)
                 i === nothing && return nothing
                 copy(q.jobs[i])
             end
@@ -580,7 +594,7 @@ function step!(q::Queue)::Int
         lock(q.lock) do
             reload_keep_live!(q)
             _running(q) && return 0
-            i = findfirst(j -> j.state === :queued, q.jobs)
+            i = _index_state(q.jobs, :queued)
             i === nothing && return 0
             _start!(q, q.jobs[i])
             return 1
@@ -590,7 +604,7 @@ end
 
 function _running_copy(q::Queue)::Union{Nothing,Job}
     lock(q.lock) do
-        i = findfirst(j -> j.state === :running, q.jobs)
+        i = _index_state(q.jobs, :running)
         i === nothing && return nothing
         return copy(q.jobs[i])
     end
@@ -624,7 +638,9 @@ function serve!(q::Queue; interval::Real=0.2)
     flush(io)
     done = Ref(false)
     spin = if draw
-        @async begin
+        # SIGINT must hit the serve loop, not this sleep (else one Ctrl-C
+        # only kills the spinner and a second is needed to exit).
+        @async disable_sigint() do
             i = 1
             frames = DistSSHKit.SPINNER_FRAMES
             while !done[]
@@ -666,7 +682,7 @@ function serve!(q::Queue; interval::Real=0.2)
         return nothing
     finally
         done[] = true
-        spin isa Task && wait(spin)
+        _join_serve_spin!(spin)
         if draw
             print(io, "\r\e[K")
             flush(io)
@@ -682,4 +698,22 @@ end
 
 function serve(; store::AbstractString=default_store_path(), interval::Real=0.2, runner::Function=run_kit)
     return serve!(Queue(; store=store, runner=runner); interval=interval)
+end
+
+_is_interrupt(::InterruptException) = true
+function _is_interrupt(e::TaskFailedException)
+    t = e.task
+    return istaskfailed(t) && _is_interrupt(t.exception)
+end
+_is_interrupt(::Any) = false
+
+"""Wait out the TTY spinner. Ctrl-C also hits that task's `sleep`; do not surface it."""
+function _join_serve_spin!(spin)
+    spin isa Task || return
+    try
+        wait(spin)
+    catch e
+        _is_interrupt(e) || rethrow()
+    end
+    return
 end

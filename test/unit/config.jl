@@ -180,6 +180,26 @@ end
     end
 end
 
+@testset "joining an interrupted serve spinner does not throw" begin
+    DistSSHQueue._join_serve_spin!(nothing)
+    done = @async nothing
+    wait(done)
+    DistSSHQueue._join_serve_spin!(done)
+    stop = Ref(false)
+    spin = @async begin
+        while !stop[]
+            sleep(0.01)
+        end
+    end
+    stop[] = true
+    DistSSHQueue._join_serve_spin!(spin)
+    @test istaskdone(spin)
+    hit = @async sleep(30)
+    schedule(hit, InterruptException(); error=true)
+    DistSSHQueue._join_serve_spin!(hit)
+    @test istaskdone(hit)
+end
+
 @testset "serve! clears the stop latch on start" begin
     mktempdir() do d
         store = joinpath(d, "jobs.toml")
