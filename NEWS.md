@@ -6,6 +6,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 ## Unreleased
 
 - Docs pages use the queue mark as the browser tab icon (`favicon.ico`).
+- Ctrl-C on foreground `serve` does not dump `TaskFailedException` from
+  the spinner.
 
 ## 0.2.1
 
