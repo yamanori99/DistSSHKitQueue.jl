@@ -41,6 +41,18 @@ function _index_state(jobs::Vector{Job}, state::Symbol)
     return nothing
 end
 
+"""Exact id, or a unique `startswith` prefix. Ambiguous / unknown throw."""
+function _resolve_id(jobs::Vector{Job}, token::AbstractString)::String
+    t = String(token)
+    isempty(t) && throw(ArgumentError("unknown job $(repr(t))"))
+    i = _index_id(jobs, t)
+    i !== nothing && return t
+    hits = String[jobs[k].id for k in eachindex(jobs) if startswith(jobs[k].id, t)]
+    isempty(hits) && throw(ArgumentError("unknown job $(repr(t))"))
+    length(hits) > 1 && throw(ArgumentError("ambiguous job id $(repr(t))"))
+    return hits[1]
+end
+
 """Kit project: `DISTRIBUTED_PROJECT_ROOT`, else the `Project.toml` above `cwd`, else `cwd`.
 
 Not the Julia `--project=` that loaded DistSSHQueue.
@@ -386,11 +398,11 @@ function jobs(q::Queue)::Vector{Job}
     end
 end
 
-"""Copy of one row."""
+"""Copy of one row. `id` may be a unique prefix of the stored UUID."""
 function job(q::Queue, id::AbstractString)::Job
     lock(q.lock) do
-        i = _index_id(q.jobs, id)
-        i === nothing && throw(ArgumentError("unknown job $(repr(id))"))
+        full = _resolve_id(q.jobs, id)
+        i = _index_id(q.jobs, full)
         return copy(q.jobs[i])
     end
 end
@@ -443,8 +455,8 @@ function cancel!(q::Queue, id::AbstractString)::Bool
     action = _with_store(q) do
         lock(q.lock) do
             reload_keep_live!(q)
-            i = _index_id(q.jobs, id)
-            i === nothing && throw(ArgumentError("unknown job $(repr(id))"))
+            full = _resolve_id(q.jobs, id)
+            i = _index_id(q.jobs, full)
             j = q.jobs[i]
             if j.state === :queued
                 j.state = :cancelled
@@ -610,6 +622,15 @@ function _running_copy(q::Queue)::Union{Nothing,Job}
     end
 end
 
+function _serve_live_job(q::Queue)
+    lock(q.lock) do
+        ids = String[j.id for j in q.jobs]
+        i = _index_state(q.jobs, :running)
+        i === nothing && return nothing, ids
+        return copy(q.jobs[i]), ids
+    end
+end
+
 """Load `store` (stale `:running` → `:failed`), then `step!` until interrupt. Ctrl-C stops serve, not Kit.
 
 A second `serve` on the same store prints `Already running` and returns.
@@ -644,7 +665,8 @@ function serve!(q::Queue; interval::Real=0.2)
             i = 1
             frames = DistSSHKit.SPINNER_FRAMES
             while !done[]
-                print_serve_live_line(frames[i], _running_copy(q); io=io)
+                j, ids = _serve_live_job(q)
+                print_serve_live_line(frames[i], j, ids; io=io)
                 i = i == length(frames) ? 1 : i + 1
                 sleep(0.08)
             end

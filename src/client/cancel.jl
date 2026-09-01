@@ -10,6 +10,7 @@ function cancel_cli(args::Vector{String})::Cint
         cancel!(q, id)
     catch e
         e isa ArgumentError || rethrow()
+        startswith(e.msg, "ambiguous") && rethrow()
         false
     end
     if cancelled

@@ -600,7 +600,8 @@ end
                 @test rows[1].state === :queued
                 @test rows[1].kwargs["project"] == proj
                 listed = sprint(io -> DistSSHQueue.show_status(p; io=io))
-                @test occursin(rows[1].id, listed)
+                @test occursin(first(rows[1].id, 8), listed)
+                @test !occursin(rows[1].id, listed)
                 @test occursin("queued", listed)
                 @test occursin("STATE", listed)
                 code_alias, _, _ = capture_stdio() do
@@ -976,10 +977,27 @@ end
 
 @testset "serve live line" begin
     @test DistSSHQueue._serve_live_text('⠋', nothing) == "  ⠋  idle"
-    j = DistSSHQueue.Job(; kind=:go, script="/tmp/job.jl", hosts=["parent:1"], state=:running)
-    t = DistSSHQueue._serve_live_text('⠙', j)
-    @test startswith(t, "  ⠙  running  $(j.id)  go")
-    @test occursin("job.jl", t)
+    mktempdir() do d
+        script = joinpath(d, "demos", "pi_echo.jl")
+        mkpath(dirname(script))
+        write(script, "1\n")
+        j = DistSSHQueue.Job(;
+            kind=:go,
+            script=script,
+            hosts=["parent:1"],
+            state=:running,
+            kwargs=Dict{String,Any}("project" => d),
+        )
+        ids = [j.id]
+        t = DistSSHQueue._serve_live_text('⠙', j, ids)
+        @test startswith(t, "  ⠙  running  $(first(j.id, 8))  go")
+        @test !occursin(j.id, t)
+        @test occursin("demos/pi_echo.jl", t) || occursin(joinpath("demos", "pi_echo.jl"), t)
+        @test !occursin(d, t)
+        narrow = DistSSHQueue._serve_live_text('⠙', j, ids; cols=20)
+        @test textwidth(narrow) <= 20
+        @test endswith(narrow, "…")
+    end
     buf = IOBuffer()
     DistSSHQueue.print_serve_banner(1, "/tmp/jobs.toml"; io=buf)
     s = String(take!(buf))
@@ -991,6 +1009,49 @@ end
     note = String(take!(buf2))
     @test occursin("Ctrl-C stops serve", note)
     @test occursin("DistSSHKit job already running is not killed", note)
+end
+
+@testset "job id prefix and status paths relative to project" begin
+    mktempdir() do d
+        stage = joinpath(d, ".distsshqueue", "stage", "1f7276b9bbc65609")
+        mkpath(joinpath(stage, "demos"))
+        script = joinpath(stage, "demos", "pi_echo.jl")
+        write(script, "1\n")
+        leaf = joinpath(stage, "demos", ".distsshkit", "go", "pi_echo_x_aaaaaaaa-1111-4000-8000-000000000001")
+        a = DistSSHQueue.Job(;
+            id="aaaaaaaa-1111-4000-8000-000000000001",
+            kind=:go,
+            script=script,
+            hosts=["parent:1"],
+            state=:done,
+            result_path=leaf,
+            kwargs=Dict{String,Any}("project" => stage),
+        )
+        b = DistSSHQueue.Job(;
+            id="aaaaaaaa-2222-4000-8000-000000000002",
+            kind=:go,
+            script=script,
+            hosts=["parent:1"],
+            state=:queued,
+            kwargs=Dict{String,Any}("project" => stage),
+        )
+        q = DistSSHQueue.Queue()
+        push!(q.jobs, a, b)
+        @test job(q, a.id).id == a.id
+        @test job(q, "aaaaaaaa-1111").id == a.id
+        @test_throws ArgumentError job(q, "aaaaaaaa")
+        @test_throws ArgumentError job(q, "nope")
+        p = joinpath(d, "jobs.toml")
+        DistSSHQueue.save_jobs(p, [a, b])
+        listed = sprint(io -> DistSSHQueue.show_status(p; io=io))
+        @test occursin("aaaaaaaa-1", listed)
+        @test occursin("aaaaaaaa-2", listed)
+        @test occursin(a.id, listed) # RESULT leaf keeps the stored UUID
+        @test occursin(joinpath("demos", "pi_echo.jl"), listed) || occursin("demos/pi_echo.jl", listed)
+        @test occursin(joinpath("demos", ".distsshkit"), listed) || occursin("demos/.distsshkit", listed)
+        @test !occursin(stage * "/", listed)
+        @test occursin(DistSSHKit.short_path(stage), listed)
+    end
 end
 
 @testset "go with job_id still runs the user script" begin
