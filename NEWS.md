@@ -5,6 +5,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+## 0.3.0
+
+Breaking cut after `0.2.1`. DistSSHKit **0.5.x**.
+
 ### Breaking
 
 - DistSSHKit **0.5.x**. Drive `ok` is Kit's (`require_all_hosts` default).
