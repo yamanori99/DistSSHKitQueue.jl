@@ -24,6 +24,8 @@ end
         @test DistSSHQueue.path_has_distsshkit(dest)
     end
     @test_throws ArgumentError DistSSHQueue.fetch_relpath("/tmp/other", stage)
+    @test DistSSHQueue.fetch_relpath("/a/.distsshkit/go/S", "/") == "a/.distsshkit/go/S"
+    @test DistSSHQueue._rel_under("/a/b.jl", "/") == "a/b.jl"
     @test_throws ArgumentError DistSSHQueue.fetch_dest("/tmp/job", "out/custom")
 end
 

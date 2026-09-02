@@ -8,6 +8,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 - Docs pages use the queue mark as the browser tab icon (`favicon.ico`).
 - Ctrl-C on foreground `serve` stops this process on the first
   interrupt (spinner does not swallow SIGINT; no `TaskFailedException`).
+- `serve` / `status` show a unique job-id prefix. SCRIPT and RESULT are
+  relative to PROJECT. `cancel` / `fetch` / `job` accept that prefix
+  (ambiguous → refuse). Stored ids stay the full UUID.
 
 ## 0.2.1
 

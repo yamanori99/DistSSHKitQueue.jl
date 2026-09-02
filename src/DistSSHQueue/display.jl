@@ -11,16 +11,77 @@ function _q_cell(t::String, w::Int)::String
     return string(t, " "^(w - n))
 end
 
+const _ID_PREFIX_MIN = 8
+
+"""Path relative to `root`, or `nothing` if it is not inside."""
+function _rel_under(path::AbstractString, root::AbstractString)::Union{Nothing,String}
+    p = DistSSHKit.canonical_local_path(String(path))
+    r = DistSSHKit.canonical_local_path(String(root))
+    p == r && return "."
+    pref = path_inside_prefix(r)
+    startswith(p, pref) || return nothing
+    return String(chopprefix(p, pref))
+end
+
 function _job_project_disp(j::Job)::String
     p = get(j.kwargs, "project", nothing)
     p isa AbstractString || return ""
-    return _q_short(p)
+    can = DistSSHKit.canonical_local_path(String(p))
+    can == DistSSHKit.canonical_local_path(pwd()) && return "."
+    return _q_short(String(p))
+end
+
+function _job_script_disp(j::Job)::String
+    p = get(j.kwargs, "project", nothing)
+    if p isa AbstractString
+        rel = _rel_under(j.script, p)
+        rel !== nothing && return rel
+    end
+    return _q_short(j.script)
 end
 
 function _job_result_disp(j::Job)::String
     r = j.result_path
     r isa AbstractString || return ""
+    p = get(j.kwargs, "project", nothing)
+    if p isa AbstractString
+        rel = _rel_under(r, p)
+        rel !== nothing && return rel
+    end
     return _q_short(r)
+end
+
+"""Shortest unique prefixes (`minlen` or more) for `ids`, same order."""
+function _unique_prefixes(
+    ids::AbstractVector{<:AbstractString};
+    minlen::Int=_ID_PREFIX_MIN,
+)::Vector{String}
+    n = length(ids)
+    out = Vector{String}(undef, n)
+    for i in 1:n
+        id = String(ids[i])
+        L = min(max(minlen, 1), length(id))
+        while L < length(id)
+            p = first(id, L)
+            amb = false
+            for j in 1:n
+                j == i && continue
+                startswith(String(ids[j]), p) && (amb = true; break)
+            end
+            amb || break
+            L += 1
+        end
+        out[i] = first(id, L)
+    end
+    return out
+end
+
+function _id_chrome(id::AbstractString, ids::AbstractVector{<:AbstractString})::String
+    ps = _unique_prefixes(ids)
+    for i in eachindex(ids)
+        String(ids[i]) == String(id) && return ps[i]
+    end
+    return first(String(id), min(_ID_PREFIX_MIN, length(id)))
 end
 
 const _ERROR_CELL_MAX = 60
@@ -154,22 +215,44 @@ _serve_can_draw(io::IO)::Bool = io isa Base.TTY && !haskey(ENV, "NO_COLOR")
 
 const _SERVE_CTRLC = "Ctrl-C stops serve. A DistSSHKit job already running is not killed."
 
-function _serve_live_text(frame::Char, j::Union{Nothing,Job})::String
-    j === nothing && return "  $frame  idle"
-    return "  $frame  running  $(j.id)  $(j.kind)  $(_q_short(j.script))"
+function _clip_cols(s::AbstractString, cols::Int)::String
+    cols <= 0 && return String(s)
+    tw = textwidth(s)
+    tw <= cols && return String(s)
+    cols <= 1 && return "…"
+    buf = IOBuffer()
+    used = 0
+    for c in s
+        w = textwidth(c)
+        used + w > cols - 1 && break
+        print(buf, c)
+        used += w
+    end
+    print(buf, '…')
+    return String(take!(buf))
 end
 
-function print_serve_live_line(frame::Char, j::Union{Nothing,Job}; io::IO=stdout)
-    print(io, '\r', "  ")
-    DistSSHKit.print_colored(io, string(frame), :light_black, false)
-    print(io, "  ")
-    if j === nothing
-        DistSSHKit.print_colored(io, "idle", :light_black, false)
-    else
-        DistSSHKit.print_colored(io, "running", :cyan, false)
-        print(io, "  ", j.id, "  ", j.kind, "  ", _q_short(j.script))
-    end
-    print(io, "\e[K")
+function _serve_live_text(
+    frame::Char,
+    j::Union{Nothing,Job},
+    ids::AbstractVector{<:AbstractString}=String[];
+    cols::Int=0,
+)::String
+    j === nothing && return _clip_cols("  $frame  idle", cols)
+    sid = isempty(ids) ? first(j.id, min(_ID_PREFIX_MIN, length(j.id))) : _id_chrome(j.id, ids)
+    body = "  $frame  running  $sid  $(j.kind)  $(_job_script_disp(j))"
+    return _clip_cols(body, cols)
+end
+
+function print_serve_live_line(
+    frame::Char,
+    j::Union{Nothing,Job},
+    ids::AbstractVector{<:AbstractString}=String[];
+    io::IO=stdout,
+)
+    cols = io isa Base.TTY ? displaysize(io)[2] : 0
+    s = _serve_live_text(frame, j, ids; cols=cols)
+    print(io, '\r', s, "\e[K")
     flush(io)
     return nothing
 end
@@ -241,11 +324,11 @@ function print_jobs_table(rows::Vector{Job}; io::IO=stdout)
         println(io)
         return nothing
     end
-    ids = String[j.id for j in rows]
+    ids = _unique_prefixes(String[j.id for j in rows])
     states = String[String(j.state) for j in rows]
     kinds = String[String(j.kind) for j in rows]
     hosts = String[join(j.hosts, ',') for j in rows]
-    scripts = String[_q_short(j.script) for j in rows]
+    scripts = String[_job_script_disp(j) for j in rows]
     w_id = max(2, maximum(length, ids; init=2))
     w_st = max(5, maximum(length, states; init=5))
     w_k = max(4, maximum(length, kinds; init=4))
