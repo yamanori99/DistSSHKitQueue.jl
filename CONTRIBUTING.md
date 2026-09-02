@@ -57,7 +57,7 @@ julia --project=docs/src/assets/logo docs/src/assets/logo/draw.jl   # SVG; add -
 gitleaks detect --source .
 ```
 
-JETLS CI uses `aviatesk/JETLS.jl/.github/actions/check@release` (moving tag). After a bump, re-read [cli-check](https://aviatesk.github.io/JETLS.jl/dev/cli-check/) and keep failing on hint+.
+JETLS CI uses [`.github/actions/jetls-check`](.github/actions/jetls-check/action.yml) (installs `JETLS.jl` `@release` after `julia-actions/cache`). After a bump, re-read [cli-check](https://aviatesk.github.io/JETLS.jl/dev/cli-check/) and keep failing on hint+.
 
 JETLS is the type gate. Do not commit `.vscode/settings.json` to silence the Language Server.
 
@@ -79,7 +79,7 @@ When a new RC lands, change `JULIA_SLOT_MAX` only. If that RC is a new **major.m
 
 ### PR CI
 
-Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. `Assets` (`draw SVG`) runs if `docs/src/assets/` or that workflow changed. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or the E2E workflow changed; otherwise that job is skipped.
+Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. `Assets` (`draw SVG`) runs if `docs/src/assets/` or that workflow changed. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or `.github/workflows/CI.yml` changed; otherwise that job skips the docker steps (the check still runs).
 
 These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
 
@@ -94,7 +94,7 @@ julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DISTSSHQUEUE_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
-Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. Path-gated E2E skips the job `ubuntu-latest → ubuntu-24.04` (Actions: Skipped; GitHub still treats a skipped required check as pass). E2E weekly and CI weekly are not required.
+Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. Path-gated E2E skips docker on the job `ubuntu-latest → ubuntu-24.04` (the job still starts and stays green). E2E weekly and CI weekly are not required.
 
 - `Pkg.test - min - ubuntu-latest`
 - `Pkg.test - max - ubuntu-latest`
