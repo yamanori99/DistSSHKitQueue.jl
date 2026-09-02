@@ -209,6 +209,50 @@ function require_kit_ok(result)
     throw(ErrorException(msg))
 end
 
+"""SSH names that joined this Kit run (`HostRunResult` and `drive_host_status`)."""
+function _kit_joined_hosts(result)::Vector{String}
+    out = String[]
+    if hasproperty(result, :hosts)
+        hs = getproperty(result, :hosts)
+        if hs isa AbstractVector
+            for h in hs
+                hasproperty(h, :host) && push!(out, String(getproperty(h, :host)))
+            end
+        end
+    end
+    od = kit_result_path(result)
+    if od !== nothing
+        for st in DistSSHKit.drive_host_status(od)
+            push!(out, st.host)
+        end
+    end
+    return unique!(out)
+end
+
+"""Interim: fail when `child:` tokens never joined.
+
+Kit can still report `ok=true` on parent-only workers (pre placement contract).
+Drop this when DistSSHKit compat includes that contract
+(https://github.com/yamanori99/DistSSHKit.jl/issues/288).
+"""
+function require_drive_children(j::Job, result)
+    j.kind === :drive || return nothing
+    want = DistSSHKit.child_hosts_from_tokens(j.hosts)
+    isempty(want) && return nothing
+    have = _kit_joined_hosts(result)
+    missing = String[n for n in want if !(n in have)]
+    isempty(missing) || throw(ErrorException(
+        "DistSSHKit drive: requested child workers did not join: $(join(missing, ", "))",
+    ))
+    return nothing
+end
+
+function require_kit_success(j::Job, result)
+    require_kit_ok(result)
+    require_drive_children(j, result)
+    return nothing
+end
+
 """Keywords DistSSHKit `execute!(...; detached=true)` accepts, from the job bag.
 
 `yes` is always `true` (unattended child). `path_anchor` and other names are dropped.
@@ -274,22 +318,35 @@ function kit_run_error_text(result)::String
     end
 end
 
+function kit_run_error_text(j::Job, result)::String
+    try
+        require_kit_success(j, result)
+        return ""
+    catch e
+        e isa ErrorException || rethrow()
+        return e.msg
+    end
+end
+
 """Pid gone: prefer `kit.result`, else `:failed` (`serve` lost `KitProcess`)."""
 function settle_lost_kit_child!(j::Job)
     dir = kit_output_dir(j)
     rec = dir === nothing ? nothing : DistSSHKit.kit_result_from_dir(dir)
     j.finished_at = now(UTC)
-    if rec !== nothing && rec.ok
-        j.state = :done
-        j.error = nothing
-        rec.output_dir !== nothing && (j.result_path = String(rec.output_dir))
-    elseif rec !== nothing
-        j.state = :failed
-        j.error = kit_run_error_text(rec)
-        rec.output_dir !== nothing && (j.result_path = String(rec.output_dir))
-    else
+    if rec === nothing
         j.state = :failed
         j.error = "serve restarted; running job marked failed"
+        return j
+    end
+    rec.output_dir !== nothing && (j.result_path = String(rec.output_dir))
+    try
+        require_kit_success(j, rec)
+        j.state = :done
+        j.error = nothing
+    catch e
+        e isa ErrorException || rethrow()
+        j.state = :failed
+        j.error = e.msg
     end
     return j
 end
@@ -306,7 +363,7 @@ function run_kit(j::Job, on_spawn)
     spawned = kit_result_path(kp)
     on_spawn(spawned)
     result = wait(kp)
-    require_kit_ok(result)
+    require_kit_success(j, result)
     return kit_result_path(j, result)
 end
 run_kit(j::Job) = run_kit(j, Returns(nothing))
@@ -587,14 +644,21 @@ function adopt_running!(q::Queue)
             sleep(0.2)
         end
         rec = dir === nothing ? nothing : DistSSHKit.kit_result_from_dir(dir)
-        if rec !== nothing && rec.ok
-            path = rec.output_dir === nothing ? dir : rec.output_dir
-            _finish!(q, id, :done, nothing; result_path=path)
-        elseif rec !== nothing
-            path = rec.output_dir === nothing ? dir : rec.output_dir
-            _finish!(q, id, :failed, kit_run_error_text(rec); result_path=path)
+        path = if rec !== nothing && rec.output_dir !== nothing
+            rec.output_dir
         else
-            _finish!(q, id, :failed, _ADOPT_LOST; result_path=dir)
+            dir
+        end
+        if rec === nothing
+            _finish!(q, id, :failed, _ADOPT_LOST; result_path=path)
+        else
+            try
+                require_kit_success(snap, rec)
+                _finish!(q, id, :done, nothing; result_path=path)
+            catch e
+                msg = e isa ErrorException ? e.msg : sprint(showerror, e)
+                _finish!(q, id, :failed, msg; result_path=path)
+            end
         end
     end
     return nothing
