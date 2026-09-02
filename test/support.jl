@@ -21,7 +21,7 @@ end
 
 """True if `status` / `watch` chrome shows this job (unique prefix, not the full UUID)."""
 function status_shows_id(text::AbstractString, id::AbstractString)::Bool
-    return occursin(first(String(id), DistSSHQueue._ID_PREFIX_MIN), text)
+    return occursin(first(String(id), 8), text)
 end
 
 # Tag autoserve `serve` for this Pkg.test process. nohup outlives submit

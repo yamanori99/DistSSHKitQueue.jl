@@ -3,13 +3,17 @@
 Not CLI parsing. `queue_data_dir` lives in `config.jl`.
 """
 
+function sh_single_quote(s::AbstractString)::String
+    return string('\'', replace(String(s), "'" => "'\\''"), '\'')
+end
+
 """Prefix such that `startswith(child, prefix)` means `child` is inside `root`.
 
 `/` (and posix `""` after stripping a trailing slash) uses `"/"` so we do not
 build `"//"`.
 """
 function path_inside_prefix(root::AbstractString)::String
-    r = String(root)
+    r = string(root)::String
     (isempty(r) || r == "/") && return "/"
     return r * "/"
 end
