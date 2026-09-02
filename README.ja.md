@@ -6,10 +6,10 @@
 [![Codecov](https://img.shields.io/codecov/c/github/yamanori99/DistSSHQueue.jl?style=flat-square&logo=codecov&logoColor=white)](https://codecov.io/gh/yamanori99/DistSSHQueue.jl)
 [![Aqua.jl](https://img.shields.io/static/v1?style=flat-square&label=&message=Aqua.jl&color=05c3dd)](https://github.com/JuliaTesting/Aqua.jl)
 [![JETLS.jl](https://img.shields.io/static/v1?style=flat-square&label=&message=JETLS.jl&color=9558B2)](https://github.com/aviatesk/JETLS.jl)
-[![docs-stable](https://img.shields.io/badge/docs-stable-blue?style=flat-square&logo=gitbook&logoColor=white)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
-[![docs-dev](https://img.shields.io/badge/docs-dev-blue?style=flat-square&logo=gitbook&logoColor=white)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
+[![Stable](https://img.shields.io/badge/Stable-blue?style=flat-square&logo=gitbook&logoColor=white)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
+[![Dev](https://img.shields.io/badge/Dev-blue?style=flat-square&logo=gitbook&logoColor=white)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
 [![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-9558B2?style=flat-square&logo=julia&logoColor=white)](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
-[![License](https://img.shields.io/github/license/yamanori99/DistSSHQueue.jl?style=flat-square&logo=readme&logoColor=white&color=yellow)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に走らせるものである。
 ジョブの投入、状態の確認、成果物の取得、取り消しができる。
