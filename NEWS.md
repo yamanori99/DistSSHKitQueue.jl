@@ -9,14 +9,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 Breaking cut after `0.2.1`. DistSSHKit **0.5.x**.
 
-### Breaking
-
 - DistSSHKit **0.5.x**. Drive `ok` is Kit's (`require_all_hosts` default).
   DistSSHKit 0.4.3 does not resolve. Queue no longer second-guesses Kit
   `ok` when `require_all_hosts=false`.
-
-### Other
-
 - Docs pages use the queue mark as the browser tab icon (`favicon.ico`).
 - Ctrl-C on foreground `serve` stops this process on the first
   interrupt (spinner does not swallow SIGINT; no `TaskFailedException`).
