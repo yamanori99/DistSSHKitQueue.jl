@@ -11,6 +11,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 - `serve` / `status` show a unique job-id prefix. SCRIPT and RESULT are
   relative to PROJECT. `cancel` / `fetch` / `job` accept that prefix
   (ambiguous → refuse). Stored ids stay the full UUID.
+- `drive` with `child:` hosts is not `:done` when those remotes never
+  joined, even if Kit `ok=true` (parent workers only). Interim until
+  DistSSHKit owns that `ok` (yamanori99/DistSSHKit.jl#288); then drop
+  `require_drive_children`.
 
 ## 0.2.1
 
