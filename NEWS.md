@@ -7,7 +7,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ### Breaking
 
-- DistSSHKit **0.5+**. Drive `ok` is Kit's (`require_all_hosts` default).
+- DistSSHKit **0.5.x**. Drive `ok` is Kit's (`require_all_hosts` default).
   DistSSHKit 0.4.3 does not resolve. Queue no longer second-guesses Kit
   `ok` when `require_all_hosts=false`.
 
