@@ -59,8 +59,10 @@ rewritten under a directory lock. Kit results stay under that project
 dies: `:queued` rows reload on the next `serve`. A `:running` row whose
 DistSSHKit `kit.pid` is still alive stays `:running` (`serve` will
 not start the next FIFO job). A `:running` row with no live `kit.pid`
-is `:done` or `:failed` from `kit.result` when that file exists,
-otherwise `:failed`.
+is `:done` or `:failed` from DistSSHKit `ok` in `kit.result` when that
+file exists, otherwise `:failed`. Drive listed `parent` / `child` hosts
+must join, stay, and collect unless the job passed `--best-effort`
+(Kit 0.5; [kit drive](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/drive/)).
 
 ## Shared peel
 

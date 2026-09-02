@@ -36,7 +36,8 @@ rename, no `setup --delete`). The same project may be submitted again.
 ## Flags
 
 Kit `go` / `drive` argv is forwarded as-is. Queue does not add a second
-flag set.
+flag set. A drive row is `:done` when Kit `ok` is true (listed hosts
+must join unless `--best-effort`).
 
 | Flag | Meaning |
 | --- | --- |
