@@ -2,12 +2,12 @@
 
 [English](README.md) · [日本語](README.ja.md)
 
-[![Test](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/CI.yml)
-[![codecov](https://codecov.io/gh/yamanori99/DistSSHQueue.jl/graph/badge.svg)](https://codecov.io/gh/yamanori99/DistSSHQueue.jl)
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
-[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue.svg)](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/CI.yml?style=flat-square&logo=githubactions&logoColor=white&labelColor=475569&label=Test)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/CI.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/yamanori99/DistSSHQueue.jl?style=flat-square&logo=codecov&logoColor=white&labelColor=475569)](https://codecov.io/gh/yamanori99/DistSSHQueue.jl)
+[![docs-stable](https://img.shields.io/badge/docs-stable-16A34A?style=flat-square&logo=gitbook&logoColor=white&labelColor=475569)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
+[![docs-dev](https://img.shields.io/badge/docs-dev-D97706?style=flat-square&logo=gitbook&logoColor=white&labelColor=475569)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
+[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-9558B2?style=flat-square&logo=julia&logoColor=white&labelColor=475569)](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
+[![License](https://img.shields.io/github/license/yamanori99/DistSSHQueue.jl?style=flat-square&logo=readme&logoColor=white&labelColor=475569&color=0284C7)](LICENSE)
 
 DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に走らせるものである。
 ジョブの投入、状態の確認、成果物の取得、取り消しができる。
