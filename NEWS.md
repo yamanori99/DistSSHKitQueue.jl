@@ -7,18 +7,8 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## 0.3.0
 
-Breaking cut after `0.2.1`. DistSSHKit **0.5.x**.
-
-- DistSSHKit **0.5.x**. Drive `ok` is Kit's (`require_all_hosts` default).
-  DistSSHKit 0.4.3 does not resolve. Queue no longer second-guesses Kit
-  `ok` when `require_all_hosts=false`.
-- README badges match PrettyTables (`flat-square`, slate labels).
-- Docs pages use the queue mark as the browser tab icon (`favicon.ico`).
-- Ctrl-C on foreground `serve` stops this process on the first
-  interrupt (spinner does not swallow SIGINT; no `TaskFailedException`).
-- `serve` / `status` show a unique job-id prefix. SCRIPT and RESULT are
-  relative to PROJECT. `cancel` / `fetch` / `job` accept that prefix
-  (ambiguous → refuse). Stored ids stay the full UUID.
+Breaking cut after `0.2.1`. DistSSHKit **0.5.x**. Drive `:done` follows
+Kit `ok`. `serve` Ctrl-C, unique job-id prefix, docs favicon.
 
 ## 0.2.1
 
