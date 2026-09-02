@@ -22,7 +22,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## 0.2.1
 
-Patch after `0.2.0`. DistSSHKit **0.4.3+**.
+Patch after `0.2.0`. DistSSHKit **0.4.x** (≥0.4.3).
 
 - Collect / `go` SSH failures are not empty success. Missing `ssh` /
   `rsync` / `git` / `scp` prints a Requirements hint.
@@ -31,7 +31,7 @@ Patch after `0.2.0`. DistSSHKit **0.4.3+**.
 ## 0.2.0
 
 First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
-**0.4.2+**). Tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
+**0.4.x**, ≥0.4.2). Tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
 
 ## 0.2.0-beta.2
 
@@ -48,7 +48,7 @@ First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
 **DistSSHQueue** (new UUID). First pin is git tag `v0.2.0-beta.1`. DistSSHKitQueue
 stopped at `v0.1.0-beta.1` (old UUID / old module); do not pin that tag for this
 package. Not on General.
-[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) **0.4.2+** comes from General.
+[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) **0.4.x** (≥0.4.2) comes from General.
 Do not `Pkg.develop` Kit for ordinary Queue work.
 Julia **1.12+**. `julia -m DistSSHQueue` (no `dskq` shim).
 Home is `~/.distsshqueue`, ENV is `DISTSSHQUEUE_*`, OS unit is
