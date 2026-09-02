@@ -88,12 +88,19 @@ echo "SSH config: ${ROOT}/.generated/ssh_config"
 if [[ "$RUN_E2E" -eq 1 ]]; then
   export DISTSSHQUEUE_SSH_E2E=1
   cd "${QUEUE_ROOT}"
-  # WSL weekly has no julia-buildpkg; a restored `.julia` tarball can have a
+  # WSL weekly has no julia-buildpkg. Fresh juliaup has no registries
+  # (`Registry.update` then fails). A restored `.julia` tarball can have a
   # stale General (older Kit while Queue wants 0.5). linux/macOS already
   # instantiated (no-op). Workspace Manifest is gitignored. A root-only
   # instantiate can omit test's path dep; Julia 1.13 `instantiate` then
   # errors instead of resolving.
-  julia --project=test --color=yes -e 'using Pkg; Pkg.Registry.update(); Pkg.resolve(); Pkg.instantiate()'
+  julia --project=test --color=yes -e '
+    using Pkg
+    isempty(Pkg.Registry.reachable_registries()) && Pkg.Registry.add("General")
+    Pkg.Registry.update()
+    Pkg.resolve()
+    Pkg.instantiate()
+  '
   julia_e2e=(julia --project=test --color=yes)
   if [[ "${DISTSSHQUEUE_CODE_COVERAGE:-}" == "1" ]]; then
     julia_e2e+=(--code-coverage=user)
