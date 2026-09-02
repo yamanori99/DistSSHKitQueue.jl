@@ -19,7 +19,7 @@ function capture_stdio(f)
     end
 end
 
-"""True if `status` / `watch` chrome shows this job (unique prefix, not the full UUID)."""
+# True if `status` / `watch` chrome shows this job (unique prefix, not the full UUID).
 function status_shows_id(text::AbstractString, id::AbstractString)::Bool
     return occursin(first(String(id), 8), text)
 end
