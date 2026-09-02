@@ -209,50 +209,6 @@ function require_kit_ok(result)
     throw(ErrorException(msg))
 end
 
-"""SSH names that joined this Kit run (`HostRunResult` and `drive_host_status`)."""
-function _kit_joined_hosts(result)::Vector{String}
-    out = String[]
-    if hasproperty(result, :hosts)
-        hs = getproperty(result, :hosts)
-        if hs isa AbstractVector
-            for h in hs
-                hasproperty(h, :host) && push!(out, String(getproperty(h, :host)))
-            end
-        end
-    end
-    od = kit_result_path(result)
-    if od !== nothing
-        for st in DistSSHKit.drive_host_status(od)
-            push!(out, st.host)
-        end
-    end
-    return unique!(out)
-end
-
-"""Interim: fail when `child:` tokens never joined.
-
-Kit can still report `ok=true` on parent-only workers (pre placement contract).
-Drop this when DistSSHKit compat includes that contract
-(https://github.com/yamanori99/DistSSHKit.jl/issues/288).
-"""
-function require_drive_children(j::Job, result)
-    j.kind === :drive || return nothing
-    want = DistSSHKit.child_hosts_from_tokens(j.hosts)
-    isempty(want) && return nothing
-    have = _kit_joined_hosts(result)
-    missing = String[n for n in want if !(n in have)]
-    isempty(missing) || throw(ErrorException(
-        "DistSSHKit drive: requested child workers did not join: $(join(missing, ", "))",
-    ))
-    return nothing
-end
-
-function require_kit_success(j::Job, result)
-    require_kit_ok(result)
-    require_drive_children(j, result)
-    return nothing
-end
-
 """Keywords DistSSHKit `execute!(...; detached=true)` accepts, from the job bag.
 
 `yes` is always `true` (unattended child). `path_anchor` and other names are dropped.
@@ -318,15 +274,7 @@ function kit_run_error_text(result)::String
     end
 end
 
-function kit_run_error_text(j::Job, result)::String
-    try
-        require_kit_success(j, result)
-        return ""
-    catch e
-        e isa ErrorException || rethrow()
-        return e.msg
-    end
-end
+kit_run_error_text(::Job, result) = kit_run_error_text(result)
 
 """Pid gone: prefer `kit.result`, else `:failed` (`serve` lost `KitProcess`)."""
 function settle_lost_kit_child!(j::Job)
@@ -340,7 +288,7 @@ function settle_lost_kit_child!(j::Job)
     end
     rec.output_dir !== nothing && (j.result_path = String(rec.output_dir))
     try
-        require_kit_success(j, rec)
+        require_kit_ok(rec)
         j.state = :done
         j.error = nothing
     catch e
@@ -363,7 +311,7 @@ function run_kit(j::Job, on_spawn)
     spawned = kit_result_path(kp)
     on_spawn(spawned)
     result = wait(kp)
-    require_kit_success(j, result)
+    require_kit_ok(result)
     return kit_result_path(j, result)
 end
 run_kit(j::Job) = run_kit(j, Returns(nothing))
@@ -653,7 +601,7 @@ function adopt_running!(q::Queue)
             _finish!(q, id, :failed, _ADOPT_LOST; result_path=path)
         else
             try
-                require_kit_success(snap, rec)
+                require_kit_ok(rec)
                 _finish!(q, id, :done, nothing; result_path=path)
             catch e
                 msg = e isa ErrorException ? e.msg : sprint(showerror, e)

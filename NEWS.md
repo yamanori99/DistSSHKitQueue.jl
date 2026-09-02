@@ -5,20 +5,24 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+### Breaking
+
+- DistSSHKit **0.5.x**. Drive `ok` is Kit's (`require_all_hosts` default).
+  DistSSHKit 0.4.3 does not resolve. Queue no longer second-guesses Kit
+  `ok` when `require_all_hosts=false`.
+
+### Other
+
 - Docs pages use the queue mark as the browser tab icon (`favicon.ico`).
 - Ctrl-C on foreground `serve` stops this process on the first
   interrupt (spinner does not swallow SIGINT; no `TaskFailedException`).
 - `serve` / `status` show a unique job-id prefix. SCRIPT and RESULT are
   relative to PROJECT. `cancel` / `fetch` / `job` accept that prefix
   (ambiguous → refuse). Stored ids stay the full UUID.
-- `drive` with `child:` hosts is not `:done` when those remotes never
-  joined, even if Kit `ok=true` (parent workers only). Interim until
-  DistSSHKit owns that `ok` (yamanori99/DistSSHKit.jl#288); then drop
-  `require_drive_children`.
 
 ## 0.2.1
 
-Patch after `0.2.0`. DistSSHKit **0.4.3+**.
+Patch after `0.2.0`. DistSSHKit **0.4.x** (≥0.4.3).
 
 - Collect / `go` SSH failures are not empty success. Missing `ssh` /
   `rsync` / `git` / `scp` prints a Requirements hint.
@@ -27,7 +31,7 @@ Patch after `0.2.0`. DistSSHKit **0.4.3+**.
 ## 0.2.0
 
 First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
-**0.4.2+**). Tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
+**0.4.x**, ≥0.4.2). Tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
 
 ## 0.2.0-beta.2
 
@@ -44,7 +48,7 @@ First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
 **DistSSHQueue** (new UUID). First pin is git tag `v0.2.0-beta.1`. DistSSHKitQueue
 stopped at `v0.1.0-beta.1` (old UUID / old module); do not pin that tag for this
 package. Not on General.
-[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) **0.4.2+** comes from General.
+[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) **0.4.x** (≥0.4.2) comes from General.
 Do not `Pkg.develop` Kit for ordinary Queue work.
 Julia **1.12+**. `julia -m DistSSHQueue` (no `dskq` shim).
 Home is `~/.distsshqueue`, ENV is `DISTSSHQUEUE_*`, OS unit is
