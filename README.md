@@ -2,12 +2,12 @@
 
 [English](README.md) | [日本語](README.ja.md)
 
-[![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/CI.yml?style=flat-square&logo=githubactions&logoColor=white&labelColor=475569&label=Test)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/CI.yml)
-[![Codecov](https://img.shields.io/codecov/c/github/yamanori99/DistSSHQueue.jl?style=flat-square&logo=codecov&logoColor=white&labelColor=475569)](https://codecov.io/gh/yamanori99/DistSSHQueue.jl)
-[![docs-stable](https://img.shields.io/badge/docs-stable-16A34A?style=flat-square&logo=gitbook&logoColor=white&labelColor=475569)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
-[![docs-dev](https://img.shields.io/badge/docs-dev-D97706?style=flat-square&logo=gitbook&logoColor=white&labelColor=475569)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
-[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-9558B2?style=flat-square&logo=julia&logoColor=white&labelColor=475569)](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
-[![License](https://img.shields.io/github/license/yamanori99/DistSSHQueue.jl?style=flat-square&logo=readme&logoColor=white&labelColor=475569&color=0284C7)](LICENSE)
+[![Test](https://img.shields.io/github/actions/workflow/status/yamanori99/DistSSHQueue.jl/CI.yml?style=flat-square&logo=githubactions&logoColor=white&label=Test)](https://github.com/yamanori99/DistSSHQueue.jl/actions/workflows/CI.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/yamanori99/DistSSHQueue.jl?style=flat-square&logo=codecov&logoColor=white)](https://codecov.io/gh/yamanori99/DistSSHQueue.jl)
+[![docs-stable](https://img.shields.io/badge/docs-stable-blue?style=flat-square&logo=gitbook&logoColor=white)](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
+[![docs-dev](https://img.shields.io/badge/docs-dev-blue?style=flat-square&logo=gitbook&logoColor=white)](https://yamanori99.github.io/DistSSHQueue.jl/dev/)
+[![Julia 1.12+](https://img.shields.io/badge/Julia-1.12+-blue?style=flat-square&logo=julia&logoColor=white)](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
+[![License](https://img.shields.io/github/license/yamanori99/DistSSHQueue.jl?style=flat-square&logo=readme&logoColor=white)](LICENSE)
 
 DistSSHQueue runs jobs one after another on machines that several
 people share. You can submit a job, check its status, fetch a finished
