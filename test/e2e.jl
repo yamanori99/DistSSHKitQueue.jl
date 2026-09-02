@@ -575,13 +575,13 @@ end
                         id = read_cli(addenv(qcmd(["submit", "go", token, "--output-dir", outdir, script, GO_N...]), env...))
                         @test !isempty(id)
                         listed = wait_status(addenv(qcmd(["status"]), env...)) do out
-                            occursin(id, out) && occursin("  done  ", out) && !occursin("  running  ", out)
+                            status_shows_id(out, id) && occursin("  done  ", out) && !occursin("  running  ", out)
                         end
-                        @test occursin(id, listed)
+                        @test status_shows_id(listed, id)
                         @test occursin("  done  ", listed)
                         wout = read_cli(addenv(qcmd(["watch", "--interval", "0.05"]), merge(env, Dict("DISTSSHKIT_QUIET" => "0"))...))
                         @test occursin("DistSSHQueue watch", wout)
-                        @test occursin(id, wout)
+                        @test status_shows_id(wout, id)
                     finally
                         DistSSHQueue.stop_serve!(store)
                         try
@@ -641,17 +641,17 @@ end
                         id1 = read_cli(addenv(qh(["submit", "go", token, "--output-dir", outdir, script, GO_N...]), client_env...))
                         @test !isempty(id1)
                         listed = wait_status(addenv(qh(["status"]), client_env...)) do out
-                            occursin(id1, out) && occursin("  done  ", out) && !occursin("  running  ", out)
+                            status_shows_id(out, id1) && occursin("  done  ", out) && !occursin("  running  ", out)
                         end
-                        @test occursin(id1, listed)
+                        @test status_shows_id(listed, id1)
                         @test occursin("  done  ", listed)
                         wout = read_cli(addenv(qh(["watch", "--interval", "0.05"]), client_env...))
-                        @test occursin(id1, wout)
+                        @test status_shows_id(wout, id1)
 
                         id_f = read_cli(addenv(qh(["submit", "go", token, script, GO_N...]), client_env...))
                         @test !isempty(id_f)
                         wait_status(addenv(qh(["status"]), client_env...)) do out
-                            occursin(id_f, out) && occursin("  done  ", out) && !occursin("  running  ", out)
+                            status_shows_id(out, id_f) && occursin("  done  ", out) && !occursin("  running  ", out)
                         end
                         fetched = read_cli(addenv(qh(["fetch", id_f]), client_env...))
                         @test occursin(id_f, fetched)
@@ -667,19 +667,19 @@ end
                         isdir(cancel_out) && rm(cancel_out; recursive=true)
                         id2 = read_cli(addenv(qh(["submit", "go", "parent:1", "--output-dir", cancel_out, hold]), client_env...))
                         wait_status(addenv(qh(["status"]), client_env...)) do out
-                            occursin(id2, out) && occursin("  running  ", out)
+                            status_shows_id(out, id2) && occursin("  running  ", out)
                         end
                         isfile(joinpath(cancel_out, "kit.pid")) || sleep(0.5)
                         id3 = read_cli(addenv(qh(["submit", "go", token, script, GO_N...]), client_env...))
                         wait_status(addenv(qh(["status"]), client_env...)) do out
-                            occursin(id3, out) && occursin("queued", out)
+                            status_shows_id(out, id3) && occursin("queued", out)
                         end
                         cancelled = read_cli(addenv(qh(["cancel", id3]), client_env...))
                         @test cancelled == id3
                         after = wait_status(addenv(qh(["status"]), client_env...)) do out
-                            occursin(id3, out) && occursin("cancelled", out)
+                            status_shows_id(out, id3) && occursin("cancelled", out)
                         end
-                        @test occursin(id2, after)
+                        @test status_shows_id(after, id2)
                         @test occursin("cancelled", after)
 
                         @test run_cli(addenv(qh(["stop"]), client_env...)).exitcode == 0

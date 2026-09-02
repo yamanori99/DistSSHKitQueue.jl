@@ -250,7 +250,7 @@ end
 function path_under_project(path::AbstractString, proj::AbstractString)::Bool
     p = DistSSHKit.canonical_local_path(path)
     r = DistSSHKit.canonical_local_path(proj)
-    return p == r || startswith(p, r * "/")
+    return p == r || startswith(p, path_inside_prefix(r))
 end
 
 """Rsync cwd / `DISTRIBUTED_PROJECT_ROOT` to `~/.distsshqueue/stage/<id>` on `host`."""

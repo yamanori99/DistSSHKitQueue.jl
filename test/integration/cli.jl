@@ -109,10 +109,10 @@ end
                     @test row.state === :done
                     @test isfile(joinpath(jobdir, "hello.ran"))
                     out = read(addenv(qcli(["status"]), env...), String)
-                    @test occursin(id, out)
+                    @test status_shows_id(out, id)
                     wout = read(addenv(qcli(["watch", "--interval", "0.05"]), env..., "DISTSSHQUEUE_WATCH_TICKS" => "1"), String)
                     @test occursin("DistSSHQueue watch", wout)
-                    @test occursin(id, wout)
+                    @test status_shows_id(wout, id)
                     @test occursin("done", wout)
                     @test occursin("Ctrl-C stops watch", wout)
                 end
@@ -144,8 +144,8 @@ end
                     c = strip(read(addenv(qcli(["cancel", id2]), env...), String))
                     @test c == id2
                     listed = read(addenv(qcli(["status"]), env...), String)
-                    @test occursin(id1, listed)
-                    @test occursin(id2, listed)
+                    @test status_shows_id(listed, id1)
+                    @test status_shows_id(listed, id2)
                     @test occursin("cancelled", listed)
                 end
             finally

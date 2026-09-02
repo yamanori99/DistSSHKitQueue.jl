@@ -3,8 +3,15 @@
 Not CLI parsing. `queue_data_dir` lives in `config.jl`.
 """
 
-function sh_single_quote(s::AbstractString)::String
-    return string('\'', replace(String(s), "'" => "'\\''"), '\'')
+"""Prefix such that `startswith(child, prefix)` means `child` is inside `root`.
+
+`/` (and posix `""` after stripping a trailing slash) uses `"/"` so we do not
+build `"//"`.
+"""
+function path_inside_prefix(root::AbstractString)::String
+    r = String(root)
+    (isempty(r) || r == "/") && return "/"
+    return r * "/"
 end
 
 """The Julia the serve unit (`enable` / autoserve `serve`) runs.

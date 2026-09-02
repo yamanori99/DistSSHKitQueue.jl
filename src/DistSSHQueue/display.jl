@@ -18,8 +18,9 @@ function _rel_under(path::AbstractString, root::AbstractString)::Union{Nothing,S
     p = DistSSHKit.canonical_local_path(String(path))
     r = DistSSHKit.canonical_local_path(String(root))
     p == r && return "."
-    startswith(p, r * "/") || return nothing
-    return String(chopprefix(p, r * "/"))
+    pref = path_inside_prefix(r)
+    startswith(p, pref) || return nothing
+    return String(chopprefix(p, pref))
 end
 
 function _job_project_disp(j::Job)::String

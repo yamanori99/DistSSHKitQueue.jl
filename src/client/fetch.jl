@@ -25,10 +25,10 @@ function fetch_relpath(
     raw_r = canonicalize ? DistSSHKit.canonical_local_path(root) : String(root)
     p = posix_dir(raw_p)
     r = posix_dir(raw_r)
-    (p == r || startswith(p, r * "/")) || throw(ArgumentError(
+    (p == r || startswith(p, path_inside_prefix(r))) || throw(ArgumentError(
         "result is not under this client tree's stage; run fetch from the same job project as submit",
     ))
-    rel = p == r ? "." : String(chopprefix(p, r * "/"))
+    rel = p == r ? "." : String(chopprefix(p, path_inside_prefix(r)))
     any(part -> part == ".." || part == ".", split(rel, '/'; keepempty=false)) && throw(ArgumentError(
         "fetch: refused relative path $(repr(rel))",
     ))
