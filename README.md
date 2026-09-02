@@ -24,7 +24,7 @@ Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
 Even small labs and individuals can keep one always-on machine, add
 SSH hosts, and use them together as a small set of compute nodes.
-Julia **1.12+**, DistSSHKit **0.4.3+**.
+Julia **1.12+**, DistSSHKit **0.5+**.
 
 ## Install
 
@@ -40,7 +40,7 @@ Or, equivalently, via the `Pkg` API:
 julia> import Pkg; Pkg.add("DistSSHQueue")
 ```
 
-DistSSHKit **0.4.3+** comes from General with it. Do not `Pkg.develop`
+DistSSHKit **0.5+** comes from General with it. Do not `Pkg.develop`
 Kit for ordinary Queue work. Git tag `v0.1.0-beta.1` is DistSSHKitQueue
 (old UUID); do not use it.
 

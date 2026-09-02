@@ -5,16 +5,20 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+### Breaking
+
+- DistSSHKit **0.5+**. Drive `ok` is Kit's (`require_all_hosts` default).
+  DistSSHKit 0.4.3 does not resolve. Queue no longer second-guesses Kit
+  `ok` when `require_all_hosts=false`.
+
+### Other
+
 - Docs pages use the queue mark as the browser tab icon (`favicon.ico`).
 - Ctrl-C on foreground `serve` stops this process on the first
   interrupt (spinner does not swallow SIGINT; no `TaskFailedException`).
 - `serve` / `status` show a unique job-id prefix. SCRIPT and RESULT are
   relative to PROJECT. `cancel` / `fetch` / `job` accept that prefix
   (ambiguous → refuse). Stored ids stay the full UUID.
-- `drive` with `child:` hosts is not `:done` when those remotes never
-  joined, even if Kit `ok=true` (parent workers only). Interim until
-  DistSSHKit owns that `ok` (yamanori99/DistSSHKit.jl#288); then drop
-  `require_drive_children`.
 
 ## 0.2.1
 

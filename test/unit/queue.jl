@@ -364,7 +364,7 @@ end
     end
 end
 
-@testset "kit.result drive without child workers is failed" begin
+@testset "kit.result drive ok=true is done" begin
     mktempdir() do d
         out = joinpath(d, "kit-out")
         mkpath(out)
@@ -383,8 +383,8 @@ end
         q = Queue(; store=p, runner=_ -> error("must not re-run"))
         load!(q)
         loaded = job(q, j.id)
-        @test loaded.state === :failed
-        @test occursin("mini-alpha", something(loaded.error, ""))
+        @test loaded.state === :done
+        @test loaded.error === nothing
         @test loaded.result_path == out
     end
 end
@@ -418,37 +418,6 @@ end
     @test occursin("exit 42", detailed.msg)
     @test DistSSHQueue.require_kit_ok((ok=true, kind=:go, output_dir="/tmp/out")) === nothing
     @test DistSSHQueue.kit_result_path((ok=true, output_dir="/tmp/out")) == "/tmp/out"
-    dj = DistSSHQueue.Job(;
-        kind=:drive,
-        script="/tmp/job.jl",
-        hosts=["parent:2", "child:mini-alpha:2", "child:mini-beta:2"],
-    )
-    parent_only = DistSSHKit.KitRunResult(true, :drive, nothing, nothing, nothing, 0)
-    @test_throws ErrorException DistSSHQueue.require_drive_children(dj, parent_only)
-    miss = try
-        DistSSHQueue.require_drive_children(dj, parent_only)
-    catch e
-        e
-    end
-    @test occursin("mini-alpha", miss.msg)
-    @test occursin("mini-beta", miss.msg)
-    joined = DistSSHKit.KitRunResult(
-        true,
-        :drive,
-        nothing,
-        nothing,
-        nothing,
-        0,
-        DistSSHKit.HostRunResult[
-            DistSSHKit.HostRunResult("mini-alpha", true),
-            DistSSHKit.HostRunResult("mini-beta", true),
-        ],
-    )
-    @test DistSSHQueue.require_drive_children(dj, joined) === nothing
-    @test DistSSHQueue.require_drive_children(
-        DistSSHQueue.Job(; kind=:drive, script="/tmp/job.jl", hosts=["parent:2"]),
-        parent_only,
-    ) === nothing
     q = Queue(; runner=_ -> error("DistSSHKit go failed (ok=false)"))
     id = submit!(q, "a.jl", "parent:1")
     @test step!(q) == 1

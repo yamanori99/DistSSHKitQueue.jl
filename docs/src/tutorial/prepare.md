@@ -25,7 +25,7 @@ julia --project=.
 pkg> add DistSSHQueue
 ```
 
-That pulls DistSSHKit **0.4.3+** from General. `setup` does not create
+That pulls DistSSHKit **0.5+** from General. `setup` does not create
 that env (it would run `Pkg` as a side effect). A different dir is
 `--queue-env DIR` on `enable` and on client `qhost:`. `--queue-env @` is
 the remote default Julia env (no `--project=`).
