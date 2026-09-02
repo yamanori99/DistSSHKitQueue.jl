@@ -117,12 +117,13 @@ retries). `DISTSSHQUEUE_SKIP_UP=1` skips compose up (image job: build+push only)
 | macOS Intel (`macos-15-intel` + Colima) | same image | **E2E weekly** — `E2E weekly / macos-15-intel → ubuntu-24.04` |
 | WSL2 (`windows-latest`) | same image | **E2E weekly** — `E2E weekly / windows-latest (WSL2) → ubuntu-24.04` |
 
-[`.github/workflows/ssh-e2e.yml`](../../.github/workflows/ssh-e2e.yml) runs
+[`.github/workflows/CI.yml`](../../.github/workflows/CI.yml) runs
 `./scripts/up.sh --e2e` on `ubuntu-latest` for `main`, PRs that touch `src` /
-`test` / `testenv` / `Project.toml`, and `workflow_dispatch`. Otherwise the
-job `ubuntu-latest → ubuntu-24.04` is skipped (`e2e-gate` still runs). Ordinary
-PR E2E does not upload Codecov. A `cut` PR sets `DISTSSHQUEUE_CODE_COVERAGE=1` and
-uploads flag `e2e`. `Pkg.test()` still does not start Docker.
+`test` / `testenv` / `Project.toml` / `CI.yml`, and `workflow_dispatch`. Otherwise
+the docker steps on `ubuntu-latest → ubuntu-24.04` are skipped (the job still
+runs). Ordinary PR E2E does not upload Codecov. A `cut` PR sets
+`DISTSSHQUEUE_CODE_COVERAGE=1` and uploads flag `e2e`. `Pkg.test()` still does
+not start Docker.
 
 [`.github/workflows/ssh-e2e-weekly.yml`](../../.github/workflows/ssh-e2e-weekly.yml)
 is **not** a PR check (Sunday 04:00 JST + `workflow_dispatch`). It builds
