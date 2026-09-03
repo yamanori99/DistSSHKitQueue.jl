@@ -1145,11 +1145,20 @@ end
             @test occursin("DistSSHQueue", body)
             @test occursin("serve", body)
             @test occursin(Sys.isapple() ? "org.distsshqueue.serve.plist" : "distsshqueue.serve.service", out)
-            code2, _, _ = capture_stdio() do
+            code2, out2, _ = capture_stdio() do
                 DistSSHQueue.main(["disable", "--write-only"])
             end
             @test code2 == 0
             @test !isfile(want)
+            @test occursin("Removed", out2)
+            @test occursin(basename(want), out2)
+            code3, out3, _ = capture_stdio() do
+                DistSSHQueue.main(["disable", "--write-only"])
+            end
+            @test code3 == 0
+            @test occursin("Present", out3)
+            @test occursin("(unchanged)", out3)
+            @test !occursin("--force", out3)
         end
     end
 end

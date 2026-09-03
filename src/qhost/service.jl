@@ -104,24 +104,43 @@ function service_install(; julia::AbstractString=default_julia_bin(), project::A
     throw(ArgumentError("enable: macOS or Linux only"))
 end
 
-function service_uninstall(; apply::Bool=true, home::AbstractString=homedir())
+function service_uninstall(;
+    apply::Bool=true,
+    home::AbstractString=homedir(),
+    io::IO=stdout,
+    announce::Bool=true,
+)
     live = DistSSHKit.canonical_local_path(home) == DistSSHKit.canonical_local_path(homedir())
     if Sys.isapple()
         path = launch_agent_path(; home=home)
         legacy = legacy_launch_agent_path(; home=home)
-        apply && live && (isfile(path) || isfile(legacy)) && _launchctl_unload()
-        isfile(path) && rm(path)
-        isfile(legacy) && rm(legacy)
-        return 0
+        apply && live && _launchctl_unload()
+        return _drop_unit_files(path, legacy; io=io, announce=announce)
     elseif Sys.islinux()
         apply && live && _systemd_disable()
         path = systemd_user_path(; home=home)
         legacy = legacy_systemd_user_path(; home=home)
-        isfile(path) && rm(path)
-        isfile(legacy) && rm(legacy)
-        return 0
+        rc = _drop_unit_files(path, legacy; io=io, announce=announce)
+        # disable --now then delete the unit; reload so start cannot use a stale unit.
+        apply && live && _systemd_reload()
+        return rc
     end
     throw(ArgumentError("disable: macOS or Linux only"))
+end
+
+function _drop_unit_files(path::AbstractString, legacy::AbstractString; io::IO, announce::Bool)
+    removed = String[]
+    isfile(path) && (rm(path); push!(removed, path))
+    isfile(legacy) && (rm(legacy); push!(removed, legacy))
+    announce || return 0
+    if isempty(removed)
+        print_present(path; io=io, note="  (unchanged)")
+    else
+        for p in removed
+            print_removed(p; io=io)
+        end
+    end
+    return 0
 end
 
 function _launchctl_load(path::AbstractString)
@@ -158,6 +177,14 @@ function _systemd_disable()
             run(pipeline(`systemctl --user disable --now $unit`; stdout=devnull, stderr=devnull))
         catch
         end
+    end
+    return nothing
+end
+
+function _systemd_reload()
+    try
+        run(pipeline(`systemctl --user daemon-reload`; stdout=devnull, stderr=devnull))
+    catch
     end
     return nothing
 end

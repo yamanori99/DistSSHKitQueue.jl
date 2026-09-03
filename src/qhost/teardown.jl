@@ -68,7 +68,7 @@ function teardown(;
     st = teardown_store(; home=home, config=config)
     apply && stop_serve!(st)
     try
-        service_uninstall(; apply=apply, home=home)
+        service_uninstall(; apply=apply, home=home, announce=false)
     catch
     end
     wrap = wrapper_path(; bindir=bindir)
