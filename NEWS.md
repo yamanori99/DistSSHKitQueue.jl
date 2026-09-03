@@ -12,6 +12,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 - DistSSHKit **0.5.1+** (`compat` `"0.5.1"`). `demo install` copies into
   `distsshkit_demos/`.
 
+- E2E weekly Full starts on a `version` raise squash to `main`. A red
+  Full after that cut adds `cut-hold` (do not register). README has a
+  PkgEval badge. No Discussions badge (this repo has no Discussions).
+
 - Walkthrough: queue host `setup` / `add-host` / `serve`, client
   `demo install` / `qhost:` go / `fetch`, Kit setup from the stage tree
   before `child:NAME`, then drive, then teardown dry-run / `-y`.

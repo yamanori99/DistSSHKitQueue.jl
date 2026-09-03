@@ -143,6 +143,28 @@ jobs:
       - name: Aqua.test_all (latest Aqua)
         run: ./.github/aqua-check.sh
 
+  cache-gc:
+    needs:
+      - test-min
+      - test-max
+      - jetls-min
+      - jetls-max
+      - aqua-min
+      - aqua-max
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    name: cache-gc
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Keep latest cache per restore-key prefix
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/cache-gc.sh
+
   notify:
     needs:
       - test-min
