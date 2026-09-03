@@ -15,8 +15,9 @@ Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
 
 `status` / `watch` share one Store table (`path` / `serve` / `qhost`).
 `watch` with `qhost:HOST` uses `ssh -t` when this stdout is a TTY so the
-remote can clear the screen. A pipe (no TTY) prints a compact
-`serve` / `running` / `queued` line; use `status` for the history table.
+remote can clear the screen. A pipe without `-q` prints a compact
+`serve` / `running` / `queued` line; `watch -q` is still the table.
+Use `status` for the history table.
 
 `watch` does not stop `serve`. Ctrl-C leaves it running.
 

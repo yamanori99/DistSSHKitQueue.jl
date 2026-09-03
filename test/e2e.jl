@@ -645,7 +645,7 @@ end
                         end
                         @test status_shows_id(listed, id1)
                         @test occursin("  done  ", listed)
-                        wout = read_cli(addenv(qh(["watch", "--interval", "0.05"]), client_env...))
+                        wout = read_cli(addenv(qh(["watch", "--interval", "0.05"]), client_env..., "DISTSSHKIT_QUIET" => "0"))
                         @test occursin("serve", wout)
                         @test occursin("running", wout)
 

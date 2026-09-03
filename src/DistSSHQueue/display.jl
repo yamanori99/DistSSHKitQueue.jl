@@ -387,5 +387,6 @@ function print_watch_compact(
     nrun = count(j -> j.state === :running, rows)
     nq = count(j -> j.state === :queued, rows)
     println(io, "  serve $(_serve_disp(store))  running $nrun  queued $nq")
+    flush(io)
     return nothing
 end
