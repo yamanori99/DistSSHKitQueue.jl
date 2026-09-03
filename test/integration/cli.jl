@@ -111,10 +111,10 @@ end
                     out = read(addenv(qcli(["status"]), env...), String)
                     @test status_shows_id(out, id)
                     wout = read(addenv(qcli(["watch", "--interval", "0.05"]), env..., "DISTSSHQUEUE_WATCH_TICKS" => "1"), String)
-                    @test occursin("DistSSHQueue watch", wout)
-                    @test status_shows_id(wout, id)
-                    @test occursin("done", wout)
-                    @test occursin("Ctrl-C stops watch", wout)
+                    @test occursin("serve", wout)
+                    @test occursin("running", wout)
+                    @test occursin("queued", wout)
+                    @test !occursin("DistSSHQueue watch", wout)
                 end
             finally
                 DistSSHQueue.stop_serve!(store)
