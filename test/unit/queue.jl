@@ -561,10 +561,13 @@ end
                 @test occursin("  enable ", out_st)
                 @test occursin("qhost", out_st)
                 @test occursin("local ($(gethostname()))", out_st)
-                @test occursin("(empty)", out_st)
+                @test occursin("  path   none", out_st)
+                @test occursin("(none)", out_st)
+                @test !occursin("(empty)", out_st)
                 empty = sprint(io -> DistSSHQueue.show_status(p; io=io))
                 @test occursin("Store", empty)
-                @test occursin("(empty)", empty)
+                @test occursin("(none)", empty)
+                @test !occursin("(empty)", empty)
                 via_out = sprint(io -> DistSSHQueue.show_status(p; io=io, qhost="qbox"))
                 @test occursin("qbox ($(gethostname()))", via_out)
                 @test DistSSHQueue._qhost_disp(gethostname()) == gethostname()
@@ -581,7 +584,8 @@ end
                     DistSSHQueue.main(["status", "-q"])
                 end
                 @test code_q == 0
-                @test occursin("(empty)", out_q)
+                @test occursin("(none)", out_q)
+                @test !occursin("(empty)", out_q)
                 @test !occursin("Store", out_q)
                 @test !occursin("qhost", out_q)
                 withenv("DISTSSHKIT_QUIET" => "1") do
@@ -906,7 +910,8 @@ end
                     DistSSHQueue.main(["watch", "-q", "--interval", "0.01"])
                 end
                 @test code_qw == 0
-                @test occursin("(empty)", out_qw)
+                @test occursin("(none)", out_qw)
+                @test !occursin("(empty)", out_qw)
                 @test !occursin("Store", out_qw)
                 @test !occursin("DistSSHQueue watch", out_qw)
                 @test !occursin("Ctrl-C stops watch", out_qw)
@@ -981,6 +986,28 @@ end
                 @test occursin("Error:", err4)
             end
         end
+    end
+end
+
+@testset "status missing store is none, empty file is empty" begin
+    mktempdir() do d
+        p = joinpath(d, "jobs.toml")
+        miss = sprint(io -> DistSSHQueue.show_status(p; io=io))
+        @test occursin("  path   none", miss)
+        @test occursin("(none)", miss)
+        @test !occursin("(empty)", miss)
+        DistSSHQueue.save_jobs(p, DistSSHQueue.Job[])
+        z = sprint(io -> DistSSHQueue.show_status(p; io=io))
+        @test occursin("(empty)", z)
+        @test !occursin("  path   none", z)
+        @test occursin("path", z)
+        q = sprint(io -> DistSSHQueue.show_status(p; io=io, quiet=true))
+        @test occursin("(empty)", q)
+        @test !occursin("Store", q)
+        mq = sprint(io -> DistSSHQueue.show_status(joinpath(d, "gone.toml"); io=io, quiet=true))
+        @test occursin("(none)", mq)
+        @test !occursin("(empty)", mq)
+        @test !occursin("Store", mq)
     end
 end
 
