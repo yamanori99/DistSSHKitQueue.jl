@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `status` / `watch` Store chrome includes `enable` (OS unit on this
+  host, or `none`). Distinct from `serve` running / stopped / none.
+
 - `watch` reprints the same Store table as `status` (including `serve`)
   when stdout is a TTY (`ssh -t` on `qhost:`). A pipe without `-q`
   prints one compact `serve` / `running` / `queued` line per tick.

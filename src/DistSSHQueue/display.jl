@@ -278,6 +278,27 @@ function _serve_disp(store::AbstractString)::String
     return "none"
 end
 
+"""OS unit file from `enable`, if present on this host (queue host after `qhost:`)."""
+function _enable_unit_path(; home::AbstractString=homedir())::Union{Nothing,String}
+    paths = if Sys.isapple()
+        (launch_agent_path(; home=home), legacy_launch_agent_path(; home=home))
+    elseif Sys.islinux()
+        (systemd_user_path(; home=home), legacy_systemd_user_path(; home=home))
+    else
+        return nothing
+    end
+    for p in paths
+        isfile(p) && return p
+    end
+    return nothing
+end
+
+function _enable_disp(; home::AbstractString=homedir())::String
+    p = _enable_unit_path(; home=home)
+    p === nothing && return "none"
+    return _q_short(p)
+end
+
 function _qhost_disp(qhost::Union{Nothing,AbstractString})::String
     hn = gethostname()
     if qhost === nothing || isempty(String(qhost))
@@ -357,6 +378,7 @@ function print_status_table(
         DistSSHKit.print_help_lines(io,
             "  path   $(_q_short(store))",
             "  serve  $(_serve_disp(store))",
+            "  enable $(_enable_disp())",
             "  qhost  $(_qhost_disp(qhost))",
         )
         DistSSHKit.print_help_blank(io)

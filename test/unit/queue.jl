@@ -557,6 +557,7 @@ end
                 @test code_st == 0
                 @test occursin("Store", out_st)
                 @test occursin("serve", out_st)
+                @test occursin("  enable ", out_st)
                 @test occursin("qhost", out_st)
                 @test occursin("local ($(gethostname()))", out_st)
                 @test occursin("(empty)", out_st)
@@ -1151,6 +1152,13 @@ end
             @test occursin("DistSSHQueue", body)
             @test occursin("serve", body)
             @test occursin(Sys.isapple() ? "org.distsshqueue.serve.plist" : "distsshqueue.serve.service", out)
+            code_en, out_en, _ = capture_stdio() do
+                DistSSHQueue.main(["status"])
+            end
+            @test code_en == 0
+            @test occursin("  enable ", out_en)
+            @test occursin(basename(want), out_en)
+            @test occursin("  serve  ", out_en)
             code2, out2, _ = capture_stdio() do
                 DistSSHQueue.main(["disable", "--write-only"])
             end
@@ -1165,6 +1173,11 @@ end
             @test occursin("Present", out3)
             @test occursin("(unchanged)", out3)
             @test !occursin("--force", out3)
+            code_off, out_off, _ = capture_stdio() do
+                DistSSHQueue.main(["status"])
+            end
+            @test code_off == 0
+            @test occursin("  enable none", out_off)
         end
     end
 end
