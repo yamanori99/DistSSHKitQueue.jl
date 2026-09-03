@@ -52,7 +52,8 @@ stdout line. `submit` also prints `Queued  N` on stderr unless
 `DISTSSHKIT_QUIET` is set. After `qhost:` submit, `.distsshkit/queue/<id>`
 marks the job on this laptop. `fetch` copies the finished Kit leaf onto
 this job tree (inverse of the `qhost:` rsync). Run it from the same
-directory as `submit`.
+directory as `submit`. Drive CSV (Kit `square_file.jl`) is in that
+`.distsshkit/drive/<stem>_<UTC>_<id>/` leaf, not `output/`.
 
 Bare `go` / `drive` alias `submit go` / `submit drive`. A Kit-shaped
 line with a `.jl` and no Queue verb is `go`.

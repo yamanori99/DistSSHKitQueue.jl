@@ -5,6 +5,11 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- Queue `drive` (no `--output-dir`) uses DistSSHKit `allocate_output_dir`:
+  `.distsshkit/drive/<stem>_<UTC>_<id>/`. That is the fetch leaf. Kit
+  demos that write `output/` on a local `drive` do not use `output/`
+  here.
+
 - `qhost:` submit writes `.distsshkit/queue/<id>` on the client (script /
   qhost). The Kit leaf still appears only after `fetch`. Stage still
   excludes `.distsshkit/`.

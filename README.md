@@ -101,6 +101,7 @@ copies one finished Kit leaf back.
   SCRIPT.jl             rsync'd on qhost: submit
   .distsshkit/queue/<id>  after qhost: submit
   .distsshkit/go/       after fetch
+  .distsshkit/drive/    after fetch (not demo output/)
 ```
 
 #### Queue host
@@ -130,6 +131,8 @@ not set `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`.
     SCRIPT_<UTC>_<id>/  result_path
       kit.pid
       kit.result
+  .distsshkit/drive/
+    SCRIPT_<UTC>_<id>/  same allocate; not demo output/
 ```
 
 `enable` (optional; skip if you only `serve` in a terminal):

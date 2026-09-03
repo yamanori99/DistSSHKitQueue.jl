@@ -49,7 +49,9 @@ Each row: `id` (UUID), `kind` (`:go` / `:drive`), `script`, `hosts`,
 `queued_at` / `started_at` / `finished_at`, `error`, and `result_path`
 — Kit's output directory. If submit omitted `--output-dir`, `serve`
 sets one with DistSSHKit `allocate_output_dir` when the row becomes
-`:running` (so `cancel` and a later `serve` can find `kit.pid`). Queue
+`:running` (so `cancel` and a later `serve` can find `kit.pid`). Drive
+is a unique `.distsshkit/drive/<stem>_<UTC>_<id>/`, not shared
+`.distsshkit/drive` and not demo `output/`. Queue
 does not keep a second copy of Kit's result tree. Kit kwargs (`args`,
 `project`, `output_dir`, …) travel as an opaque bag through DistSSHKit's
 `execute!` allow-list. `serve` also passes `job_id` (the row UUID)

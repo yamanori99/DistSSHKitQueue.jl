@@ -100,6 +100,7 @@ worker へコピーする。`fetch` は終わった Kit leaf を戻す。
   SCRIPT.jl             qhost: submit で rsync
   .distsshkit/queue/<id>  qhost: submit のあと
   .distsshkit/go/       fetch のあと
+  .distsshkit/drive/    fetch のあと (demo の output/ ではない)
 ```
 
 #### キューホスト
@@ -128,6 +129,8 @@ worker へコピーする。`fetch` は終わった Kit leaf を戻す。
     SCRIPT_<UTC>_<id>/  result_path
       kit.pid
       kit.result
+  .distsshkit/drive/
+    SCRIPT_<UTC>_<id>/  同じ allocate。demo の output/ ではない
 ```
 
 `enable` (任意。この端末の `serve` だけなら不要):
