@@ -13,7 +13,10 @@ julia --project=. -m DistSSHQueue [qhost:HOST] fetch <id>
 Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
 [User Guide](@ref Manual), [fetch](@ref Manual-fetch).
 
-`status` / `watch` share one Store table (`path` / `serve` / `qhost`).
+`status` / `watch` share one Store table (`path` / `serve` / `enable` /
+`qhost`). `serve` is the live process (`running` / `stopped` /
+`none`). `enable` is the OS unit file on this host (LaunchAgent /
+systemd), or `none`. After `qhost:` those paths are the queue host's.
 `watch` with `qhost:HOST` uses `ssh -t` when this stdout is a TTY so the
 remote can clear the screen. A pipe without `-q` prints a compact
 `serve` / `running` / `queued` line; `watch -q` is still the table.
