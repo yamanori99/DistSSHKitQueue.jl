@@ -4,7 +4,8 @@ Command reference. For a hands-on path, use First Steps
 ([Requirements](@ref) → [Prepare](@ref Tutorial-Prepare) →
 [First job](@ref Tutorial-Client)).
 
-Full help: `julia --project=. -m DistSSHQueue --help`.
+Root `--help` is a short table (Kit-shaped). Flags and FAQ:
+`julia --project=. -m DistSSHQueue <command> -h` and the pages below.
 Each command page starts with a **Flags** table for that command.
 Kit `go` / `drive` / `size` flags stay in the
 [kit User Guide](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/).
