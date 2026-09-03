@@ -81,11 +81,14 @@ When a new RC lands, change `JULIA_SLOT_MAX` only. If that RC is a new **major.m
 
 These run as jobs of the `Test` workflow
 ([`.github/workflows/CI.yml`](.github/workflows/CI.yml)). Ubuntu:
-`Pkg.test` min / max, JETLS min / max, Aqua min / max, Documenter min,
-Gitleaks. `Assets` (`draw SVG`) runs if `docs/src/assets/` or that workflow
+`Pkg.test` min / max, JETLS min / max, Aqua min / max, Gitleaks.
+Documenter min is
+[`.github/workflows/Documentation.yml`](.github/workflows/Documentation.yml).
+`Assets` (`draw SVG`) runs if `docs/src/assets/` or that workflow
 changed. Linux E2E (max) does **not** run on an ordinary PR. It runs on
 **main** push (path filter minus markdown under `test/` / `testenv/`),
-**`cut`**, **E2E weekly**, and `workflow_dispatch`. Tip `Pkg.test` / Aqua
+**`cut`**, **E2E weekly** (`ssh-e2e-weekly.yml`; `CI.yml` has no
+`schedule`), and `workflow_dispatch`. Tip `Pkg.test` / Aqua
 stay on **main**, **CI weekly**, and `cut`. Registry tree stays on **main**
 and `cut` (ci-cut), not ordinary PRs.
 
