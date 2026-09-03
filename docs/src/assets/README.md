@@ -17,9 +17,9 @@ assets/
     Project.toml        Luxor pin
     Manifest.toml
     draw.jl             source (logo + social SVG)
-    logo-static.svg     README light (`#gh-light-mode-only`)
+    logo-static.svg     README light (`<picture>` source)
     logo-dark-static.svg
-    logo-static.png     local `--png`
+    logo-static.png     local `--png`; README / JuliaHub fallback
     logo-dark-static.png
   social/
     social-preview-static.svg
@@ -29,8 +29,12 @@ assets/
 Documenter only discovers `logo.svg` / `logo-dark.svg` at this directory’s
 top level. Do not edit those copies by hand.
 
-GitHub README uses `#gh-light-mode-only` / `#gh-dark-mode-only` on
-`logo/logo-static.svg` / `logo/logo-dark-static.svg`.
+GitHub README / README.ja use `<picture>` plus `prefers-color-scheme`
+for the footer logos. Dark / light `source` are the transparent SVGs.
+The fallback `img` is `logo-static.png` (paper background). JuliaHub
+strips or ignores `<picture>` / `prefers-color-scheme` (a transparent
+light SVG vanishes on a dark page). Absolute
+`raw.githubusercontent.com/…/main/docs/src/assets/…` so the files load.
 
 Upload `social/social-preview-static.png` under GitHub → Settings → Social
 preview.
