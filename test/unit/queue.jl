@@ -518,7 +518,8 @@ end
                 @test occursin("add-host", help)
                 @test occursin("remove-host", help)
                 @test occursin("watch", help)
-                @test occursin("status [-q]", help)
+                @test occursin("status [-q]           Snapshot; --interval is live", help)
+                @test occursin("watch [-q]            Same as status --interval", help)
                 @test occursin("enable", help)
                 @test occursin("disable", help)
                 @test occursin("fetch <id>", help)
@@ -893,6 +894,14 @@ end
                 @test occursin("queued", out)
                 @test !occursin("DistSSHQueue watch", out)
                 @test !occursin("Ctrl-C stops watch", out)
+                code_si, out_si, _ = capture_stdio() do
+                    DistSSHQueue.main(["status", "--interval", "0.01"])
+                end
+                @test code_si == 0
+                @test occursin("serve", out_si)
+                @test occursin("running", out_si)
+                @test occursin("queued", out_si)
+                @test !occursin("Ctrl-C stops watch", out_si)
                 code_qw, out_qw, _ = capture_stdio() do
                     DistSSHQueue.main(["watch", "-q", "--interval", "0.01"])
                 end

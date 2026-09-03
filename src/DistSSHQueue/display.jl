@@ -118,10 +118,10 @@ function print_queue_usage(io::IO=stdout)
     DistSSHKit.print_help_blank(io)
     DistSSHKit.print_help_section("Client"; io=io)
     DistSSHKit.print_help_lines(io,
-        "  status [-q]           List jobs",
+        "  status [-q]           Snapshot; --interval is live",
         "  list-host             Host tokens on the queue host",
         "  size                  Kit size on the queue host",
-        "  watch [-q]            Live status",
+        "  watch [-q]            Same as status --interval",
         "  submit go|drive …     Enqueue DistSSHKit",
         "  cancel <id>           Drop queued or stop running",
         "  fetch <id>            Copy a finished Kit leaf here",

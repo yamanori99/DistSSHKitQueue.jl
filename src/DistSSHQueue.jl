@@ -77,7 +77,11 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             _, _, _, payload = extract_remote_opts(rest)
             return stop_cli(payload)
         elseif sub == "status"
-            r = maybe_remote(qhost, gjulia, "status", rest; label_qhost=true, queue_env=gqenv)
+            r = maybe_remote(
+                qhost, gjulia, "status", rest;
+                tty=any(isequal("--interval"), rest) && stdout isa Base.TTY,
+                label_qhost=true, queue_env=gqenv,
+            )
             r === nothing || return r
             _, _, _, payload = extract_remote_opts(rest)
             return status_cli(payload)

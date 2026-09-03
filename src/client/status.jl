@@ -53,6 +53,28 @@ function peel_status_watch_verbosity(args::Vector{String})
     return something(mode, :chrome), rest
 end
 
+"""Remaining flags after verbosity. `default_interval === nothing` is a snapshot (`status`)."""
+function peel_status_watch_interval(
+    rest::Vector{String};
+    verb::AbstractString,
+    default_interval::Union{Nothing,Float64},
+)::Tuple{Symbol,Union{Nothing,Float64}}
+    interval = default_interval
+    i = 1
+    while i <= length(rest)
+        a = rest[i]
+        if a == "--interval" && i < length(rest)
+            interval = parse(Float64, rest[i + 1])
+            i += 2
+        elseif a in ("-h", "--help")
+            return :help, interval
+        else
+            throw(ArgumentError("unknown $verb option: $(a)"))
+        end
+    end
+    return :run, interval
+end
+
 function show_status(
     store::AbstractString;
     io::IO=stdout,
@@ -64,19 +86,7 @@ function show_status(
 end
 
 function status_cli(args::Vector{String})::Cint
-    mode, rest = peel_status_watch_verbosity(args)
-    i = 1
-    while i <= length(rest)
-        a = rest[i]
-        if a in ("-h", "--help")
-            show_usage()
-            return 0
-        else
-            throw(ArgumentError("unknown status option: $(a)"))
-        end
-    end
-    show_status(store_path(); quiet=mode === :quiet)
-    return 0
+    return _status_watch_cli(args; verb="status", default_interval=nothing)
 end
 
 function _watch_redraw!(f, io::IO)
@@ -96,11 +106,11 @@ function watch_ticks_from_env()::Union{Nothing,Int}
     return n
 end
 
-"""Live `status` table until Ctrl-C.
+"""Live `status` table until Ctrl-C (`watch` and `status --interval`).
 
 `ticks` / `DISTSSHQUEUE_WATCH_TICKS` are a test harness (finite frames), not
-product CLI. The verb `watch` is the table redraw; a later monitor package may
-own that name (Kit `kit.progress` watchers).
+product CLI. The verb `watch` stays; a later monitor package may own that
+name (Kit `kit.progress` watchers).
 """
 function watch!(
     store::AbstractString;
@@ -134,20 +144,25 @@ function watch!(
 end
 
 function watch_cli(args::Vector{String})::Cint
+    return _status_watch_cli(args; verb="watch", default_interval=0.5)
+end
+
+function _status_watch_cli(
+    args::Vector{String};
+    verb::AbstractString,
+    default_interval::Union{Nothing,Float64},
+)::Cint
     mode, rest = peel_status_watch_verbosity(args)
-    interval = 0.5
-    i = 1
-    while i <= length(rest)
-        a = rest[i]
-        if a == "--interval" && i < length(rest)
-            interval = parse(Float64, rest[i+1])
-            i += 2
-        elseif a in ("-h", "--help")
-            show_usage()
-            return 0
-        else
-            throw(ArgumentError("unknown watch option: $(a)"))
-        end
+    kind, interval = peel_status_watch_interval(
+        rest; verb=verb, default_interval=default_interval,
+    )
+    kind === :help && (show_usage(); return 0)
+    quiet = mode === :quiet
+    if interval === nothing
+        show_status(store_path(); quiet=quiet)
+        return 0
     end
-    return watch!(store_path(); interval=interval, ticks=watch_ticks_from_env(), quiet=mode === :quiet)
+    return watch!(
+        store_path(); interval=interval, ticks=watch_ticks_from_env(), quiet=quiet,
+    )
 end
