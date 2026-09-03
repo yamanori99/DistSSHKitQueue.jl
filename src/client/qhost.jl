@@ -287,14 +287,16 @@ function _remote_submit_ticket(
     qhost_display::Union{Nothing,AbstractString},
     queue_env::AbstractString,
 )::Cint
-    buf = IOBuffer()
-    code = redirect_stdout(buf) do
-        remote_dispatch(
-            dest, spec, sub, hop;
-            tty=tty, qhost_display=qhost_display, queue_env=queue_env, extra_env=extra,
-        )
+    code, text = mktemp() do path, io
+        c = redirect_stdout(io) do
+            remote_dispatch(
+                dest, spec, sub, hop;
+                tty=tty, qhost_display=qhost_display, queue_env=queue_env, extra_env=extra,
+            )
+        end
+        flush(io)
+        return c, read(path, String)
     end
-    text = String(take!(buf))
     print(text)
     if Int(code) == 0
         script = nothing
