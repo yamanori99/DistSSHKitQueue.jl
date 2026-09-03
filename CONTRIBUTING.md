@@ -7,7 +7,7 @@ Internals of this repo.
 
 This is a **separate** package from DistSSHKit: FIFO `serve` in front of one Kit `go` / `drive`, not a bigger Kit. Placement tokens, `execute!`, `kit.pid` / `kit.result`, `terminate_run!`, demo argv, and rsync/collect are Kit's. Queue records table state and the path Kit already wrote.
 
-Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, path-gated PR SSH E2E on slot **max** (`test/e2e.jl`: `serve` API, queue-host CLI, `qhost:` over loopback OpenSSH), Gitleaks, schedule-only **E2E weekly** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
+Julia slots match Kit (`min` / `max` / `tip` in `.github/julia-slots.env`). SSH E2E is this repo's `testenv/docker-ssh` (Kit-shaped workers). CI is `Pkg.test` (unit + child CLI / `parent:1`), JETLS, Aqua, Linux SSH E2E on slot **max** (`test/e2e.jl`: `serve` API, queue-host CLI, `qhost:` over loopback OpenSSH) on **main** / `cut` / weekly / dispatch (not ordinary PRs), Gitleaks, schedule-only **E2E weekly** (Linux / macOS Intel / WSL), and schedule-only **CI weekly**.
 
 ## Requirements
 
@@ -44,7 +44,7 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 Run this on slot **min** and **max** (and **tip** if you have nightly). Layout: [test/README.md](test/README.md).
 
-Checkout `Pkg.test()` is not a Registry tarball. After changing those gates (child CLI project, `ssh` spawn), and before a General cut, run the disposable copy in [test/README.md](test/README.md#registry-tree). CI runs that shape on heavy PRs, **main**, and **cut** (slot tip; not a required check).
+Checkout `Pkg.test()` is not a Registry tarball. After changing those gates (child CLI project, `ssh` spawn), and before a General cut, run the disposable copy in [test/README.md](test/README.md#registry-tree). CI runs that shape on **main** and **cut** (slot tip; not a required check).
 
 ```bash
 ./.github/jetls-check.sh    # hint+; same files as CI
@@ -70,7 +70,7 @@ Exactly three pins, in [`.github/julia-slots.env`](.github/julia-slots.env). Do 
 | Slot | Role | Required |
 | --- | --- | --- |
 | **min** | `Project.toml` julia floor. Pkg.test (no coverage), Aqua, JETLS, Documenter | yes |
-| **max** | Newest tagged or prerelease (`versions.json`). Pkg.test, Aqua, PR / weekly E2E, GHCR worker. Codecov `pkgtest` on **main push** only | yes |
+| **max** | Newest tagged or prerelease (`versions.json`). Pkg.test, Aqua, **main** / weekly / `cut` E2E, GHCR worker. Codecov `pkgtest` on **main push** only | yes |
 | **tip** | Next-minor nightly. Pkg.test, Aqua. `continue-on-error` | no |
 
 JETLS is min plus `JULIA_SLOT_JETLS_MAX` (job name still `JETLS - max`). That pin lags when `max` / `tip` move past what JETLS lists (today 1.12.2–1.13). Raise it only after JETLS supports that runtime. No JETLS **tip**.
@@ -79,13 +79,30 @@ When a new RC lands, change `JULIA_SLOT_MAX` only. If that RC is a new **major.m
 
 ### PR CI
 
-Ubuntu: `Pkg.test` min / max / tip, JETLS min / max, Aqua min / max / tip, Documenter min, Gitleaks. `Assets` (`draw SVG`) runs if `docs/src/assets/` or that workflow changed. Linux E2E (max) runs if `src/`, `test/`, `testenv/`, `Project.toml`, `test/Project.toml`, or `.github/workflows/CI.yml` changed; otherwise that job skips the docker steps (the check still runs).
+These run as jobs of the `Test` workflow
+([`.github/workflows/CI.yml`](.github/workflows/CI.yml)). Ubuntu:
+`Pkg.test` min / max, JETLS min / max, Aqua min / max, Documenter min,
+Gitleaks. `Assets` (`draw SVG`) runs if `docs/src/assets/` or that workflow
+changed. Linux E2E (max) does **not** run on an ordinary PR. It runs on
+**main** push (path filter minus markdown under `test/` / `testenv/`),
+**`cut`**, **E2E weekly**, and `workflow_dispatch`. Tip `Pkg.test` / Aqua
+stay on **main**, **CI weekly**, and `cut`. Registry tree stays on **main**
+and `cut` (ci-cut), not ordinary PRs.
 
-These files **alone** skip the heavy steps (job still starts; Pkg.test / JETLS / Aqua / Documenter do not run):
+These files **alone** skip the heavy steps (job still starts; Pkg.test /
+JETLS / Aqua do not run). Documenter still runs when `docs/**`, README,
+`src/**`, or `Project.toml` changed:
 
-`README.md`, `README.ja.md`, `CONTRIBUTING.md`, `NEWS.md`, `SECURITY.md`, `LICENSE`, `.gitignore`, `.github/pull_request_template.md`, `.coderabbit.yaml`.
+- `README.md`, `README.ja.md`, `CONTRIBUTING.md`, `NEWS.md`,
+  `SECURITY.md`, `LICENSE`
+- `.gitignore`, `.github/pull_request_template.md`, `.coderabbit.yaml`
+- `docs/**`, and markdown under `test/` / `testenv/`
 
-A new root markdown file stays heavy until listed in [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml). Changes under `docs/src` still run those jobs. A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter, and Linux E2E all run. `Pkg.test - registry tree` runs on heavy PRs, **main**, and when `cut` is added (slot tip; not required to merge). macOS / WSL stay on `E2E weekly`, not the PR.
+A new root markdown file stays heavy until listed in
+[`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml).
+A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter,
+and Linux E2E all run. macOS / WSL stay on `E2E weekly`, not the PR.
+Register only after that matrix is green on the merge commit.
 
 CI uploads Codecov on **main push** only (`Pkg.test` max slot, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E weekly** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
 
@@ -94,7 +111,7 @@ julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DISTSSHQUEUE_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
-Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. Path-gated E2E skips docker on the job `ubuntu-latest → ubuntu-24.04` (the job still starts and stays green). E2E weekly and CI weekly are not required.
+Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. A skipped heavy step or skipped Linux E2E docker still leaves the job green. E2E weekly and CI weekly are not required.
 
 - `Pkg.test - min - ubuntu-latest`
 - `Pkg.test - max - ubuntu-latest`
@@ -153,7 +170,7 @@ Not a calendar. Cut when [NEWS.md](NEWS.md) **Unreleased** has something General
 
 ### After a cut merges
 
-1. Run **E2E weekly** on the **merge commit** (`gh workflow run "E2E weekly" --ref <sha>`). Do not register until Linux, macOS Intel, and WSL are green. The PR already ran Linux E2E; this is the other controllers plus a fresh image. A same-day green run on that SHA is enough; do not wait for the Sunday cron if you dispatched.
+1. Run **E2E weekly** on the **merge commit** (`gh workflow run "E2E weekly" --ref <sha>`). Do not register until Linux, macOS Intel, and WSL are green. Ordinary PRs skip Linux E2E; this matrix is the gate after a `cut`. A same-day green run on that SHA is enough; do not wait for the Sunday cron if you dispatched.
 2. `@JuliaRegistrator register` on the **merge commit** (not the PR body).
 3. Paste the NEWS section under `Release notes:`.
 4. TagBot tags once General has the release.
