@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `teardown` without `-y` is a dry-run (`Would remove`, exit 0), not
+  `Error:`. Still needs `-y` / `DISTSSHKIT_YES` to delete.
+
 - `disable` prints `Removed` or `Present` (unchanged), like `enable` /
   `setup`. Teardown still lists those paths itself.
 
