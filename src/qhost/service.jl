@@ -120,7 +120,10 @@ function service_uninstall(;
         apply && live && _systemd_disable()
         path = systemd_user_path(; home=home)
         legacy = legacy_systemd_user_path(; home=home)
-        return _drop_unit_files(path, legacy; io=io, announce=announce)
+        rc = _drop_unit_files(path, legacy; io=io, announce=announce)
+        # disable --now then delete the unit; reload so start cannot use a stale unit.
+        apply && live && _systemd_reload()
+        return rc
     end
     throw(ArgumentError("disable: macOS or Linux only"))
 end
@@ -174,6 +177,14 @@ function _systemd_disable()
             run(pipeline(`systemctl --user disable --now $unit`; stdout=devnull, stderr=devnull))
         catch
         end
+    end
+    return nothing
+end
+
+function _systemd_reload()
+    try
+        run(pipeline(`systemctl --user daemon-reload`; stdout=devnull, stderr=devnull))
+    catch
     end
     return nothing
 end
