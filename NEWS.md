@@ -5,6 +5,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- README / README.ja: `<picture>` keeps GitHub light/dark SVGs; the
+  fallback `img` is the paper PNG so JuliaHub dark mode still shows
+  the footer mark.
+
 - DistSSHKit **0.5.1+** (`compat` `"0.5.1"`). `demo install` copies into
   `distsshkit_demos/`.
 

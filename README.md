@@ -212,13 +212,17 @@ Source code is [MIT](LICENSE).
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img
-    src="docs/src/assets/logo/logo-static.svg#gh-light-mode-only"
-    width="210"
-    alt="DistSSHQueue.jl logo"/>
-  <img
-    src="docs/src/assets/logo/logo-dark-static.svg#gh-dark-mode-only"
-    width="210"
-    alt="DistSSHQueue.jl logo"/>
+  <picture>
+    <source
+      media="(prefers-color-scheme: dark)"
+      srcset="https://raw.githubusercontent.com/yamanori99/DistSSHQueue.jl/main/docs/src/assets/logo/logo-dark-static.svg">
+    <source
+      media="(prefers-color-scheme: light)"
+      srcset="https://raw.githubusercontent.com/yamanori99/DistSSHQueue.jl/main/docs/src/assets/logo/logo-static.svg">
+    <img
+      src="https://raw.githubusercontent.com/yamanori99/DistSSHQueue.jl/main/docs/src/assets/logo/logo-static.png"
+      width="210"
+      alt="DistSSHQueue.jl logo"/>
+  </picture>
 </p>
 <!-- markdownlint-enable MD033 -->
