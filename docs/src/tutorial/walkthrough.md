@@ -28,10 +28,8 @@ Clients hop: create the env, then `pkg> add DistSSHQueue` in it
 
 ## Client: go on parent
 
-Job directory. Queue loadable (`julia --project=.`). DistSSHKit comes
-with Queue (0.5.x). `demo install` copies into `distsshkit_demos/`
-(DistSSHKit **0.5.1+**). On **0.5.0** that directory is `demos/` —
-use that prefix in the `go` / `drive` lines below.
+Job directory. Queue loadable (`julia --project=.`). DistSSHKit **0.5.x**
+(≥0.5.1) comes with Queue. `demo install` copies into `distsshkit_demos/`.
 
 ```bash
 julia --project=. -m DistSSHKit demo install without_kit

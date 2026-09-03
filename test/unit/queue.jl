@@ -475,6 +475,10 @@ end
     @test wkw.workers == 4
     @test wkw.mem_headroom == 0.5
     @test !haskey(DistSSHQueue.execute_kwargs(job(q, gid)), :workers)
+    rid = submit!(q, "r.jl", "parent:1"; kind=:go, repeat=8)
+    @test DistSSHQueue.execute_kwargs(job(q, rid)).repeat == 8
+    didr = submit!(q, "rd.jl", "parent:1"; kind=:drive, repeat=8)
+    @test !haskey(DistSSHQueue.execute_kwargs(job(q, didr)), :repeat)
 end
 
 @testset "result_path from runner and kwargs" begin

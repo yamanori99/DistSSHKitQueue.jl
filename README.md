@@ -20,7 +20,7 @@ Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
 Even small labs and individuals can keep one always-on machine, add
 SSH hosts, and use them together as a small set of compute nodes.
-Julia **1.12+**, DistSSHKit **0.5.x**.
+Julia **1.12+**, DistSSHKit **0.5.x** (≥0.5.1).
 
 ## Install
 
@@ -36,7 +36,7 @@ Or, equivalently, via the `Pkg` API:
 julia> import Pkg; Pkg.add("DistSSHQueue")
 ```
 
-DistSSHKit **0.5.x** comes from General with it. Do not `Pkg.develop`
+DistSSHKit **0.5.x** (≥0.5.1) comes from General with it. Do not `Pkg.develop`
 Kit for ordinary Queue work. Git tag `v0.1.0-beta.1` is DistSSHKitQueue
 (old UUID); do not use it.
 
@@ -54,8 +54,8 @@ For everything else, see the
 - **Queue host** — the always-on **macOS or Linux** box that holds
   `~/.distsshqueue` and runs `serve` (a VM is fine). A sleeping laptop
   is not this box. WSL2 is a client or worker, not this role.
-- **Client** — a dev machine that submits, lists, watches, fetches, or cancels. No
-  cap. It must not become the Kit master.
+- **Client** — a dev machine that submits, lists, watches, fetches, or
+  cancels. No cap. It must not become the Kit master.
 - **serve** — FIFO process on the queue host. It starts DistSSHKit
   (`execute!(…; detached=true)`). Stopping it does not cancel a
   Kit job that is already running.
@@ -140,7 +140,8 @@ not set `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`.
 - **macOS** — `~/Library/LaunchAgents/org.distsshqueue.serve.plist`
 - **Linux / WSL2** — `~/.config/systemd/user/distsshqueue.serve.service`
 
-User units (no root). Same command: `julia --project=<queue-env> -m DistSSHQueue serve`.
+User units (no root). Same command:
+`julia --project=<queue-env> -m DistSSHQueue serve`.
 
 #### Workers
 
@@ -211,7 +212,13 @@ Source code is [MIT](LICENSE).
 
 <!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img src="docs/src/assets/logo/logo-static.svg#gh-light-mode-only" width="210" alt="DistSSHQueue.jl logo"/>
-  <img src="docs/src/assets/logo/logo-dark-static.svg#gh-dark-mode-only" width="210" alt="DistSSHQueue.jl logo"/>
+  <img
+    src="docs/src/assets/logo/logo-static.svg#gh-light-mode-only"
+    width="210"
+    alt="DistSSHQueue.jl logo"/>
+  <img
+    src="docs/src/assets/logo/logo-dark-static.svg#gh-dark-mode-only"
+    width="210"
+    alt="DistSSHQueue.jl logo"/>
 </p>
 <!-- markdownlint-enable MD033 -->

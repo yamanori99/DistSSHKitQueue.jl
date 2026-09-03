@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- DistSSHKit **0.5.1+** (`compat` `"0.5.1"`). `demo install` copies into
+  `distsshkit_demos/`.
+
 - Walkthrough: queue host `setup` / `add-host` / `serve`, client
   `demo install` / `qhost:` go / `fetch`, Kit setup from the stage tree
   before `child:NAME`, then drive, then teardown dry-run / `-y`.
