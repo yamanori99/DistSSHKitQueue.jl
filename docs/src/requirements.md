@@ -184,6 +184,8 @@ unit; skip that file if you only `serve` in a terminal.
     SCRIPT_<UTC>_<id>/
       kit.pid
       kit.result
+  .distsshkit/drive/    same allocate; not demo output/
+    SCRIPT_<UTC>_<id>/
 ```
 
 `enable` unit (same `julia --project=<queue-env> -m DistSSHQueue serve`):

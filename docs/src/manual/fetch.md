@@ -15,7 +15,10 @@ Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
 Run it from the same `cwd` / `DISTRIBUTED_PROJECT_ROOT` as `submit`.
 The dest is that project's copy of the Kit leaf
 (`…/.distsshkit/{go|drive}/<stem>_<UTC>_<id>/`). stdout is that path,
-one line. Re-run rsyncs into the same leaf.
+one line. Re-run rsyncs into the same leaf. A Kit demo that writes
+`output/` on a local `julia -m DistSSHKit drive` still uses that unique
+`.distsshkit/drive/` leaf under Queue (`allocate_output_dir` sets
+`DISTRIBUTED_OUTPUT_DIR` before `init_output_dir!`).
 
 `fetch` stays on the client. It does not hop `main` (`status` /
 `cancel` do). Path lookup is a captured `julia -e` on the queue host

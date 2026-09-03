@@ -241,8 +241,11 @@ end
 
 """Set Kit `output_dir` before spawn so `:running` cancel and restart adopt need no submitter path.
 
-Uses DistSSHKit `allocate_output_dir` when the bag omitted `output_dir`. No-op if
-the script is not on disk (unit stubs)."""
+Uses DistSSHKit `allocate_output_dir` when the bag omitted `output_dir`. That is
+`{script}/.distsshkit/{go|drive}/<stem>_<UTC>_<id>/` (unique drive leaf; do not
+reuse shared `.distsshkit/drive` or a demo `output/`). Kit `init_output_dir!`
+keeps this path when `DISTRIBUTED_OUTPUT_DIR` is already set. No-op if the
+script is not on disk (unit stubs)."""
 function ensure_kit_output_dir!(j::Job)
     kit_output_dir(j) !== nothing && return nothing
     isfile(j.script) || return nothing

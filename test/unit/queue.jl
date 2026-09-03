@@ -295,6 +295,38 @@ end
     @test !haskey(g.kwargs, "path_anchor")
 end
 
+@testset "drive allocate_output_dir is .distsshkit/drive with the job id" begin
+    mktempdir() do d
+        sdir = joinpath(d, "with_kit")
+        mkpath(sdir)
+        script = joinpath(sdir, "square_file.jl")
+        write(script, """
+        using DistSSHKit
+        function init_output_dir!(_)
+            DistSSHKit.resolve_distributed_output_dir!(ARGS, joinpath(@__DIR__, "output"))
+        end
+        """)
+        q = Queue(; runner=_ -> nothing, store=joinpath(d, "jobs.toml"))
+        id = submit!(q, script, "parent:1"; kind=:drive, project=d)
+        @test step!(q) == 1
+        _wait_state(q, id, :done)
+        j = job(q, id)
+        p = DistSSHKit.canonical_local_path(something(j.result_path))
+        @test occursin(id, basename(p))
+        @test basename(dirname(p)) == "drive"
+        DistSSHQueue.require_fetchable_leaf(id, p)
+        mod = Module()
+        Base.include(mod, script)
+        got = withenv("DISTRIBUTED_OUTPUT_DIR" => p) do
+            @eval mod init_output_dir!(String[])
+        end
+        @test DistSSHKit.canonical_local_path(got) == p
+        write(joinpath(p, "square_results.csv"), "param,result\n")
+        @test isfile(joinpath(p, "square_results.csv"))
+        @test !isdir(joinpath(sdir, "output"))
+    end
+end
+
 @testset "kit.pid keeps a live detached child across load" begin
     mktempdir() do d
         out = joinpath(d, "kit-out")
