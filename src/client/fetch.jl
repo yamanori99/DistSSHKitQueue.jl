@@ -85,6 +85,55 @@ function parse_fetch_source(line::AbstractString)
     return st, path
 end
 
+"""Client-only marker after `qhost:` submit. Not a Kit leaf (`go/` / `drive/`)."""
+const SUBMIT_TICKET_UUID =
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+
+function job_id_from_submit_stdout(out::AbstractString)::Union{Nothing,String}
+    for line in eachsplit(String(out), '\n'; keepempty=false)
+        s = strip(line)
+        occursin(SUBMIT_TICKET_UUID, s) && return s
+    end
+    return nothing
+end
+
+function submit_ticket_path(root::AbstractString, id::AbstractString)::String
+    return joinpath(String(root), ".distsshkit", "queue", String(id))
+end
+
+function write_submit_ticket(
+    root::AbstractString,
+    stdout_text::AbstractString;
+    script::Union{Nothing,AbstractString}=nothing,
+    qhost::Union{Nothing,AbstractString}=nothing,
+)::Union{Nothing,String}
+    id = job_id_from_submit_stdout(stdout_text)
+    id === nothing && return nothing
+    dest = submit_ticket_path(root, id)
+    mkpath(dirname(dest))
+    lines = String["id = $(repr(id))"]
+    if script !== nothing && !isempty(strip(String(script)))
+        sp = String(script)
+        rel = try
+            replace(
+                relpath(
+                    DistSSHKit.canonical_local_path(sp),
+                    DistSSHKit.canonical_local_path(root),
+                ),
+                '\\' => '/',
+            )
+        catch
+            replace(sp, '\\' => '/')
+        end
+        push!(lines, "script = $(repr(rel))")
+    end
+    if qhost !== nothing && !isempty(strip(String(qhost)))
+        push!(lines, "qhost = $(repr(String(qhost)))")
+    end
+    write(dest, join(lines, '\n') * '\n')
+    return dest
+end
+
 function local_fetch_dest(
     id::AbstractString,
     result_path::AbstractString,

@@ -261,10 +261,31 @@ function maybe_remote(
     q = coalesce_queue_env(queue_env, qenv)
     extra = Dict{String,String}()
     hop = payload
+    staged = false
     if should_stage(sub, payload)
         hop, extra = stage_job_tree!(dest, spec, sub, payload)
+        staged = true
     end
-    return remote_dispatch(
+    staged || return remote_dispatch(
         dest, spec, sub, hop; tty=tty, qhost_display=disp, queue_env=q, extra_env=extra,
     )
+    buf = IOBuffer()
+    code = redirect_stdout(buf) do
+        remote_dispatch(
+            dest, spec, sub, hop; tty=tty, qhost_display=disp, queue_env=q, extra_env=extra,
+        )
+    end
+    text = String(take!(buf))
+    print(text)
+    if Int(code) == 0
+        script = nothing
+        try
+            kit, kitargs = kit_verb_and_args(sub, payload)
+            parsed = kit == "go" ? DistSSHKit.parse_go_args(kitargs) : DistSSHKit.parse_drive_args(kitargs)
+            parsed.script_path !== nothing && (script = String(parsed.script_path))
+        catch
+        end
+        write_submit_ticket(job_project(), text; script=script, qhost=dest)
+    end
+    return Cint(code)
 end

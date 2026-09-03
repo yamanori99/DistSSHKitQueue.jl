@@ -5,6 +5,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `qhost:` submit writes `.distsshkit/queue/<id>` on the client (script /
+  qhost). The Kit leaf still appears only after `fetch`. Stage still
+  excludes `.distsshkit/`.
+
 - Prepare leads with `setup` / `add-host` / `serve`. Dedicated
   `~/.distsshqueue/env` is optional (`qhost:` / `enable`). `setup` still
   writes `config.toml` only.
