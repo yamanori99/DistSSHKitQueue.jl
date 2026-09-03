@@ -58,12 +58,16 @@ function teardown(;
     targets = teardown_targets(; home=home, bindir=bindir, config=config)
     existing = String[p for p in targets if ispath(p)]
     if !yes
-        DistSSHKit.print_cli_error("teardown needs -y / --yes")
-        DistSSHKit.print_help_section("Would remove"; io=stderr)
-        for p in existing
-            DistSSHKit.print_help_lines(stderr, "  $(_q_short(p))")
+        DistSSHKit.print_help_section("Would remove"; io=io)
+        if isempty(existing)
+            DistSSHKit.print_help_lines(io, "  (nothing)")
+        else
+            for p in existing
+                DistSSHKit.print_help_lines(io, "  $(_q_short(p))")
+            end
         end
-        return 1
+        DistSSHKit.print_help_lines(io, "  Pass -y / --yes to delete.")
+        return 0
     end
     st = teardown_store(; home=home, config=config)
     apply && stop_serve!(st)

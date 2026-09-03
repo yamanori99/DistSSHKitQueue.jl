@@ -493,11 +493,14 @@ end
             "DISTSSHQUEUE_STORE" => nothing,
             "DISTSSHKIT_YES" => nothing,
         ) do
-            code1, _, err1 = capture_stdio() do
+            code1, out1, err1 = capture_stdio() do
                 DistSSHQueue.teardown_main(["--home", home, "--write-only"])
             end
-            @test code1 == 1
-            @test occursin("teardown needs -y", err1)
+            @test code1 == 0
+            @test occursin("Would remove", out1)
+            @test occursin("Pass -y / --yes to delete", out1)
+            @test !occursin("Error:", err1)
+            @test !occursin("Error:", out1)
             @test isfile(store)
             @test isfile(wrap)
             code2, out2, _ = capture_stdio() do
@@ -551,7 +554,8 @@ end
                 DistSSHQueue.teardown_main(["--home", home, "--write-only"])
             end
             @test code == 0
-            @test !occursin("teardown needs -y", err)
+            @test !occursin("Would remove", err)
+            @test !occursin("Pass -y / --yes to delete", err)
         end
         @test !ispath(data)
     end

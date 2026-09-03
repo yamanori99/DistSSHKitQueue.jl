@@ -8,8 +8,9 @@ julia -m DistSSHQueue teardown -y
 ```
 
 Also: [Prepare](@ref Tutorial-Prepare), [serve](@ref Manual-serve),
-[hosts](@ref Manual-hosts). `setup` refuses `qhost:`. `teardown` can
-run from a client (`qhost:HOST teardown -y`).
+[hosts](@ref Manual-hosts). `teardown` without `-y` prints `Would remove` (exit 0) and does not
+delete. `-y` / `--yes` or `DISTSSHKIT_YES` actually wipes. From a
+client: `qhost:HOST teardown -y`.
 
 `setup` is optional. Defaults work without `config.toml`. Re-run is a
 no-op unless `--force`.
