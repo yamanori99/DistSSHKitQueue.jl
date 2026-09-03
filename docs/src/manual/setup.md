@@ -7,7 +7,7 @@ julia -m DistSSHQueue setup [--force]
 julia -m DistSSHQueue teardown -y
 ```
 
-Also: [Prepare](@ref Tutorial-Prepare), [serve](@ref Manual-serve),
+Also: [Prepare](@ref Tutorial-Prepare), [One lab](@ref Tutorial-Lab), [serve](@ref Manual-serve),
 [hosts](@ref Manual-hosts). `setup` refuses `qhost:`. `teardown` without
 `-y` prints `Would remove` (exit 0) and does not delete. `-y` / `--yes`
 or `DISTSSHKIT_YES` actually wipes. From a client: `qhost:HOST teardown

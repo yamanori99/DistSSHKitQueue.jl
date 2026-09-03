@@ -7,7 +7,7 @@ CurrentModule = DistSSHQueue
 Julia entry points when you embed DistSSHQueue. Day-to-day work stays
 on the CLI (`julia --project=. -m DistSSHQueue …`); see
 [Introduction](@ref DistSSHQueue.jl),
-[First Steps](@ref Tutorial-Prepare), and the [User Guide](@ref Manual).
+[First Steps](@ref Tutorial-Lab), and the [User Guide](@ref Manual).
 REPL help also works (`?DistSSHQueue.submit!`).
 
 Submitters `using DistSSHQueue`. Queue-host code `using DistSSHKit`.

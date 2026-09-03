@@ -169,6 +169,9 @@ julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 stdout 1 行。stderr に `Queued  N` (`DISTSSHKIT_QUIET` で隠す)。
 `fetch` は終わった Kit leaf をこのジョブ木へ戻す。
 
+打つ順 (キューホスト → fetch → Kit worker setup → teardown):
+[One lab](https://yamanori99.github.io/DistSSHQueue.jl/stable/tutorial/lab/)。
+
 **キューホスト** で一度だけ。`setup` は `config.toml` を書く (`env/` は作らない)。
 既定の Julia 環境で `julia -m DistSSHQueue`。チェックアウトなら `--project=.`。
 

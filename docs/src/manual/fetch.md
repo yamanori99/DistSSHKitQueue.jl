@@ -9,7 +9,8 @@ file is not the leaf.
 julia --project=. -m DistSSHQueue [qhost:HOST] fetch <id>
 ```
 
-Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
+Also: [First job](@ref Tutorial-Client), [One lab](@ref Tutorial-Lab),
+[submit](@ref Manual-submit),
 [status](@ref Manual-status).
 
 Run it from the same `cwd` / `DISTRIBUTED_PROJECT_ROOT` as `submit`.

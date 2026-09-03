@@ -171,6 +171,9 @@ julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 bare stdout line; stderr shows `Queued  N` unless `DISTSSHKIT_QUIET` is set.
 `fetch` copies the finished Kit leaf onto this job tree.
 
+Typed path (queue host → fetch → Kit worker setup → teardown):
+[One lab](https://yamanori99.github.io/DistSSHQueue.jl/stable/tutorial/lab/).
+
 On the **queue host** (once). `setup` writes `config.toml`, not `env/`.
 Queue in the default Julia env (`julia -m DistSSHQueue`); from a
 checkout add `--project=.`.

@@ -1,7 +1,8 @@
 # [First job](@id Tutorial-Client)
 
 Submit from a **client** after the queue host is up
-([Prepare](@ref Tutorial-Prepare)). Also see
+([Prepare](@ref Tutorial-Prepare)). Commands in order:
+[One lab](@ref Tutorial-Lab). Also see
 [User Guide · submit](@ref Manual-submit), [status](@ref Manual-status),
 [fetch](@ref Manual-fetch), [Where files live](@ref Layout).
 
@@ -61,4 +62,4 @@ line with a `.jl` and no Queue verb is `go`.
 There is no `--via`. Do not pass `qhost:` to `setup` / `serve` /
 `enable` / `disable` / `add-host` / `remove-host`.
 
-Next: [User Guide](@ref Manual).
+Next: [One lab](@ref Tutorial-Lab), or [User Guide](@ref Manual).

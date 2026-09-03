@@ -5,6 +5,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- One lab walkthrough: queue host `setup` / `add-host` / `serve`, client
+  `demo install` / `qhost:` go / `fetch`, Kit setup from the stage tree
+  before `child:NAME`, then drive, then teardown dry-run / `-y`.
+
 - Queue `drive` (no `--output-dir`) uses DistSSHKit `allocate_output_dir`:
   `.distsshkit/drive/<stem>_<UTC>_<id>/`. That is the fetch leaf. Kit
   demos that write `output/` on a local `drive` do not use `output/`
