@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- Root `--help` matches Kit: command table, examples, then
+  `<command> -h`. Notes stay in the Manual.
+
 ## 0.3.0
 
 Breaking cut after `0.2.1`. DistSSHKit **0.5.x**. Drive `:done` follows
