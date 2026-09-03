@@ -7,19 +7,11 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## 0.3.1
 
-Patch after `0.3.0`. DistSSHKit **0.5.1+** (`compat` `"0.5.1"`).
+Patch after `0.3.0`. DistSSHKit **0.5.x** (≥0.5.1).
 Walkthrough, unique drive leaf, status / watch, teardown dry-run.
 
-- README / README.ja: `<picture>` keeps GitHub light/dark SVGs; the
-  fallback `img` is the paper PNG so JuliaHub dark mode still shows
-  the footer mark.
-
-- DistSSHKit **0.5.1+** (`compat` `"0.5.1"`). `demo install` copies into
+- DistSSHKit **0.5.x** (≥0.5.1). `demo install` copies into
   `distsshkit_demos/`.
-
-- E2E weekly Full starts on a `version` raise squash to `main`. A red
-  Full after that cut adds `cut-hold` (do not register). README has a
-  PkgEval badge. No Discussions badge (this repo has no Discussions).
 
 - Walkthrough: queue host `setup` / `add-host` / `serve`, client
   `demo install` / `qhost:` go / `fetch`, Kit setup from the stage tree
@@ -64,6 +56,11 @@ Walkthrough, unique drive leaf, status / watch, teardown dry-run.
 
 - Root `--help` matches Kit: command table, examples, then
   `<command> -h`. Notes stay in the Manual.
+
+- README / README.ja: `<picture>` keeps GitHub light/dark SVGs; the
+  fallback `img` is the paper PNG so JuliaHub dark mode still shows
+  the footer mark. PkgEval badge. No Discussions badge (this repo has
+  none).
 
 ## 0.3.0
 
