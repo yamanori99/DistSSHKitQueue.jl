@@ -580,8 +580,8 @@ end
                         @test status_shows_id(listed, id)
                         @test occursin("  done  ", listed)
                         wout = read_cli(addenv(qcmd(["watch", "--interval", "0.05"]), merge(env, Dict("DISTSSHKIT_QUIET" => "0"))...))
-                        @test occursin("DistSSHQueue watch", wout)
-                        @test status_shows_id(wout, id)
+                        @test occursin("serve", wout)
+                        @test occursin("running", wout)
                     finally
                         DistSSHQueue.stop_serve!(store)
                         try
@@ -646,7 +646,8 @@ end
                         @test status_shows_id(listed, id1)
                         @test occursin("  done  ", listed)
                         wout = read_cli(addenv(qh(["watch", "--interval", "0.05"]), client_env...))
-                        @test status_shows_id(wout, id1)
+                        @test occursin("serve", wout)
+                        @test occursin("running", wout)
 
                         id_f = read_cli(addenv(qh(["submit", "go", token, script, GO_N...]), client_env...))
                         @test !isempty(id_f)

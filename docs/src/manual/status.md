@@ -13,10 +13,10 @@ julia --project=. -m DistSSHQueue [qhost:HOST] fetch <id>
 Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
 [User Guide](@ref Manual), [fetch](@ref Manual-fetch).
 
-`status` / `watch` print `qhost` from `DISTSSHQUEUE_QHOST` (set on
-the `qhost:` ssh), or `local (hostname)` when omitted. No `--via`. Not the
-job `HOSTS` column. `watch` with `qhost:HOST` uses `ssh -t` so the
-remote TTY can clear the screen.
+`status` / `watch` share one Store table (`path` / `serve` / `qhost`).
+`watch` with `qhost:HOST` uses `ssh -t` when this stdout is a TTY so the
+remote can clear the screen. A pipe (no TTY) prints a compact
+`serve` / `running` / `queued` line; use `status` for the history table.
 
 `watch` does not stop `serve`. Ctrl-C leaves it running.
 

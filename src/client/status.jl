@@ -117,8 +117,12 @@ function watch!(
         while true
             n += 1
             rows = isfile(store) ? read_jobs(store) : Job[]
-            _watch_redraw!(io) do
-                print_watch_frame(store, rows; io=io, qhost=qhost, quiet=quiet)
+            if quiet || io isa Base.TTY
+                _watch_redraw!(io) do
+                    print_watch_frame(store, rows; io=io, qhost=qhost, quiet=quiet)
+                end
+            else
+                print_watch_compact(store, rows; io=io)
             end
             ticks !== nothing && n >= ticks && break
             sleep(interval)
