@@ -92,9 +92,10 @@ changed. Linux E2E (max) does **not** run on an ordinary PR. It runs on
 stay on **main**, **CI weekly**, and `cut`. Registry tree stays on **main**
 and `cut` (ci-cut), not ordinary PRs.
 
-These files **alone** skip the heavy steps (job still starts; Pkg.test /
-JETLS / Aqua do not run). Documenter still runs when `docs/**`, README,
-`src/**`, or `Project.toml` changed:
+These files **alone** skip the heavy jobs (UI: skipping; Pkg.test /
+JETLS / Aqua do not start). Documenter still runs when `docs/**`, README,
+`src/**`, or `Project.toml` changed; otherwise it is skipped too.
+Linux E2E is skipped on ordinary PRs (same skipping UI):
 
 - `README.md`, `README.ja.md`, `CONTRIBUTING.md`, `NEWS.md`,
   `SECURITY.md`, `LICENSE`
@@ -115,7 +116,7 @@ julia --project=. -e 'using Pkg; Pkg.test(; coverage=true)'
 DISTSSHQUEUE_CODE_COVERAGE=1 ./testenv/docker-ssh/scripts/up.sh --e2e
 ```
 
-Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. A skipped heavy step or skipped Linux E2E docker still leaves the job green. E2E weekly and CI weekly are not required.
+Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure. A job skipped by the heavy / E2E gate shows as skipping (not a green empty run). E2E weekly and CI weekly are not required.
 
 - `Pkg.test - min - ubuntu-latest`
 - `Pkg.test - max - ubuntu-latest`
