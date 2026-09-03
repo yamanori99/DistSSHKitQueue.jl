@@ -6,6 +6,7 @@
 # SVG is the reproducible deliverable. --png needs Cairo / rsvg locally.
 
 using Luxor
+using Dates
 
 const WANT_PNG = "--png" in ARGS
 
@@ -438,6 +439,11 @@ function main()
     save_social()
     save_favicon_svg!()
     save_favicon()
+    if WANT_PNG
+        stamp = joinpath(ASSETS, ".raster-stamp-png")
+        write(stamp, string(Dates.now(Dates.UTC), "Z\n"))
+        println("wrote .raster-stamp-png")
+    end
 end
 
 main()

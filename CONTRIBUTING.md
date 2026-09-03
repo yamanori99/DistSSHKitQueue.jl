@@ -105,7 +105,8 @@ A new root markdown file stays heavy until listed in
 [`.github/actions/ci-heavy/action.yml`](.github/actions/ci-heavy/action.yml).
 A `cut` label skips none of this: Pkg.test, JETLS, Aqua, Documenter,
 and Linux E2E all run. macOS / WSL stay on `E2E weekly`, not the PR.
-Register only after that matrix is green on the merge commit.
+A `cut` squash to `main` starts Full on that SHA. Register only after
+that matrix is green (or wait out `cut-hold`).
 
 CI uploads Codecov on **main push** only (`Pkg.test` max slot, flag `pkgtest`). PR E2E does not upload; `cut` PRs and **E2E weekly** Linux upload flag `e2e`. Public repo + Codecov OIDC (`id-token: write`). Status checks are informational (`codecov.yml`). Local coverage:
 
@@ -129,8 +130,8 @@ Required to merge (ruleset `main` uses these names). Tip jobs are allow-failure.
 
 | When | Workflow | What |
 | --- | --- | --- |
-| Sunday 04:00 JST, or Run workflow | `E2E weekly` | `ubuntu-latest`, `macos-15-intel`, WSL2 → `ubuntu-24.04`. Linux job uploads E2E Codecov. Not a PR check. Failure opens (or comments on) Issue `E2E weekly failed`; a later green run closes it. After a `cut` merge, dispatch this on that commit and wait for green before register. |
-| Sunday 10:00 JST, or Run workflow | `CI weekly` | Same `Pkg.test` / JETLS / Aqua slots as a PR (no coverage). Not a PR check. Catches max / Aqua / JETLS `@release` drift when nothing merged that week. Failure of min/max jobs opens Issue `CI weekly failed` (`ci`); tip is omitted from that notify. |
+| Sunday 04:00 JST, Run workflow, or a `cut` squash to `main` | `E2E weekly` | `ubuntu-latest`, `macos-15-intel`, WSL2 → `ubuntu-24.04`. Linux job uploads E2E Codecov. Not a PR check. Failure opens (or comments on) Issue `E2E weekly failed`; a later green run closes it. A red Full after a `cut` merge adds `cut-hold`. Compat-only `Project.toml` edits start the workflow but skip Full. |
+| Sunday 10:00 JST, or Run workflow | `CI weekly` | Same `Pkg.test` / JETLS / Aqua slots as a PR (no coverage). Not a PR check. Catches max / Aqua / JETLS `@release` drift when nothing merged that week. Failure of min/max jobs opens Issue `CI weekly failed` (`ci`); tip is omitted from that notify. `cache-gc` keeps one Actions cache per restore-key prefix. |
 
 ## Pull requests
 
@@ -153,6 +154,7 @@ what is useful.
 | --- | --- |
 | `breaking` | Incompatible behavior. May land **without** a version bump. |
 | `cut` | `Project.toml` `version` went up. |
+| `cut-hold` | Postpone register. CI adds this on Issue `E2E weekly failed` when Full is red after a `cut` merge. Not a PR `area:*` label. Do not lower `version`. |
 
 On a breaking line bump `x` in `0.x.y`; otherwise bump `y`. Do not ship an empty cut. Do not automate the bump or `@JuliaRegistrator register`.
 
@@ -173,10 +175,11 @@ Not a calendar. Cut when [NEWS.md](NEWS.md) **Unreleased** has something General
 
 ### After a cut merges
 
-1. Run **E2E weekly** on the **merge commit** (`gh workflow run "E2E weekly" --ref <sha>`). Do not register until Linux, macOS Intel, and WSL are green. Ordinary PRs skip Linux E2E; this matrix is the gate after a `cut`. A same-day green run on that SHA is enough; do not wait for the Sunday cron if you dispatched.
-2. `@JuliaRegistrator register` on the **merge commit** (not the PR body).
-3. Paste the NEWS section under `Release notes:`.
-4. TagBot tags once General has the release.
+1. **E2E weekly** starts on the **merge commit** (`Project.toml` version went up). Do not register until Linux, macOS Intel, and WSL are green. Ordinary PRs skip Linux E2E; `cut` covers that on the PR, Full covers macOS / WSL after squash. Do not wait for Sunday cron. `workflow_dispatch` remains for a re-run.
+2. Full red: Issue `E2E weekly failed` gets `cut-hold`. Do not `@JuliaRegistrator register` while `cut-hold` is open. Do not lower `version`.
+3. Full green: CI removes `cut-hold` and closes the Issue. Register on that merge commit (not the PR body). Paste the NEWS section under `Release notes:`.
+4. Skip that version on General instead: keep `cut-hold` until a later cut (higher `version`) is ready, then register that later cut.
+5. TagBot tags once General has the release.
 
 TagBot uses SSH deploy key secret `DOCUMENTER_KEY` (write deploy key on this repo) so the `vX.Y.Z` tag starts Docs and `stable` updates. Docs still deploy with `GITHUB_TOKEN`. Do not add a `+doc1` tag unless that path failed. Manual rebuild: `gh workflow run Docs --ref vX.Y.Z`.
 
@@ -184,7 +187,7 @@ Repo Settings → Actions → Workflow permissions: **Read and write** (`GITHUB_
 
 ## Issues
 
-**Issues** (Bug / Enhancement forms only): `bug` or `enhancement`. The area dropdown is triage; add `area:*` if useful. Usage questions can wait until Discussions are on. Security: [SECURITY.md](SECURITY.md).
+**Issues** (Bug / Enhancement forms only): `bug` or `enhancement`. The area dropdown is triage; add `area:*` if useful. This repo has no Discussions; usage questions that are not a bug or a committed feature can wait or be an Issue. Security: [SECURITY.md](SECURITY.md).
 
 A Queue failure is not automatically a Queue bug. Decide the repo first:
 
@@ -234,7 +237,7 @@ CI infers, in order:
 1. A unique type on a closing issue (`Fixes #N`)
 2. Else the branch prefix: `feat/` → enhancement, `fix/` → bug, `breaking/` → breaking, `chore/` / `docs/` / `ci/` / `test/` / anything else → chore
 
-`fix/` plus `Fixes` an enhancement issue gets `enhancement`. `breaking` may sit next to the type label. After merge a human registers; TagBot tags.
+`fix/` plus `Fixes` an enhancement issue gets `enhancement`. `breaking` may sit next to the type label. After a `cut` merge, Full runs; a human registers when green (or holds with `cut-hold`); TagBot tags.
 
 Ruleset `main` requires check `PR label` (workflow `Type`). Type labels (`bug` / `enhancement` / `breaking` / `chore` / `cut`) and each `area:*` must exist (`gh label create` if missing).
 
@@ -246,6 +249,7 @@ Colors match DistSSHKit: type is "what", area is "where". Do not give each `area
 | Path area | teal `#bfdadc` | `area:client` `area:qhost` `area:queue` `area:project-docs` |
 | Documenter | blue `#0075ca` | `area:docs` (and leftover `docs`) |
 | CI | black `#000000` | `area:ci` (and `ci` on weekly failure issues) |
+| Hold | pale blue `#BFD4F2` | `cut-hold` on Issue `E2E weekly failed` after a red Full |
 | Test harness | pale blue `#c5def5` | `area:test` |
 
 ## Language

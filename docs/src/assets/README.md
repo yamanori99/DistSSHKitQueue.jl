@@ -10,6 +10,7 @@ Luxor into the package or docs project.
 assets/
   custom.css
   README.md
+  .raster-stamp-png     after local `--png` (CI freshness)
   favicon.svg / favicon-dark.svg / favicon.ico   tab icon (plum Q; light + dark)
   logo.svg              Documenter light (copy of logo/logo-static.svg)
   logo-dark.svg         Documenter dark (copy of logo/logo-dark-static.svg)
@@ -46,7 +47,10 @@ julia --project=docs/src/assets/logo docs/src/assets/logo/draw.jl --png   # rast
 ```
 
 CI (`.github/workflows/assets-draw.yml`) re-runs the SVG draw when this tree
-changes and fails if committed SVGs drift. PNG is not pixel-compared.
+changes and fails if SVG outputs drift, or if PNG/ICO look older than their
+sources in git history (commit time of the raster, or `.raster-stamp-png`
+after a complete `--png`). Draw `--png` locally before committing rasters
+(CI does not render them).
 
 Needs [Luxor](https://github.com/JuliaGraphics/Luxor.jl) **4.5** via the pin
 above, not a global `] add`.
