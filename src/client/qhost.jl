@@ -261,18 +261,34 @@ function maybe_remote(
     q = coalesce_queue_env(queue_env, qenv)
     extra = Dict{String,String}()
     hop = payload
-    staged = false
     if should_stage(sub, payload)
         hop, extra = stage_job_tree!(dest, spec, sub, payload)
-        staged = true
+        return _remote_submit_ticket(
+            dest, spec, sub, hop, extra, payload; tty=tty, qhost_display=disp, queue_env=q,
+        )
     end
-    staged || return remote_dispatch(
+    return remote_dispatch(
         dest, spec, sub, hop; tty=tty, qhost_display=disp, queue_env=q, extra_env=extra,
     )
+end
+
+"""Stage hop: capture submit stdout, reprint it, write `.distsshkit/queue/<id>`."""
+function _remote_submit_ticket(
+    dest::AbstractString,
+    spec::AbstractString,
+    sub::AbstractString,
+    hop::Vector{String},
+    extra::Dict{String,String},
+    payload::Vector{String};
+    tty::Bool,
+    qhost_display::Union{Nothing,AbstractString},
+    queue_env::AbstractString,
+)::Cint
     buf = IOBuffer()
     code = redirect_stdout(buf) do
         remote_dispatch(
-            dest, spec, sub, hop; tty=tty, qhost_display=disp, queue_env=q, extra_env=extra,
+            dest, spec, sub, hop;
+            tty=tty, qhost_display=qhost_display, queue_env=queue_env, extra_env=extra,
         )
     end
     text = String(take!(buf))
