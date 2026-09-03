@@ -7,7 +7,7 @@ Layout (same headings as DistSSHKit; Queue verbs only — do not copy Kit
 
 - **Introduction** — `index.md`
 - **First Steps** — `requirements.md`, `tutorial/`
-  (`prepare.md`, `client.md`, `lab.md`)
+  (`prepare.md`, `client.md`, `walkthrough.md`)
 - **User Guide** — `manual/`
 - **API** — `api.md`
 

@@ -2,7 +2,7 @@
 
 Submit from a **client** after the queue host is up
 ([Prepare](@ref Tutorial-Prepare)). Commands in order:
-[One lab](@ref Tutorial-Lab). Also see
+[Walkthrough](@ref Tutorial-Walkthrough). Also see
 [User Guide · submit](@ref Manual-submit), [status](@ref Manual-status),
 [fetch](@ref Manual-fetch), [Where files live](@ref Layout).
 
@@ -25,7 +25,7 @@ julia --project=. -m DistSSHQueue qhost:mini list-host
 julia --project=. -m DistSSHQueue qhost:mini size
 ```
 
-One lab: `export DISTSSHQUEUE_HOST=mini` and omit `qhost:` (the token
+One queue host: `export DISTSSHQUEUE_HOST=mini` and omit `qhost:` (the token
 still wins). Several clusters: pass `qhost:` each time.
 
 `list-host` is not Kit `--hosts`. `ssh -G` runs on the queue host.
@@ -62,4 +62,4 @@ line with a `.jl` and no Queue verb is `go`.
 There is no `--via`. Do not pass `qhost:` to `setup` / `serve` /
 `enable` / `disable` / `add-host` / `remove-host`.
 
-Next: [One lab](@ref Tutorial-Lab), or [User Guide](@ref Manual).
+Next: [Walkthrough](@ref Tutorial-Walkthrough), or [User Guide](@ref Manual).

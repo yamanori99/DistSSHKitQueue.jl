@@ -5,7 +5,7 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
-- One lab walkthrough: queue host `setup` / `add-host` / `serve`, client
+- Walkthrough: queue host `setup` / `add-host` / `serve`, client
   `demo install` / `qhost:` go / `fetch`, Kit setup from the stage tree
   before `child:NAME`, then drive, then teardown dry-run / `-y`.
 

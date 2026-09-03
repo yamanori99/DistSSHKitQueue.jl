@@ -29,7 +29,7 @@ makedocs(;
             "Requirements" => "requirements.md",
             "Prepare" => "tutorial/prepare.md",
             "First job" => "tutorial/client.md",
-            "One lab" => "tutorial/lab.md",
+            "Walkthrough" => "tutorial/walkthrough.md",
         ],
         "User Guide" => [
             "Overview" => "manual/index.md",

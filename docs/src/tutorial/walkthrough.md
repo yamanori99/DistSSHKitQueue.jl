@@ -1,6 +1,6 @@
-# [One lab](@id Tutorial-Lab)
+# [Walkthrough](@id Tutorial-Walkthrough)
 
-Commands a new lab types, in order. Flags and trees stay on
+Commands in the order you type them. Flags and trees stay on
 [Prepare](@ref Tutorial-Prepare), [First job](@ref Tutorial-Client),
 and the [User Guide](@ref Manual). Not a dump of root `--help`.
 
@@ -29,17 +29,17 @@ Clients hop: create the env, then `pkg> add DistSSHQueue` in it
 ## Client: go on parent
 
 Job directory. Queue loadable (`julia --project=.`). DistSSHKit comes
-with Queue (0.5.x).
+with Queue (0.5.x). `demo install` copies into `distsshkit_demos/`
+(DistSSHKit **0.5.1+**). On **0.5.0** that directory is `demos/` —
+use that prefix in the `go` / `drive` lines below.
 
 ```bash
 julia --project=. -m DistSSHKit demo install without_kit
 julia --project=. -m DistSSHQueue qhost:mini go parent distsshkit_demos/without_kit/pi_echo.jl
 ```
 
-DistSSHKit **0.5.0** copied into `demos/` instead of
-`distsshkit_demos/`. `qhost:` rsyncs this tree to
-`~/.distsshqueue/stage/<key>` on `mini` (excludes `.distsshkit/`).
-Stdout is the job UUID. This laptop has
+`qhost:` rsyncs this tree to `~/.distsshqueue/stage/<key>` on `mini`
+(excludes `.distsshkit/`). Stdout is the job UUID. This laptop has
 `.distsshkit/queue/<id>` only; the Kit leaf is not here yet.
 
 ```bash

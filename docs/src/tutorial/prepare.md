@@ -1,7 +1,7 @@
 # [Prepare](@id Tutorial-Prepare)
 
 First-time **queue host** before a [First job](@ref Tutorial-Client).
-Typed path (go / fetch / Kit setup / teardown): [One lab](@ref Tutorial-Lab).
+Typed path (go / fetch / Kit setup / teardown): [Walkthrough](@ref Tutorial-Walkthrough).
 This box is always-on **macOS or Linux**. Clients can skip this page if
 someone already set that box up.
 
@@ -78,4 +78,4 @@ julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
 not leave a `serve` terminal open. If there is no dedicated dir,
 `enable` uses the active project.
 
-Next: [One lab](@ref Tutorial-Lab), or [First job](@ref Tutorial-Client).
+Next: [Walkthrough](@ref Tutorial-Walkthrough), or [First job](@ref Tutorial-Client).

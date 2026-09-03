@@ -9,7 +9,7 @@ file is not the leaf.
 julia --project=. -m DistSSHQueue [qhost:HOST] fetch <id>
 ```
 
-Also: [First job](@ref Tutorial-Client), [One lab](@ref Tutorial-Lab),
+Also: [First job](@ref Tutorial-Client), [Walkthrough](@ref Tutorial-Walkthrough),
 [submit](@ref Manual-submit),
 [status](@ref Manual-status).
 

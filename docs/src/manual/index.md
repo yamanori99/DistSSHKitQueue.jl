@@ -2,7 +2,7 @@
 
 Command reference. For a hands-on path, use First Steps
 ([Requirements](@ref) → [Prepare](@ref Tutorial-Prepare) →
-[One lab](@ref Tutorial-Lab)).
+[Walkthrough](@ref Tutorial-Walkthrough)).
 
 Root `--help` is a short table (Kit-shaped). Flags and FAQ:
 `julia --project=. -m DistSSHQueue <command> -h` and the pages below.
