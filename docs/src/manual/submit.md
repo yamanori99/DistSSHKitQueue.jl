@@ -12,7 +12,8 @@ Bare `go` / `drive` alias `submit go` / `submit drive`. A Kit-shaped
 line with a `.jl` and no Queue verb is `go`
 (`--hosts child:NAME:N SCRIPT.jl`).
 
-Also: [First job](@ref Tutorial-Client), [hosts](@ref Manual-hosts),
+Also: [First job](@ref Tutorial-Client), [Walkthrough](@ref Tutorial-Walkthrough),
+[hosts](@ref Manual-hosts),
 `julia -m DistSSHQueue --help`. Kit flags:
 [go](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/go/),
 [drive](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/drive/).

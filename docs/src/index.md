@@ -84,8 +84,8 @@ OS”. They are not two ways to start the same thing.
 ## Next
 
 Start at **[Requirements](@ref)**, then **[Prepare](@ref Tutorial-Prepare)**
-(queue host, once) and **[First job](@ref Tutorial-Client)** (from a
-laptop).
+(queue host, once). Type the path in **[Walkthrough](@ref Tutorial-Walkthrough)**.
+Command catalog: **[First job](@ref Tutorial-Client)**.
 
 Later: [`submit`](@ref Manual-submit), [`status`](@ref Manual-status), and
 the rest of the [User Guide](@ref Manual); or the **[API](@ref API)** to

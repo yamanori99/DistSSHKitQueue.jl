@@ -76,7 +76,7 @@ DistSSHKitQueue (旧 UUID) なので使わない。
 
 `qhost:NAME` はキューホストの SSH 名である (Kit の `child:NAME` と同じ形だが、
 ワーカーではなくキューホストを指す)。既にそのマシンにログインしていれば省略する。
-ラボが 1 つのとき: `export DISTSSHQUEUE_HOST=…` して `qhost:` を省略できる
+キューホストが 1 つのとき: `export DISTSSHQUEUE_HOST=…` して `qhost:` を省略できる
 (トークンがあればそちらが勝つ)。`--hosts` / `--julia` は Kit の `go` / `drive` のまま。
 
 配置トークン、`go` / `drive` のフラグ、リモートの準備は DistSSHKit の範囲である。
@@ -168,6 +168,9 @@ julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 `submit` は、`serve` が無ければキューホスト上で起動する。ジョブ id は
 stdout 1 行。stderr に `Queued  N` (`DISTSSHKIT_QUIET` で隠す)。
 `fetch` は終わった Kit leaf をこのジョブ木へ戻す。
+
+打つ順 (キューホスト → fetch → Kit worker setup → teardown):
+[Walkthrough](https://yamanori99.github.io/DistSSHQueue.jl/stable/tutorial/walkthrough/)。
 
 **キューホスト** で一度だけ。`setup` は `config.toml` を書く (`env/` は作らない)。
 既定の Julia 環境で `julia -m DistSSHQueue`。チェックアウトなら `--project=.`。

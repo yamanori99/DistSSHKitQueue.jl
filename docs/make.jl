@@ -29,6 +29,7 @@ makedocs(;
             "Requirements" => "requirements.md",
             "Prepare" => "tutorial/prepare.md",
             "First job" => "tutorial/client.md",
+            "Walkthrough" => "tutorial/walkthrough.md",
         ],
         "User Guide" => [
             "Overview" => "manual/index.md",

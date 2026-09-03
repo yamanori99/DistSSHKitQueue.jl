@@ -77,7 +77,7 @@ For everything else, see the
 
 `qhost:NAME` is the SSH name of the queue host (same idea as Kit
 `child:NAME`, but it names the queue host, not a worker). Already logged in
-there? Omit it. One lab: `export DISTSSHQUEUE_HOST=…` and omit `qhost:`
+there? Omit it. One queue host: `export DISTSSHQUEUE_HOST=…` and omit `qhost:`
 (the token still wins). `--hosts` / `--julia` stay on Kit `go` / `drive`.
 
 Placement tokens, `go` / `drive` flags, and remote setup are DistSSHKit's —
@@ -170,6 +170,9 @@ julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 `submit` starts `serve` on the queue host if none is running. Job ids are a
 bare stdout line; stderr shows `Queued  N` unless `DISTSSHKIT_QUIET` is set.
 `fetch` copies the finished Kit leaf onto this job tree.
+
+Typed path (queue host → fetch → Kit worker setup → teardown):
+[Walkthrough](https://yamanori99.github.io/DistSSHQueue.jl/stable/tutorial/walkthrough/).
 
 On the **queue host** (once). `setup` writes `config.toml`, not `env/`.
 Queue in the default Julia env (`julia -m DistSSHQueue`); from a

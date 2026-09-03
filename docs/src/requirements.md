@@ -1,7 +1,8 @@
 # Requirements
 
 Prerequisites for [Introduction](@ref DistSSHQueue.jl) and
-[Prepare](@ref Tutorial-Prepare). DistSSHKit's own checks
+[Prepare](@ref Tutorial-Prepare). Typed commands:
+[Walkthrough](@ref Tutorial-Walkthrough). DistSSHKit's own checks
 ([kit Requirements](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/))
 still apply to workers. This page is Queue: queue host vs client.
 
