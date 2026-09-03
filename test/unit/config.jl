@@ -483,6 +483,7 @@ end
         write(cfg, "store = $(repr(store))\n")
         write(store, "jobs = []\n")
         write(string(store, ".log"), "log\n")
+        mkpath(string(store, ".lock"))
         write(joinpath(data, "env", "Project.toml"), "name = \"x\"\n")
         bindir = joinpath(home, ".local", "bin")
         mkpath(bindir)
@@ -498,6 +499,7 @@ end
             end
             @test code1 == 0
             @test occursin("Would remove", out1)
+            @test occursin(".lock", out1)
             @test occursin("Pass -y / --yes to delete", out1)
             @test !occursin("Error:", err1)
             @test !occursin("Error:", out1)

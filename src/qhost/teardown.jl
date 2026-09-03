@@ -29,7 +29,7 @@ function teardown_targets(;
     data = queue_data_dir(; home=home)
     legacy = joinpath(home, ".distsshkitqueue")
     wrap = wrapper_path(; bindir=bindir)
-    out = String[wrap, st, store_pid_path(st), store_stop_path(st), string(st, ".log"), config, data, legacy]
+    out = String[wrap, st, store_pid_path(st), store_stop_path(st), string(st, ".log"), string(st, ".lock"), config, data, legacy]
     if Sys.isapple()
         push!(out, launch_agent_path(; home=home))
         push!(out, legacy_launch_agent_path(; home=home))
