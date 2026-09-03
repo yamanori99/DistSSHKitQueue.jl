@@ -8,8 +8,9 @@ Submit from a **client** after the queue host is up
 ## Point at the queue host
 
 Run from a directory where Queue is loadable (`julia --project=.`).
-That `--project=.` stays on the **client**. `qhost:` loads Queue from
-`~/.distsshqueue/env` (`--queue-env DIR` if you used another dir).
+That `--project=.` stays on the **client**. `qhost:` defaults to
+`--project=~/.distsshqueue/env` on the queue host (`--queue-env DIR` /
+`--queue-env @`). Create that dir if clients hop (see Prepare).
 `qhost:` **rsync**s the client job tree (`cwd` /
 `DISTRIBUTED_PROJECT_ROOT`) to `~/.distsshqueue/stage/<id>` on the
 queue host. `SCRIPT.jl` must exist on the **client** in that tree.

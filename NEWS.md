@@ -5,6 +5,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- Prepare leads with `setup` / `add-host` / `serve`. Dedicated
+  `~/.distsshqueue/env` is optional (`qhost:` / `enable`). `setup` still
+  writes `config.toml` only.
+
 - `list-host` NAME for `parent` is the queue-host hostname; HOST TOKEN
   stays `parent`. Via `qhost:`, parent SSH is `queue host`, not `this
   machine`. Store `path` is `HOST:~/.distsshqueue/jobs.toml` on that hop.

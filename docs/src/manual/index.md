@@ -31,8 +31,9 @@ whole): `fetch` (inverse of stage).
 
 `--hosts` / `--julia` belong to Kit `go` / `drive`. Queue-host Julia is
 `--remote-julia` / `JULIA_DISTRIBUTED_EXE`. `--queue-env DIR` is
-`julia --project=` on the queue host (default `~/.distsshqueue/env`),
-not the client's `--project=.`. Default `qhost:`: `DISTSSHQUEUE_HOST` (not
+`julia --project=` on the queue host (default `~/.distsshqueue/env` if
+you created that dir), not the client's `--project=.`. `--queue-env @`
+is the remote default Julia env. Default `qhost:`: `DISTSSHQUEUE_HOST` (not
 `DISTSSHKIT_HOSTS`). Not forwarded. Not `DISTSSHQUEUE_QHOST` (that is
 `status` / `watch` display).
 

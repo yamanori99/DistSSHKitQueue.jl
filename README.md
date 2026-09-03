@@ -116,7 +116,7 @@ not set `DISTRIBUTED_REMOTE_PROJECT_ROOT` in shared `config.toml`.
   jobs.toml.log
   jobs.toml.pid         while serve is up
   jobs.toml.stopped     after stop, until serve
-  env/                  --queue-env / enable default
+  env/                  qhost: default --project=; enable if present
     Project.toml
     Manifest.toml
   stage/<id>/           client tree after qhost: submit
@@ -166,17 +166,21 @@ julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 bare stdout line; stderr shows `Queued  N` unless `DISTSSHKIT_QUIET` is set.
 `fetch` copies the finished Kit leaf onto this job tree.
 
-On the **queue host** (once):
+On the **queue host** (once). `setup` writes `config.toml`, not `env/`.
+Queue in the default Julia env (`julia -m DistSSHQueue`); from a
+checkout add `--project=.`.
 
 ```bash
-cd ~/.distsshqueue/env
-julia --project=. -m DistSSHQueue setup
-julia --project=. -m DistSSHQueue add-host parent child:host1
-julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
+julia -m DistSSHQueue setup
+julia -m DistSSHQueue add-host parent child:host1
+julia -m DistSSHQueue serve
 ```
 
-`setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` refuse
-`qhost:`. Command reference: [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/).
+`qhost:` defaults to `--project=~/.distsshqueue/env` (`--queue-env @`
+for the remote default env). `enable` uses that dir if present.
+`setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host`
+refuse `qhost:`. Command reference:
+[User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/).
 
 ## Documentation
 
