@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `status --interval` is live (`watch` is the same loop; default `0.5`).
+  Snapshot `status` is unchanged. `qhost:` live uses `ssh -t` like `watch`.
+
 - `status` / `watch` Store chrome includes `enable` (OS unit on this
   host, or `none`). Distinct from `serve` running / stopped / none.
 

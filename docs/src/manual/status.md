@@ -4,7 +4,7 @@ Read the table, watch it live, or cancel a row. The table lives on the
 queue host.
 
 ```bash
-julia --project=. -m DistSSHQueue [qhost:HOST] status [-q]
+julia --project=. -m DistSSHQueue [qhost:HOST] status [-q] [--interval S]
 julia --project=. -m DistSSHQueue [qhost:HOST] watch [-q] [--interval S]
 julia --project=. -m DistSSHQueue [qhost:HOST] cancel <id>
 julia --project=. -m DistSSHQueue [qhost:HOST] fetch <id>
@@ -17,12 +17,12 @@ Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
 `qhost`). `serve` is the live process (`running` / `stopped` /
 `none`). `enable` is the OS unit file on this host (LaunchAgent /
 systemd), or `none`. After `qhost:` those paths are the queue host's.
-`watch` with `qhost:HOST` uses `ssh -t` when this stdout is a TTY so the
-remote can clear the screen. A pipe without `-q` prints a compact
-`serve` / `running` / `queued` line; `watch -q` is still the table.
-Use `status` for the history table.
+Bare `status` is a snapshot. `watch` is `status --interval` (default
+`0.5`). Live with `qhost:HOST` uses `ssh -t` when this stdout is a TTY
+so the remote can clear the screen. A pipe without `-q` prints a compact
+`serve` / `running` / `queued` line; `-q` on a pipe is still the table.
 
-`watch` does not stop `serve`. Ctrl-C leaves it running.
+Live does not stop `serve`. Ctrl-C leaves it running.
 
 ## Flags
 
@@ -30,7 +30,7 @@ Use `status` for the history table.
 | --- | --- |
 | `-q` / `--quiet` | Table only (`DISTSSHKIT_QUIET`) |
 | `--progress` / `--verbose` | Keep chrome (exclusive with `-q`) |
-| `--interval S` | `watch` only; default `0.5` |
+| `--interval S` | Live redraw (`watch` default `0.5`) |
 | `-h` / `--help` | Queue usage |
 
 `DISTSSHQUEUE_WATCH_TICKS` is a test harness (finite frames), not a
