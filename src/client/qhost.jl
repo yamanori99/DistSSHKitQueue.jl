@@ -267,12 +267,15 @@ function maybe_remote(
             dest, spec, sub, hop, extra, payload; tty=tty, qhost_display=disp, queue_env=q,
         )
     end
+    should_submit_ticket(sub, payload) && return _remote_submit_ticket(
+        dest, spec, sub, payload, extra, payload; tty=tty, qhost_display=disp, queue_env=q,
+    )
     return remote_dispatch(
         dest, spec, sub, hop; tty=tty, qhost_display=disp, queue_env=q, extra_env=extra,
     )
 end
 
-"""Stage hop: capture submit stdout, reprint it, write `.distsshkit/queue/<id>`."""
+"""`qhost:` submit hop: capture stdout, reprint it, write `.distsshkit/queue/<id>`."""
 function _remote_submit_ticket(
     dest::AbstractString,
     spec::AbstractString,

@@ -81,8 +81,8 @@ function staging_enabled()::Bool
     return true
 end
 
-function should_stage(sub::AbstractString, payload::Vector{String})::Bool
-    staging_enabled() || return false
+"""`qhost:` `submit` / `go` / `drive` (not help). Ticket even when staging is off."""
+function should_submit_ticket(sub::AbstractString, payload::Vector{String})::Bool
     sub in ("submit", "go", "drive") || return false
     any(a -> a in ("-h", "--help", "-v", "--version", "-V"), payload) && return false
     if sub == "submit"
@@ -90,6 +90,11 @@ function should_stage(sub::AbstractString, payload::Vector{String})::Bool
         payload[1] in ("-h", "--help") && return false
     end
     return true
+end
+
+function should_stage(sub::AbstractString, payload::Vector{String})::Bool
+    staging_enabled() || return false
+    return should_submit_ticket(sub, payload)
 end
 
 function kit_verb_and_args(sub::AbstractString, payload::Vector{String})
