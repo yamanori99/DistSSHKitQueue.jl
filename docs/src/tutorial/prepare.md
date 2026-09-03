@@ -11,36 +11,23 @@ Also see [Requirements](@ref), [Where files live](@ref Layout),
 `setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host`
 refuse `qhost:` — log in to the queue host and run them there.
 
-## Install Queue
-
-Once, in `~/.distsshqueue/env` (`qhost:` and `enable` default):
-
-```bash
-mkdir -p ~/.distsshqueue/env
-cd ~/.distsshqueue/env
-julia --project=.
-```
-
-```julia
-pkg> add DistSSHQueue
-```
-
-That pulls DistSSHKit **0.5.x** from General. `setup` does not create
-that env (it would run `Pkg` as a side effect). A different dir is
-`--queue-env DIR` on `enable` and on client `qhost:`. `--queue-env @` is
-the remote default Julia env (no `--project=`).
-
 ## Config and inventory
 
+Queue must be loadable here (default Julia env, or `--project=` on a
+checkout). `setup` does not install the package and does not create
+`~/.distsshqueue/env`. It writes `~/.distsshqueue/config.toml` if
+missing. That tree (config / store) is not the same as
+`julia --project=`.
+
 ```bash
-cd ~/.distsshqueue/env
-julia --project=. -m DistSSHQueue setup
-julia --project=. -m DistSSHQueue add-host parent child:host1
-julia --project=. -m DistSSHQueue list-host
+julia -m DistSSHQueue setup
+julia -m DistSSHQueue add-host parent child:host1
+julia -m DistSSHQueue list-host
+julia -m DistSSHQueue serve
 ```
 
-`setup` writes `~/.distsshqueue/config.toml` if missing (`--force`
-rewrites). Defaults work without it. Use it for `store=` or `[env]`.
+Defaults work without `config.toml`. `--force` rewrites it. Use it for
+`store=` or `[env]`.
 
 `add-host` writes Kit tokens into config `hosts`
 (`parent[:N]` / `child:NAME[:N]`). `parent` is this queue host;
@@ -55,6 +42,27 @@ from the **queue host**, not from Queue, **from that job's clone**
 queue `config.toml` so Kit uses `~/parent/Repo.jl` per clone.
 [kit Prepare](https://yamanori99.github.io/DistSSHKit.jl/stable/tutorial/prepare/).
 
+## Dedicated env (optional)
+
+Create `~/.distsshqueue/env` when clients `qhost:` (that hop defaults to
+`--project=~/.distsshqueue/env`) or when `enable` should not pin a
+checkout. Skip it if you only `setup` / `add-host` / `serve` from an env
+that already has DistSSHQueue. `--queue-env @` is the remote default
+Julia env (no `--project=`).
+
+```bash
+mkdir -p ~/.distsshqueue/env
+cd ~/.distsshqueue/env
+julia --project=.
+```
+
+```julia
+pkg> add DistSSHQueue
+```
+
+That pulls DistSSHKit **0.5.x** from General. A different dir is
+`--queue-env DIR` on `enable` and on client `qhost:`.
+
 ## Survive reboot (optional)
 
 ```bash
@@ -63,12 +71,7 @@ julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
 
 `--queue-env` is the env that loads Queue in the OS unit, not Julia
 `--project=` / the Kit project. After that, clients only `submit`. You do
-not leave a `serve` terminal open.
-
-Foreground, this session only:
-
-```bash
-julia --project=. -m DistSSHQueue serve
-```
+not leave a `serve` terminal open. If there is no dedicated dir,
+`enable` uses the active project.
 
 Next: [First job](@ref Tutorial-Client).

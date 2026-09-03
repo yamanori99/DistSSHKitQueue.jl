@@ -14,7 +14,8 @@ or `DISTSSHKIT_YES` actually wipes. From a client: `qhost:HOST teardown
 -y`.
 
 `setup` is optional. Defaults work without `config.toml`. Re-run is a
-no-op unless `--force`.
+no-op unless `--force`. It writes `config.toml` only, not
+`~/.distsshqueue/env`.
 
 ## Flags
 

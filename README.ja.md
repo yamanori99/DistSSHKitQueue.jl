@@ -113,7 +113,7 @@ DistSSHKitQueue (旧 UUID) なので使わない。
   jobs.toml.log
   jobs.toml.pid         serve 中
   jobs.toml.stopped     stop 後、serve まで
-    env/                  --queue-env / enable の既定
+    env/                  任意。あれば qhost: / enable の既定
     Project.toml
     Manifest.toml
   stage/<id>/           qhost: submit 後のクライアント木
@@ -163,17 +163,18 @@ julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 stdout 1 行。stderr に `Queued  N` (`DISTSSHKIT_QUIET` で隠す)。
 `fetch` は終わった Kit leaf をこのジョブ木へ戻す。
 
-**キューホスト** で一度だけ:
+**キューホスト** で一度だけ。`setup` は `config.toml` を書く (`env/` は作らない)。
+Queue が `julia -m DistSSHQueue` でロードできること。
 
 ```bash
-cd ~/.distsshqueue/env
-julia --project=. -m DistSSHQueue setup
-julia --project=. -m DistSSHQueue add-host parent child:host1
-julia --project=. -m DistSSHQueue enable --queue-env ~/.distsshqueue/env
+julia -m DistSSHQueue setup
+julia -m DistSSHQueue add-host parent child:host1
+julia -m DistSSHQueue enable
 ```
 
-`setup` / `serve` / `enable` / `disable` / `add-host` / `remove-host` は
-`qhost:` を受け付けない。コマンド参照:
+専用 `~/.distsshqueue/env` は任意 (`qhost:` の既定 `--project=`、または
+`enable --queue-env`)。`setup` / `serve` / `enable` / `disable` /
+`add-host` / `remove-host` は `qhost:` を受け付けない。コマンド参照:
 [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/)。
 
 ## ドキュメント

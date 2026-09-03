@@ -43,9 +43,10 @@ The always-on **queue host** is **macOS or Linux** (Mac mini, Linux VM;
 machine. WSL2 is Linux for a **client** or a worker; do not use it as
 the always-on queue host.
 
-Install Queue in **`~/.distsshqueue/env`** (`julia --project=.` there;
-`pkg> add DistSSHQueue`).
-`qhost:` uses that path (`--queue-env`). The table lives at
+Install Queue so `julia -m DistSSHQueue` works on this host (default
+env or `--project=`). Dedicated **`~/.distsshqueue/env`** is optional:
+create it for `qhost:` hops (that path is the default `--queue-env`)
+and for `enable`. `setup` does not create it. The table lives at
 `~/.distsshqueue/jobs.toml`.
 
 Also install, as in DistSSHKit (the kit parent for each job is this
@@ -169,7 +170,7 @@ unit; skip that file if you only `serve` in a terminal.
   jobs.toml.log
   jobs.toml.pid         while serve is up
   jobs.toml.stopped     after stop, until serve
-  env/                  --queue-env / enable default
+  env/                  optional; qhost: / enable default if present
     Project.toml
     Manifest.toml
   stage/<id>/           client tree after qhost: submit
