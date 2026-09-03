@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- Missing `jobs.toml` is Store `path none` and Jobs `(none)`, not a live
+  empty table (`(empty)` is a store with zero rows).
+
 - `status --interval` is live (`watch` is the same loop; default `0.5`).
   Snapshot `status` is unchanged. `qhost:` live uses `ssh -t` like `watch`.
 

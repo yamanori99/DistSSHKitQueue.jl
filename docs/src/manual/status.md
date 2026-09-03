@@ -14,9 +14,12 @@ Also: [First job](@ref Tutorial-Client), [submit](@ref Manual-submit),
 [User Guide](@ref Manual), [fetch](@ref Manual-fetch).
 
 `status` / `watch` share one Store table (`path` / `serve` / `enable` /
-`qhost`). `serve` is the live process (`running` / `stopped` /
-`none`). `enable` is the OS unit file on this host (LaunchAgent /
-systemd), or `none`. After `qhost:` those paths are the queue host's.
+`qhost`). `path` is the store file, or `none` when it is missing
+(teardown / never submitted). `Jobs (empty)` is a live store with zero
+rows; `(none)` is no file. `serve` is the live process (`running` /
+`stopped` / `none`). `enable` is the OS unit file on this host
+(LaunchAgent / systemd), or `none`. After `qhost:` those paths are the
+queue host's.
 Bare `status` is a snapshot. `watch` is `status --interval` (default
 `0.5`). Live with `qhost:HOST` uses `ssh -t` when this stdout is a TTY
 so the remote can clear the screen. A pipe without `-q` prints a compact

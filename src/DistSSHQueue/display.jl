@@ -308,8 +308,17 @@ function _qhost_disp(qhost::Union{Nothing,AbstractString})::String
     return v == hn ? v : "$v ($hn)"
 end
 
-function print_jobs_table(rows::Vector{Job}; io::IO=stdout)
+function print_jobs_table(
+    rows::Vector{Job};
+    io::IO=stdout,
+    present::Bool=true,
+)
     DistSSHKit.print_help_section("Jobs"; io=io)
+    if !present
+        DistSSHKit.print_colored(io, "  (none)", :light_black, false)
+        println(io)
+        return nothing
+    end
     if isempty(rows)
         DistSSHKit.print_colored(io, "  (empty)", :light_black, false)
         println(io)
@@ -373,17 +382,18 @@ function print_status_table(
     quiet::Bool=false,
     live::Bool=false,
 )
+    present = isfile(store)
     if !quiet
         DistSSHKit.print_help_section("Store"; io=io)
         DistSSHKit.print_help_lines(io,
-            "  path   $(_q_short(store))",
+            "  path   $(present ? _q_short(store) : "none")",
             "  serve  $(_serve_disp(store))",
             "  enable $(_enable_disp())",
             "  qhost  $(_qhost_disp(qhost))",
         )
         DistSSHKit.print_help_blank(io)
     end
-    print_jobs_table(rows; io=io)
+    print_jobs_table(rows; io=io, present=present)
     if live && !quiet
         DistSSHKit.print_help_blank(io)
         DistSSHKit.print_help_lines(io, "Ctrl-C stops watch; serve stays.")
