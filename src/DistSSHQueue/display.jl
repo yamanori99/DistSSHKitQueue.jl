@@ -350,16 +350,23 @@ function print_status_table(
     io::IO=stdout,
     qhost::Union{Nothing,AbstractString}=nothing,
     quiet::Bool=false,
+    live::Bool=false,
 )
     if !quiet
         DistSSHKit.print_help_section("Store"; io=io)
         DistSSHKit.print_help_lines(io,
             "  path   $(_q_short(store))",
+            "  serve  $(_serve_disp(store))",
             "  qhost  $(_qhost_disp(qhost))",
         )
         DistSSHKit.print_help_blank(io)
     end
-    return print_jobs_table(rows; io=io)
+    print_jobs_table(rows; io=io)
+    if live && !quiet
+        DistSSHKit.print_help_blank(io)
+        DistSSHKit.print_help_lines(io, "Ctrl-C stops watch; serve stays.")
+    end
+    return nothing
 end
 
 function print_watch_frame(
@@ -369,20 +376,17 @@ function print_watch_frame(
     qhost::Union{Nothing,AbstractString}=nothing,
     quiet::Bool=false,
 )
-    if !quiet
-        DistSSHKit.print_help_chrome("DistSSHQueue watch"; io=io)
-        DistSSHKit.print_help_section("Process"; io=io)
-        DistSSHKit.print_help_lines(io,
-            "  store   $(_q_short(store))",
-            "  serve   $(_serve_disp(store))",
-            "  qhost   $(_qhost_disp(qhost))",
-        )
-        DistSSHKit.print_help_blank(io)
-    end
-    print_jobs_table(rows; io=io)
-    if !quiet
-        DistSSHKit.print_help_blank(io)
-        DistSSHKit.print_help_lines(io, "Ctrl-C stops watch; serve stays.")
-    end
+    return print_status_table(store, rows; io=io, qhost=qhost, quiet=quiet, live=true)
+end
+
+function print_watch_compact(
+    store::AbstractString,
+    rows::Vector{Job};
+    io::IO=stdout,
+)
+    nrun = count(j -> j.state === :running, rows)
+    nq = count(j -> j.state === :queued, rows)
+    println(io, "  serve $(_serve_disp(store))  running $nrun  queued $nq")
+    flush(io)
     return nothing
 end

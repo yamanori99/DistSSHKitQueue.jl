@@ -45,7 +45,7 @@ Green on one layer does not imply the others. `Pkg.test()` does not run `e2e.jl`
 
 `enable` / `disable` / `teardown` in SSH E2E use `--write-only` (no runner systemd / LaunchAgent). Coverage: `Pkg.test` max slot flag `pkgtest` on main push; `DISTSSHQUEUE_CODE_COVERAGE=1` on `up.sh --e2e` flag `e2e` (cut PRs and E2E weekly Linux).
 
-`watch` is a live status table (Ctrl-C), not a job monitor. Finite frames in tests use `DISTSSHQUEUE_WATCH_TICKS` (not `--ticks`). A later monitor package may take the name `watch` ([#35](https://github.com/yamanori99/DistSSHQueue.jl/issues/35)).
+`watch` is a live status table on a TTY (Ctrl-C). A pipe without `-q` is a compact serve/running/queued line; `watch -q` stays table-only. Finite frames in tests use `DISTSSHQUEUE_WATCH_TICKS` (not `--ticks`). A later monitor package may take the name `watch` ([#35](https://github.com/yamanori99/DistSSHQueue.jl/issues/35)).
 
 ## SSH E2E roles
 

@@ -556,6 +556,7 @@ end
                 end
                 @test code_st == 0
                 @test occursin("Store", out_st)
+                @test occursin("serve", out_st)
                 @test occursin("qhost", out_st)
                 @test occursin("local ($(gethostname()))", out_st)
                 @test occursin("(empty)", out_st)
@@ -886,17 +887,17 @@ end
                     DistSSHQueue.main(["watch", "--interval", "0.01"])
                 end
                 @test code == 0
-                @test occursin("DistSSHQueue watch", out)
                 @test occursin("serve", out)
-                @test occursin("qhost", out)
-                @test occursin("local ($(gethostname()))", out)
-                @test occursin("(empty)", out)
-                @test occursin("Ctrl-C stops watch", out)
+                @test occursin("running", out)
+                @test occursin("queued", out)
+                @test !occursin("DistSSHQueue watch", out)
+                @test !occursin("Ctrl-C stops watch", out)
                 code_qw, out_qw, _ = capture_stdio() do
                     DistSSHQueue.main(["watch", "-q", "--interval", "0.01"])
                 end
                 @test code_qw == 0
                 @test occursin("(empty)", out_qw)
+                @test !occursin("Store", out_qw)
                 @test !occursin("DistSSHQueue watch", out_qw)
                 @test !occursin("Ctrl-C stops watch", out_qw)
                 code_go, _, _ = capture_stdio() do
@@ -920,6 +921,11 @@ end
                 end
                 @test errt == 1
                 @test occursin("unknown watch option", err_ticks)
+                frame = sprint(io -> DistSSHQueue.print_watch_frame(p, DistSSHQueue.Job[]; io=io))
+                @test occursin("Store", frame)
+                @test occursin("serve", frame)
+                @test occursin("Ctrl-C stops watch", frame)
+                @test !occursin("Process", frame)
             end
         end
     end

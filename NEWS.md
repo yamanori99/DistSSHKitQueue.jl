@@ -5,6 +5,11 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `watch` reprints the same Store table as `status` (including `serve`)
+  when stdout is a TTY (`ssh -t` on `qhost:`). A pipe without `-q`
+  prints one compact `serve` / `running` / `queued` line per tick.
+  `watch -q` on a pipe is still the table.
+
 - `teardown` without `-y` is a dry-run (`Would remove`, exit 0), not
   `Error:`. Still needs `-y` / `DISTSSHKIT_YES` to delete.
 
