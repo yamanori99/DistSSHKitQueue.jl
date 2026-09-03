@@ -795,13 +795,30 @@ exit 0
             @test code == 0
             @test occursin("parent", out)
             @test occursin("child:host1", out)
+            @test occursin(gethostname(), out)
             @test occursin("this machine", out)
+            @test !occursin("queue host", out)
             @test occursin("HostName 10.0.0.8", out)
             @test occursin("User lab", out)
             @test occursin("Port 2222", out)
             @test !occursin("identityfile", lowercase(out))
             @test !occursin("id_rsa", out)
             @test occursin("MAX", out)
+        end
+        write(cfg, "hosts = [\"parent\", \"child:host1\"]\n")
+        withenv(
+            "DISTSSHQUEUE_CONFIG" => cfg,
+            "PATH" => path,
+            DistSSHQueue.QHOST_DISPLAY_ENV => "mini",
+        ) do
+            code, out, _ = capture_stdio() do
+                DistSSHQueue.main(["list-host"])
+            end
+            @test code == 0
+            @test occursin("queue host", out)
+            @test !occursin("this machine", out)
+            @test occursin(gethostname(), out)
+            @test occursin("parent", out)
         end
         write(cfg, "store = \"x\"\n")
         withenv("DISTSSHQUEUE_CONFIG" => cfg, "PATH" => path) do
@@ -1001,6 +1018,12 @@ end
         @test occursin("(empty)", z)
         @test !occursin("  path   none", z)
         @test occursin("path", z)
+        hop = sprint(io -> DistSSHQueue.show_status(p; io=io, qhost="qbox"))
+        @test occursin("qbox:", hop)
+        @test occursin("qbox ($(gethostname()))", hop)
+        hopnone = sprint(io -> DistSSHQueue.show_status(joinpath(d, "gone.toml"); io=io, qhost="qbox"))
+        @test occursin("  path   none", hopnone)
+        @test !occursin("qbox:none", hopnone)
         q = sprint(io -> DistSSHQueue.show_status(p; io=io, quiet=true))
         @test occursin("(empty)", q)
         @test !occursin("Store", q)

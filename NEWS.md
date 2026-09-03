@@ -5,6 +5,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `list-host` NAME for `parent` is the queue-host hostname; HOST TOKEN
+  stays `parent`. Via `qhost:`, parent SSH is `queue host`, not `this
+  machine`. Store `path` is `HOST:~/.distsshqueue/jobs.toml` on that hop.
+
 - Missing `jobs.toml` is Store `path none` and Jobs `(none)`, not a live
   empty table (`(empty)` is a store with zero rows).
 

@@ -43,9 +43,11 @@ julia --project=. -m DistSSHQueue list-host
 rewrites). Defaults work without it. Use it for `store=` or `[env]`.
 
 `add-host` writes Kit tokens into config `hosts`
-(`parent[:N]` / `child:NAME[:N]`). First add creates the list (submit is
-no longer allow-all). Optional `:N` is a max. No `serve` restart: the
-next `submit` re-reads the file.
+(`parent[:N]` / `child:NAME[:N]`). `parent` is this queue host;
+`child:NAME` is SSH. First add creates the list (submit is no longer
+allow-all). Optional `:N` is a max. No `serve` restart: the next
+`submit` re-reads the file. `list-host` NAME for parent is the hostname;
+HOST TOKEN stays `parent`.
 
 Workers still need DistSSHKit `setup` (rsync or clone, then instantiate)
 from the **queue host**, not from Queue, **from that job's clone**

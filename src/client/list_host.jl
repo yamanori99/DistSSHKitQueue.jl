@@ -25,8 +25,20 @@ function ssh_g_connect(name::AbstractString)::Dict{String,String}
     return out
 end
 
-function _host_token_ssh_disp(name::AbstractString)::String
-    DistSSHKit.is_parent_host_name(name) && return "this machine ($(gethostname()))"
+"""NAME column: queue-host hostname for `parent`, SSH Host for `child:`."""
+function _host_name_disp(name::AbstractString)::String
+    DistSSHKit.is_parent_host_name(name) && return gethostname()
+    return String(name)
+end
+
+function _host_token_ssh_disp(
+    name::AbstractString;
+    hopped::Bool=false,
+)::String
+    if DistSSHKit.is_parent_host_name(name)
+        hn = gethostname()
+        return hopped ? "queue host ($hn)" : "this machine ($hn)"
+    end
     g = ssh_g_connect(name)
     isempty(g) && return "(ssh -G failed)"
     parts = String[]
@@ -45,6 +57,7 @@ end
 function print_list_host(
     names::Union{Nothing, HostAllow};
     io::IO=stdout,
+    qhost::Union{Nothing,AbstractString}=qhost_display_from_env(),
 )
     DistSSHKit.print_help_chrome("DistSSHQueue list-host"; io=io)
     if names === nothing
@@ -55,14 +68,26 @@ function print_list_host(
         println(io, "  (hosts = []; submit accepts none)")
         return nothing
     end
+    hopped = !(qhost === nothing || isempty(String(qhost)))
     rows = sorted_kit_ssh_names(names)
-    nw = max(4, maximum(length, rows))
+    labels = String[_host_name_disp(n) for n in rows]
+    nw = max(4, maximum(length, labels))
     tw = max(10, maximum(length ∘ _host_token, rows))
     maxs = String[names[n] === nothing ? "-" : string(names[n]) for n in rows]
     mw = max(3, maximum(length, maxs))
     println(io, "  ", rpad("NAME", nw), "  ", rpad("HOST TOKEN", tw), "  ", rpad("MAX", mw), "  SSH")
-    for n in rows
-        println(io, "  ", rpad(n, nw), "  ", rpad(_host_token(n), tw), "  ", rpad(names[n] === nothing ? "-" : string(names[n]), mw), "  ", _host_token_ssh_disp(n))
+    for (n, label) in zip(rows, labels)
+        println(
+            io,
+            "  ",
+            rpad(label, nw),
+            "  ",
+            rpad(_host_token(n), tw),
+            "  ",
+            rpad(names[n] === nothing ? "-" : string(names[n]), mw),
+            "  ",
+            _host_token_ssh_disp(n; hopped=hopped),
+        )
     end
     return nothing
 end

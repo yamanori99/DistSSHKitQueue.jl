@@ -240,8 +240,10 @@ end
 
 """If a queue host is set, ssh `sub` + `rest` and return the exit code; else `nothing`.
 
-`label_qhost`: remote `status` / `watch` print the client token via
-`DISTSSHQUEUE_QHOST` (not a CLI flag; re-passing `qhost:` would recurse).
+`label_qhost` sets `DISTSSHQUEUE_QHOST` to the client token (not a CLI flag;
+re-passing `qhost:` would recurse). `status` / `watch` print that token on the
+Store `qhost` line and prefix `path`. `list-host` only uses it to say
+`queue host (hostname)` instead of `this machine`; NAME is `gethostname()`.
 """
 function maybe_remote(
     qhost::Union{Nothing,AbstractString},
