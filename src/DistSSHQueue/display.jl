@@ -299,6 +299,19 @@ function _enable_disp(; home::AbstractString=homedir())::String
     return _q_short(p)
 end
 
+function _store_path_disp(
+    store::AbstractString,
+    present::Bool,
+    qhost::Union{Nothing,AbstractString},
+)::String
+    present || return "none"
+    short = _q_short(store)
+    if qhost === nothing || isempty(String(qhost))
+        return short
+    end
+    return "$(String(qhost)):$short"
+end
+
 function _qhost_disp(qhost::Union{Nothing,AbstractString})::String
     hn = gethostname()
     if qhost === nothing || isempty(String(qhost))
@@ -386,7 +399,7 @@ function print_status_table(
     if !quiet
         DistSSHKit.print_help_section("Store"; io=io)
         DistSSHKit.print_help_lines(io,
-            "  path   $(present ? _q_short(store) : "none")",
+            "  path   $(_store_path_disp(store, present, qhost))",
             "  serve  $(_serve_disp(store))",
             "  enable $(_enable_disp())",
             "  qhost  $(_qhost_disp(qhost))",

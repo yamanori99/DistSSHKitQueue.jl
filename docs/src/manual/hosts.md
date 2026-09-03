@@ -20,8 +20,9 @@ Also: [Prepare](@ref Tutorial-Prepare), [submit](@ref Manual-submit),
 ## add-host / remove-host
 
 Write Kit tokens into config `hosts`
-(`parent[:N]` / `child:NAME[:N]`). Optional `:N` is a per-name max.
-Bare `host1` is not a token.
+(`parent[:N]` / `child:NAME[:N]`). `parent` is slots on this queue
+host, not an SSH Host named parent. `child:NAME` is SSH `Host NAME`.
+Optional `:N` is a per-name max. Bare `host1` is not a token.
 
 | | |
 | --- | --- |
@@ -35,9 +36,12 @@ file. A `:running` Kit job is not stopped.
 
 ## list-host
 
-Read-only: host tokens (`parent` / `child:NAME`) plus `ssh -G` Host /
-HostName / User / Port. No private keys or IdentityFile. `ssh -G` runs
-on the queue host, not on the client.
+Read-only. NAME for `parent` is this queue host's hostname; HOST TOKEN
+stays `parent` (copy-paste for `submit`, including `parent:N`). Children:
+NAME is the SSH Host, HOST TOKEN is `child:NAME`. `ssh -G` (Host /
+HostName / User / Port) runs on the queue host. No private keys or
+IdentityFile. Locally, parent SSH is `this machine (hostname)`. Via
+`qhost:`, it is `queue host (hostname)` — not the client's hostname.
 
 ```bash
 julia -m DistSSHQueue qhost:mini list-host

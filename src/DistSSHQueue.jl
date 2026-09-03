@@ -86,7 +86,9 @@ function main(args::Vector{String}=copy(ARGS))::Cint
             _, _, _, payload = extract_remote_opts(rest)
             return status_cli(payload)
         elseif sub == "list-host"
-            r = maybe_remote(qhost, gjulia, "list-host", rest; queue_env=gqenv)
+            r = maybe_remote(
+                qhost, gjulia, "list-host", rest; label_qhost=true, queue_env=gqenv,
+            )
             r === nothing || return r
             _, _, _, payload = extract_remote_opts(rest)
             return list_host_cli(payload)
