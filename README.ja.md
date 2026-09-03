@@ -14,7 +14,7 @@
 
 DistSSHQueue は、何人かで同じマシンを使い、ジョブを順番に走らせるものである。
 ジョブの投入、状態の確認、成果物の取得、取り消しができる。
-実行は [DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) が担う。
+実行は [DistSSHKit](https://yamanori99.github.io/DistSSHKit.jl/stable/) が担う。
 対応は **macOS、Linux、WSL2 Ubuntu** (ネイティブ Windows は対象外)。
 
 小さな研究室や個人でも、常時起動のマシンを 1 台置き、SSH接続したマシンとまとめて小さな計算ノードとして使うことが出来る。

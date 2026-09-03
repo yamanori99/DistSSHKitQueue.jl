@@ -3,7 +3,7 @@
 DistSSHQueue runs jobs one after another on machines that several
 people share. You can submit a job, check its status, fetch a finished
 leaf, and cancel.
-[DistSSHKit](https://github.com/yamanori99/DistSSHKit.jl) does the run.
+[DistSSHKit](https://yamanori99.github.io/DistSSHKit.jl/stable/) does the run.
 Supported on **macOS, Linux, and WSL2 Ubuntu** (not native Windows).
 
 Even small labs and individuals can keep one always-on machine, add
