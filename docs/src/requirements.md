@@ -155,6 +155,7 @@ CLI.
   Project.toml          DistSSHQueue (CLI)
   Manifest.toml
   SCRIPT.jl             rsync'd on qhost submit
+  .distsshkit/queue/<id>  after qhost: submit (fetch later)
   .distsshkit/go/       after fetch (same relpath as the stage leaf)
 ```
 

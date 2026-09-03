@@ -13,7 +13,9 @@ That `--project=.` stays on the **client**. `qhost:` defaults to
 `--queue-env @`). Create that dir if clients hop (see Prepare).
 `qhost:` **rsync**s the client job tree (`cwd` /
 `DISTRIBUTED_PROJECT_ROOT`) to `~/.distsshqueue/stage/<id>` on the
-queue host. `SCRIPT.jl` must exist on the **client** in that tree.
+queue host (excludes `.distsshkit/`). After submit, this job tree has
+`.distsshkit/queue/<id>` (not the Kit leaf). `SCRIPT.jl` must exist on
+the **client** in that tree.
 Omit `qhost:`: no rsync; the script is on this machine. Kit still
 copies queue host → workers.
 
@@ -47,9 +49,10 @@ julia --project=. -m DistSSHQueue qhost:mini fetch <id>
 `qhost` (or `local (hostname)` when you omitted it). `watch` is
 `status --interval` until Ctrl-C; it does not stop `serve`. Job ids print as a bare
 stdout line. `submit` also prints `Queued  N` on stderr unless
-`DISTSSHKIT_QUIET` is set. `fetch` copies the finished Kit leaf onto
-this job tree (inverse of the `qhost:` rsync, which excludes
-`.distsshkit/`). Run it from the same directory as `submit`.
+`DISTSSHKIT_QUIET` is set. After `qhost:` submit, `.distsshkit/queue/<id>`
+marks the job on this laptop. `fetch` copies the finished Kit leaf onto
+this job tree (inverse of the `qhost:` rsync). Run it from the same
+directory as `submit`.
 
 Bare `go` / `drive` alias `submit go` / `submit drive`. A Kit-shaped
 line with a `.jl` and no Queue verb is `go`.

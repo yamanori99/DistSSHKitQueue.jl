@@ -120,3 +120,27 @@ end
         end
     end
 end
+
+@testset "qhost submit ticket is not a Kit leaf" begin
+    mktempdir() do d
+        proj = joinpath(d, "job")
+        mkpath(proj)
+        script = joinpath(proj, "S.jl")
+        write(script, "1\n")
+        id = "96392aaa-4387-5ffe-07ee-8f69406890bb"
+        @test DistSSHQueue.job_id_from_submit_stdout("Queued  1\n") === nothing
+        @test DistSSHQueue.job_id_from_submit_stdout(id * "\n") == id
+        dest = DistSSHQueue.write_submit_ticket(
+            proj, id * "\n"; script=script, qhost="mini",
+        )
+        @test dest == DistSSHQueue.submit_ticket_path(proj, id)
+        @test isfile(dest)
+        body = read(dest, String)
+        @test occursin("id = ", body)
+        @test occursin("S.jl", body)
+        @test occursin("qhost = \"mini\"", body)
+        @test !occursin("/go/", dest)
+        @test !occursin("/drive/", dest)
+        @test DistSSHQueue.write_submit_ticket(proj, "not-an-id\n") === nothing
+    end
+end

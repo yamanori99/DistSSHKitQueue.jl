@@ -1,7 +1,9 @@
 # [fetch](@id Manual-fetch)
 
 Copy one finished Kit result leaf onto this job tree. Inverse of
-`qhost:` stage (which excludes `.distsshkit/`).
+`qhost:` stage (which excludes `.distsshkit/`). `qhost:` submit leaves
+`.distsshkit/queue/<id>` on this tree so the laptop is not empty; that
+file is not the leaf.
 
 ```bash
 julia --project=. -m DistSSHQueue [qhost:HOST] fetch <id>

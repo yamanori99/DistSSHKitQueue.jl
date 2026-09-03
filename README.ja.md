@@ -87,7 +87,9 @@ DistSSHKitQueue (旧 UUID) なので使わない。
 `qhost:` はキューホストの SSH 名であり、保存先の接頭辞ではない。表と Kit の
 結果ディレクトリは **そのマシン** に残る。クライアントに
 `~/.distsshqueue` は無い。`qhost:` submit はクライアントのジョブ木を
-`~/.distsshqueue/stage/<id>` へ rsync する (`.distsshkit/` は除外)。Kit はキューホストから worker へコピーする。`fetch` は終わった Kit leaf を戻す。
+`~/.distsshqueue/stage/<id>` へ rsync する (`.distsshkit/` は除外)。
+クライアントには `.distsshkit/queue/<id>` が残る。Kit はキューホストから
+worker へコピーする。`fetch` は終わった Kit leaf を戻す。
 
 #### クライアント
 
@@ -96,6 +98,7 @@ DistSSHKitQueue (旧 UUID) なので使わない。
   Project.toml          DistSSHQueue (CLI)
   Manifest.toml
   SCRIPT.jl             qhost: submit で rsync
+  .distsshkit/queue/<id>  qhost: submit のあと
   .distsshkit/go/       fetch のあと
 ```
 

@@ -29,8 +29,11 @@ using DistSSHQueue
         @test DistSSHQueue.remote_stage_root(k; home="/qh") == "/qh/.distsshqueue/stage/" * k
     end
     @test DistSSHQueue.should_stage("status", ["--interval", "1"]) == false
+    @test DistSSHQueue.should_submit_ticket("submit", ["go", "S.jl"])
+    @test DistSSHQueue.should_submit_ticket("status", ["--interval", "1"]) == false
     withenv(DistSSHQueue.NO_STAGE_ENV => "1") do
         @test DistSSHQueue.staging_enabled() == false
         @test DistSSHQueue.should_stage("submit", ["go", "S.jl"]) == false
+        @test DistSSHQueue.should_submit_ticket("submit", ["go", "S.jl"])
     end
 end

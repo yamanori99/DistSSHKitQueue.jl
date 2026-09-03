@@ -263,8 +263,50 @@ function maybe_remote(
     hop = payload
     if should_stage(sub, payload)
         hop, extra = stage_job_tree!(dest, spec, sub, payload)
+        return _remote_submit_ticket(
+            dest, spec, sub, hop, extra, payload; tty=tty, qhost_display=disp, queue_env=q,
+        )
     end
+    should_submit_ticket(sub, payload) && return _remote_submit_ticket(
+        dest, spec, sub, payload, extra, payload; tty=tty, qhost_display=disp, queue_env=q,
+    )
     return remote_dispatch(
         dest, spec, sub, hop; tty=tty, qhost_display=disp, queue_env=q, extra_env=extra,
     )
+end
+
+"""`qhost:` submit hop: capture stdout, reprint it, write `.distsshkit/queue/<id>`."""
+function _remote_submit_ticket(
+    dest::AbstractString,
+    spec::AbstractString,
+    sub::AbstractString,
+    hop::Vector{String},
+    extra::Dict{String,String},
+    payload::Vector{String};
+    tty::Bool,
+    qhost_display::Union{Nothing,AbstractString},
+    queue_env::AbstractString,
+)::Cint
+    code, text = mktemp() do path, io
+        c = redirect_stdout(io) do
+            remote_dispatch(
+                dest, spec, sub, hop;
+                tty=tty, qhost_display=qhost_display, queue_env=queue_env, extra_env=extra,
+            )
+        end
+        flush(io)
+        return c, read(path, String)
+    end
+    print(text)
+    if Int(code) == 0
+        script = nothing
+        try
+            kit, kitargs = kit_verb_and_args(sub, payload)
+            parsed = kit == "go" ? DistSSHKit.parse_go_args(kitargs) : DistSSHKit.parse_drive_args(kitargs)
+            parsed.script_path !== nothing && (script = String(parsed.script_path))
+        catch
+        end
+        write_submit_ticket(job_project(), text; script=script, qhost=dest)
+    end
+    return Cint(code)
 end
