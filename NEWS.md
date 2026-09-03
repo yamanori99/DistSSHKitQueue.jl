@@ -5,6 +5,9 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- `disable` prints `Removed` or `Present` (unchanged), like `enable` /
+  `setup`. Teardown still lists those paths itself.
+
 - Root `--help` matches Kit: command table, examples, then
   `<command> -h`. Notes stay in the Manual.
 

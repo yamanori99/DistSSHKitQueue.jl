@@ -163,10 +163,14 @@ function print_removed(path::AbstractString; io::IO=stdout)
     return nothing
 end
 
-function print_present(path::AbstractString; io::IO=stdout)
+function print_present(
+    path::AbstractString;
+    io::IO=stdout,
+    note::AbstractString="  (unchanged; --force to rewrite)",
+)
     DistSSHKit.print_colored(io, "Present  ", :light_black, false)
     print(io, _q_short(path))
-    DistSSHKit.print_colored(io, "  (unchanged; --force to rewrite)", :light_black, false)
+    DistSSHKit.print_colored(io, note, :light_black, false)
     println(io)
     return nothing
 end

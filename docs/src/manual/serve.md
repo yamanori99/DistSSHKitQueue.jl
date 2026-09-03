@@ -39,3 +39,6 @@ Halts `serve`, keeps config / store / OS unit. Writes
 `serve` resumes. Clients can `qhost:HOST stop`.
 
 `disable` removes the OS unit. It does not delete the job table.
+`Removed` when a unit file was deleted; `Present` (unchanged) when there
+was nothing to drop. LaunchAgent / systemd still unload unless
+`--write-only`.
