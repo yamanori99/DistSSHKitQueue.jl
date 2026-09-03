@@ -170,7 +170,7 @@ unit; skip that file if you only `serve` in a terminal.
   jobs.toml.log
   jobs.toml.pid         while serve is up
   jobs.toml.stopped     after stop, until serve
-  env/                  optional; qhost: / enable default if present
+  env/                  qhost: default --project=; enable if present
     Project.toml
     Manifest.toml
   stage/<id>/           client tree after qhost: submit

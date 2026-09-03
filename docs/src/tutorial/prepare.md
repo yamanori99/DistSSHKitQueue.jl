@@ -13,11 +13,12 @@ refuse `qhost:` — log in to the queue host and run them there.
 
 ## Config and inventory
 
-Queue must be loadable here (default Julia env, or `--project=` on a
-checkout). `setup` does not install the package and does not create
-`~/.distsshqueue/env`. It writes `~/.distsshqueue/config.toml` if
-missing. That tree (config / store) is not the same as
-`julia --project=`.
+Queue must be loadable here. `setup` does not install the package and
+does not create `~/.distsshqueue/env`. It writes
+`~/.distsshqueue/config.toml` if missing. That tree (config / store) is
+not the same as `julia --project=`.
+
+Default Julia env (`pkg> add DistSSHQueue` there):
 
 ```bash
 julia -m DistSSHQueue setup
@@ -25,6 +26,8 @@ julia -m DistSSHQueue add-host parent child:host1
 julia -m DistSSHQueue list-host
 julia -m DistSSHQueue serve
 ```
+
+From a checkout of this package, the same verbs with `--project=.`.
 
 Defaults work without `config.toml`. `--force` rewrites it. Use it for
 `store=` or `[env]`.
