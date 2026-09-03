@@ -237,7 +237,7 @@ CI infers, in order:
 1. A unique type on a closing issue (`Fixes #N`)
 2. Else the branch prefix: `feat/` → enhancement, `fix/` → bug, `breaking/` → breaking, `chore/` / `docs/` / `ci/` / `test/` / anything else → chore
 
-`fix/` plus `Fixes` an enhancement issue gets `enhancement`. `breaking` may sit next to the type label. After a `cut` merge, Full green (or `cut-hold`); then a human registers; TagBot tags.
+`fix/` plus `Fixes` an enhancement issue gets `enhancement`. `breaking` may sit next to the type label. After a `cut` merge, Full runs; a human registers when green (or holds with `cut-hold`); TagBot tags.
 
 Ruleset `main` requires check `PR label` (workflow `Type`). Type labels (`bug` / `enhancement` / `breaking` / `chore` / `cut`) and each `area:*` must exist (`gh label create` if missing).
 
