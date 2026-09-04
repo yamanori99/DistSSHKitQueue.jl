@@ -9,6 +9,11 @@ still apply to workers. This page is Queue: queue host vs client.
 `pkg> add DistSSHQueue` does not install **`ssh`**, **`rsync`**, or
 **`git`**.
 
+Runs need **SSH** (client → queue host, queue host → workers). LAN or
+VPN is enough. Constant internet is not required; you mainly need it
+for `Pkg.add` / `instantiate`, an outbound `git clone`, or installing
+Julia.
+
 ## All machines
 
 Applies to the **queue host**, each **client**, and each SSH host that
