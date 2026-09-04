@@ -11,7 +11,7 @@ still apply to workers. This page is Queue: queue host vs client.
 
 Runs need **SSH** (client → queue host, queue host → workers). LAN or
 VPN is enough. Constant internet is not required; you mainly need it
-for `Pkg.add` / `instantiate`, an outbound `git clone`, or installing
+for `Pkg.add` / `instantiate`, outbound `git clone` / `git pull`, or installing
 Julia.
 
 ## All machines
