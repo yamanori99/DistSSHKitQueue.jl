@@ -5,6 +5,10 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- Docs: trust domain on the queue host (`submit` as that user reaches
+  workers); single-FIFO day-to-day limits; `jobs.toml` writers use a
+  directory lock (rewrite not atomic; `status`/`watch` unlocked).
+
 - DistSSHKit **0.5.x** (≥0.5.4). Kit `setup` hosts use `child:NAME`
   (same as go / drive); `setup --juliaup` also accepts `parent`.
   Requirements: align juliaup on the queue host; restart `serve` /
