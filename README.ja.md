@@ -116,7 +116,7 @@ worker へコピーする。`fetch` は終わった Kit leaf を戻す。
   jobs.toml.log
   jobs.toml.pid         serve 中
   jobs.toml.stopped     stop 後、serve まで
-    env/                  qhost: 既定 --project=。enable はあれば使う
+  env/                  qhost: 既定 --project=。enable はあれば使う
     Project.toml
     Manifest.toml
   stage/<id>/           qhost: submit 後のクライアント木
@@ -188,13 +188,14 @@ julia -m DistSSHQueue serve
 
 ## ドキュメント
 
-| | |
-| --- | --- |
-| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/stable/) |
-| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/) |
-| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/) |
-| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/stable/api/) |
-| News | [NEWS.md](NEWS.md) |
+- Introduction:
+  [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
+- First Steps:
+  [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
+- User Guide:
+  [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/)
+- API: [API](https://yamanori99.github.io/DistSSHQueue.jl/stable/api/)
+- News: [NEWS.md](NEWS.md)
 
 ## 貢献
 
