@@ -192,13 +192,14 @@ refuse `qhost:`. Command reference:
 
 ## Documentation
 
-| | |
-| --- | --- |
-| Introduction | [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/stable/) |
-| First Steps | [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/) |
-| User Guide | [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/) |
-| API | [API](https://yamanori99.github.io/DistSSHQueue.jl/stable/api/) |
-| News | [NEWS.md](NEWS.md) |
+- Introduction:
+  [Introduction](https://yamanori99.github.io/DistSSHQueue.jl/stable/)
+- First Steps:
+  [First Steps](https://yamanori99.github.io/DistSSHQueue.jl/stable/requirements/)
+- User Guide:
+  [User Guide](https://yamanori99.github.io/DistSSHQueue.jl/stable/manual/)
+- API: [API](https://yamanori99.github.io/DistSSHQueue.jl/stable/api/)
+- News: [NEWS.md](NEWS.md)
 
 ## Contributing
 

@@ -5,15 +5,21 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
-- Docs: trust domain on the queue host (`submit` as that user reaches
-  workers); single-FIFO day-to-day limits; `jobs.toml` writers use a
-  directory lock (rewrite not atomic; `status`/`watch` unlocked).
+## 0.3.2
 
-- DistSSHKit **0.5.x** (≥0.5.4). Kit `setup` hosts use `child:NAME`
-  (same as go / drive); `setup --juliaup` also accepts `parent`.
-  Requirements: align juliaup on the queue host; restart `serve` /
-  re-`enable` after changing the default. Docs examples use `child:`
-  (bare SSH names are rejected since Kit 0.5.4).
+Patch after `0.3.1`. DistSSHKit **0.5.x** (≥0.5.4).
+Setup `child:` tokens, juliaup on the queue host, trust / FIFO / store docs.
+
+- DistSSHKit **0.5.x** (≥0.5.4). Kit `setup` hosts are `child:NAME`
+  (`parent` for `--juliaup`). Bare SSH names rejected. Align juliaup
+  on the queue host; restart `serve` / re-`enable` after changing the
+  default.
+- Requirements: trust domain (`submit` as the queue-host user reaches
+  workers). Introduction: single-FIFO day-to-day limits. `jobs.toml`
+  writers use a directory lock (rewrite not atomic; `status`/`watch`
+  unlocked).
+- Runs need SSH (LAN/VPN). Constant internet is mainly for `Pkg` /
+  `git clone` / `git pull` / installing Julia.
 
 ## 0.3.1
 
