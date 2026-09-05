@@ -45,6 +45,8 @@ from the **queue host**, not from Queue, **from that job's clone**
 (`~/org/Repo.jl`). Leave `DISTRIBUTED_REMOTE_PROJECT_ROOT` unset in
 queue `config.toml` so Kit uses `~/parent/Repo.jl` per clone.
 [kit Prepare](https://yamanori99.github.io/DistSSHKit.jl/stable/tutorial/prepare/).
+To align Julia versions, DistSSHKit `setup --juliaup` on the queue host
+(`parent` / `child:NAME`; see [Requirements](@ref)).
 
 ## Dedicated env (optional)
 
@@ -64,7 +66,7 @@ julia --project=.
 pkg> add DistSSHQueue
 ```
 
-That pulls DistSSHKit **0.5.x** (≥0.5.1) from General. A different dir is
+That pulls DistSSHKit **0.5.x** (≥0.5.4) from General. A different dir is
 `--queue-env DIR` on `enable` and on client `qhost:`.
 
 ## Survive reboot (optional)

@@ -29,7 +29,7 @@ Clients hop: create the env, then `pkg> add DistSSHQueue` in it
 ## Client: go on parent
 
 Job directory. Queue loadable (`julia --project=.`). DistSSHKit **0.5.x**
-(≥0.5.1) comes with Queue. `demo install` copies into `distsshkit_demos/`.
+(≥0.5.4) comes with Queue. `demo install` copies into `distsshkit_demos/`.
 
 ```bash
 julia --project=. -m DistSSHKit demo install without_kit
@@ -57,8 +57,8 @@ setup — same two-segment remote Kit would use for drive
 
 ```bash
 cd ~/.distsshqueue/stage/<key>
-julia --project=. -m DistSSHKit setup --rsync host1
-julia --project=. -m DistSSHKit setup --instantiate host1
+julia --project=. -m DistSSHKit setup --rsync child:host1
+julia --project=. -m DistSSHKit setup --instantiate child:host1
 ```
 
 [kit Prepare](https://yamanori99.github.io/DistSSHKit.jl/stable/tutorial/prepare/).

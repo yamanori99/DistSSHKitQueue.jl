@@ -5,6 +5,12 @@ GitHub Releases may copy these sections (`Release notes:` on `@JuliaRegistrator 
 
 ## Unreleased
 
+- DistSSHKit **0.5.x** (≥0.5.4). Kit `setup` hosts use `child:NAME`
+  (same as go / drive); `setup --juliaup` also accepts `parent`.
+  Requirements: align juliaup on the queue host; restart `serve` /
+  re-`enable` after changing the default. Docs examples use `child:`
+  (bare SSH names are rejected since Kit 0.5.4).
+
 ## 0.3.1
 
 Patch after `0.3.0`. DistSSHKit **0.5.x** (≥0.5.1).
