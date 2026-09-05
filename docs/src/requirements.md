@@ -125,10 +125,12 @@ ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new HOS
 ### Probe workers
 
 From the **queue host**, DistSSHKit [Checks](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/#Checks)
-(passwordless SSH, Julia path / version). Example:
+(passwordless SSH, Julia path / version). Example (any env that has
+DistSSHKit; dedicated `~/.distsshqueue/env` is optional):
 
 ```bash
-julia --project=$HOME/.distsshqueue/env -m DistSSHKit setup --check child:USER@HOST
+julia -m DistSSHKit setup --check child:USER@HOST
+# or: julia --project=$HOME/.distsshqueue/env -m DistSSHKit setup --check child:USER@HOST
 ```
 
 ### Align Julia with juliaup
@@ -140,12 +142,15 @@ process that is already running.
 
 Prefer the **queue host** (job kit parent). Channel = this command's
 major.minor. Typical labs have passwordless SSH from the queue host to
-workers, not from the client:
+workers, not from the client. Run from an env that already loads
+DistSSHKit (default env, a checkout `--project=.`, or the optional
+dedicated dir):
 
 ```bash
 # On the queue host: parent = this box; remotes = child:NAME (no bare SSH)
-julia --project=$HOME/.distsshqueue/env -m DistSSHKit \
-  setup --juliaup parent child:host1
+julia -m DistSSHKit setup --juliaup parent child:host1
+# or: julia --project=$HOME/.distsshqueue/env -m DistSSHKit \
+#        setup --juliaup parent child:host1
 
 # From a client: only hosts you can SSH to from the laptop.
 # parent here is the laptop, not the queue host.
