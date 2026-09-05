@@ -35,8 +35,7 @@ julia> import Pkg; Pkg.add("DistSSHQueue")
 ```
 
 DistSSHKit **0.5.x** (≥0.5.4) は General から付いてくる。通常の Queue 作業で
-Kit を `Pkg.develop` しない。git タグ `v0.1.0-beta.1` は旧
-DistSSHKitQueue (旧 UUID) なので使わない。
+Kit を `Pkg.develop` しない。
 
 キューホストには **`ssh`**、**`rsync`**、および (git デプロイを使うときだけ) **`git`** も必要。
 `pkg> add` では入らない。詳細な利用条件については以下:
