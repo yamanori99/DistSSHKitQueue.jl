@@ -31,7 +31,7 @@ runs jobs.
     usual OS path ([Checks](@ref)) or set `--remote-julia` /
     `JULIA_DISTRIBUTED_EXE`. Missing path or a related bug:
     [open an Issue](https://github.com/yamanori99/DistSSHQueue.jl/issues).
-- **DistSSHKit 0.5.x** (≥0.5.1) from General. Do not `Pkg.develop` Kit for
+- **DistSSHKit 0.5.x** (≥0.5.4) from General. Do not `Pkg.develop` Kit for
   ordinary Queue work
 
 WSL2 is Linux, with DistSSHKit's extra rules:
@@ -125,11 +125,43 @@ ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new HOS
 ### Probe workers
 
 From the **queue host**, DistSSHKit [Checks](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/#Checks)
-(passwordless SSH, Julia path / version). Example:
+(passwordless SSH, Julia path / version). Example (any env that has
+DistSSHKit; dedicated `~/.distsshqueue/env` is optional):
 
 ```bash
-julia --project=$HOME/.distsshqueue/env -m DistSSHKit setup --check USER@HOST
+julia -m DistSSHKit setup --check child:USER@HOST
+# or: julia --project=$HOME/.distsshqueue/env -m DistSSHKit setup --check child:USER@HOST
 ```
+
+### Align Julia with juliaup
+
+Queue has no `--juliaup` verb. Use DistSSHKit `setup --juliaup` (Kit
+0.5.4+: same `child:NAME` / `parent` tokens as go / drive). That changes
+each target's **juliaup default** only — it does not change a Julia
+process that is already running.
+
+Prefer the **queue host** (job kit parent). Channel = this command's
+major.minor. Typical labs have passwordless SSH from the queue host to
+workers, not from the client. Run from an env that already loads
+DistSSHKit (default env, a checkout `--project=.`, or the optional
+dedicated dir):
+
+```bash
+# On the queue host: parent = this box; remotes = child:NAME (no bare SSH)
+julia -m DistSSHKit setup --juliaup parent child:host1
+# or: julia --project=$HOME/.distsshqueue/env -m DistSSHKit \
+#        setup --juliaup parent child:host1
+
+# From a client: only hosts you can SSH to from the laptop.
+# parent here is the laptop, not the queue host.
+julia --project=. -m DistSSHKit setup --juliaup child:QHOST
+```
+
+After changing the default on the queue host: stop `serve` and start it
+again. If you use `enable`, run `enable` again so the OS unit picks up
+the new Julia path, then restart serve. Running jobs keep their old
+binary; workers usually pick the new default on the next Kit job.
+Details: [kit Requirements](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/).
 
 ## [Where files live](@id Layout)
 
