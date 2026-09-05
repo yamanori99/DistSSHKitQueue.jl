@@ -87,8 +87,7 @@ Patch after `0.2.0`. DistSSHKit **0.4.x** (≥0.4.3).
 
 ## 0.2.0
 
-First General release. Same product as **0.2.0-beta.2** (`fetch`, DistSSHKit
-**0.4.x**, ≥0.4.2). Tag `v0.1.0-beta.1` is DistSSHKitQueue (old UUID); do not use it.
+First General release. DistSSHKit **0.4.x** (≥0.4.2). `fetch`.
 
 ## 0.2.0-beta.2
 

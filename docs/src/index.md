@@ -43,8 +43,7 @@ julia> import Pkg; Pkg.add("DistSSHQueue")
 ```
 
 DistSSHKit **0.5.x** (≥0.5.4) comes from General with it. Do not `Pkg.develop`
-Kit for ordinary Queue work. Git tag `v0.1.0-beta.1` is DistSSHKitQueue
-(old UUID); do not use it.
+Kit for ordinary Queue work.
 
 Also needs **`ssh`**, **`rsync`**, and **`git`** (git deploy only);
 `pkg> add` does not install them. [Requirements](@ref).
