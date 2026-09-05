@@ -81,6 +81,12 @@ Queue is not a bigger Kit and does not keep a lab-wide slot ceiling.
 `serve` is “run the process”. `enable` is “register that process with the
 OS”. They are not two ways to start the same thing.
 
+On a shared queue host that means: one long job holds the whole FIFO
+(no preemption, no priority, no per-user fairness). Work started with
+DistSSHKit **bypassing** the queue competes for the same workers and is
+invisible to Queue. Split long jobs, or agree in the group that shared
+hosts are driven only through the queue.
+
 ## Next
 
 Start at **[Requirements](@ref)**, then **[Prepare](@ref Tutorial-Prepare)**

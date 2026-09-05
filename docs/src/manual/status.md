@@ -25,6 +25,8 @@ Bare `status` is a snapshot. `watch` is `status --interval` (default
 `0.5`). Live with `qhost:HOST` uses `ssh -t` when this stdout is a TTY
 so the remote can clear the screen. A pipe without `-q` prints a compact
 `serve` / `running` / `queued` line; `-q` on a pipe is still the table.
+How the table file is locked and rewritten:
+[User Guide · Job record](@ref Manual-job-record).
 
 Live does not stop `serve`. Ctrl-C leaves it running.
 

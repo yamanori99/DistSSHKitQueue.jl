@@ -42,7 +42,7 @@ the OS” (LaunchAgent / systemd). The queue host is **macOS or Linux**.
 `enable` does not make a laptop or WSL2 the always-on box. `disable`
 is the opposite of `enable`, not of `serve`.
 
-## Job record
+## [Job record](@id Manual-job-record)
 
 Each row: `id` (UUID), `kind` (`:go` / `:drive`), `script`, `hosts`,
 `state` (`:queued` / `:running` / `:done` / `:failed` / `:cancelled`),
@@ -58,15 +58,24 @@ does not keep a second copy of Kit's result tree. Kit kwargs (`args`,
 so Kit progress lines can carry `job=`.
 
 The table is TOML on the queue host (`~/.distsshqueue/jobs.toml`),
-rewritten under a directory lock. Kit results stay under that project
-(`.distsshkit/`). Layout: [Where files live](@ref Layout). If `serve`
-dies: `:queued` rows reload on the next `serve`. A `:running` row whose
-DistSSHKit `kit.pid` is still alive stays `:running` (`serve` will
-not start the next FIFO job). A `:running` row with no live `kit.pid`
-is `:done` or `:failed` from DistSSHKit `ok` in `kit.result` when that
-file exists, otherwise `:failed`. Drive listed `parent` / `child` hosts
-must join, stay, and collect unless the job passed `--best-effort`
-(Kit 0.5; [kit drive](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/drive/)).
+rewritten under a directory lock (`jobs.toml.lock`). Writers
+(`submit`, `cancel`, `serve`, `fetch` load, …) take that lock before a
+rewrite. The rewrite is not atomic (truncate-in-place); a crash
+mid-write can leave a bad table. `status` / `watch` read without the
+lock (best-effort; they may fail if they hit a mid-write).
+`jobs.toml.pid` names a live `serve` (a dead pid is ignored);
+`jobs.toml.stopped` after `stop` blocks autoserve until an explicit
+`serve`. If writers hang and no Queue process holds the lock, remove a
+stale `jobs.toml.lock`. File names: [Where files live](@ref Layout).
+If `serve` dies: `:queued` rows reload on the next `serve`. A `:running`
+row whose DistSSHKit `kit.pid` is still alive stays `:running` (`serve`
+will not start the next FIFO job). A `:running` row with no live
+`kit.pid` is `:done` or `:failed` from DistSSHKit `ok` in `kit.result`
+when that file exists, otherwise `:failed`. Drive listed `parent` /
+`child` hosts must join, stay, and collect unless the job passed
+`--best-effort` (Kit 0.5;
+[kit drive](https://yamanori99.github.io/DistSSHKit.jl/stable/manual/drive/)).
+Kit results stay under that project (`.distsshkit/`).
 
 ## Shared peel
 
@@ -85,4 +94,5 @@ package, lab-wide slot ceilings or occupancy packing, preemption /
 fair-share / priorities / reservations / backfill, HTTP or a listen
 socket, a sleeping laptop as `serve`, auto-retry of crashed
 `:running` jobs, a Queue-owned copy of Kit's result trees, and native
-Windows.
+Windows. Day-to-day consequences of the single FIFO:
+[Introduction](@ref DistSSHQueue.jl).

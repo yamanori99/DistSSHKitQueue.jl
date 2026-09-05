@@ -62,6 +62,14 @@ machine):
 - **`rsync`** — collect / rsync deploy
 - **`git`** — git deploy path only
 
+Anyone who can run Queue `submit` as the queue-host user (on that box or
+via `qhost:`) can run arbitrary Julia as that user; DistSSHKit then uses
+passwordless SSH to every listed worker. The queue host and its workers
+are **one trust domain** — the intended lab premise (shared shell
+access), not a place for untrusted submitters. Same idea as
+[kit Requirements](https://yamanori99.github.io/DistSSHKit.jl/stable/requirements/);
+how to report a vulnerability stays in [SECURITY.md](https://github.com/yamanori99/DistSSHQueue.jl/blob/main/SECURITY.md).
+
 Do not set `DISTSSHQUEUE_HOST` here (or in `config.toml` `[env]`).
 That name is a **client** default for `qhost:`.
 
@@ -77,7 +85,8 @@ from the job env (`julia --project=.`).
   `JULIA_DISTRIBUTED_EXE` (same detection as DistSSHKit)
 
 `qhost:` submit copies the client job tree onto the queue host (and
-excludes `.distsshkit/`). `fetch` copies one finished Kit leaf back.
+excludes `.distsshkit/`), then runs Queue as the **queue-host user**.
+`fetch` copies one finished Kit leaf back.
 Placement tokens are interpreted **on the queue host**. Omit `qhost:`:
 no copy.
 
