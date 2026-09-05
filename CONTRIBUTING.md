@@ -30,11 +30,15 @@ julia --project=. -e 'using Pkg; Pkg.instantiate()'
 
 That pulls DistSSHKit from General. Do not add a `[sources]` path to a Kit checkout unless you are landing an unreleased kit hook.
 
-From another app:
+From another app (a **separate** env, not a job whose Manifest is copied to workers):
 
 ```bash
-julia --project=/path/to/MyProject.jl -e 'using Pkg; Pkg.develop(path="/path/to/DistSSHQueue.jl")'
+julia --project=/path/to/QueueDevEnv.jl -e 'using Pkg; Pkg.develop(path="/path/to/DistSSHQueue.jl")'
 ```
+
+Do not `Pkg.develop` Queue or Kit from a project you actually run
+distributed jobs from — the Manifest records an absolute path the
+workers do not have. Keep a separate environment for package work.
 
 ## Test
 
